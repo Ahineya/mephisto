@@ -1,4 +1,4 @@
-import {getSin} from "./math.auo";
+import {getSin, smockva} from "./math.auo";
 import Kick from "./kick.auo";
 
 param frequency {
@@ -8,10 +8,12 @@ param frequency {
     initial: 220
 }
 
-output out 0;
+output out = 0;
 
-static phase = 0;
-static increment = 0;
+let phase = 0;
+let increment = 0;
+
+const SR = 44100;
 
 input gain = 1;
 input kick = 0;
@@ -37,7 +39,7 @@ process {
     out = getSin(phase) + kick;
     */
 
-    out *= gain;
+    out = out * gain;
 }
 
 export getSaw(phase) {

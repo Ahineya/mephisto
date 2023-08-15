@@ -24,17 +24,49 @@ fn main() {
 
     let mephisto = Mephisto::new();
     mephisto.tokenize("
-//block {
-  //  increment = frequency / SR;
-//}
+import {getSin, smockva} from \"./math.auo\";
+import Kick from \"./kick.auo\";
 
-    process { //comment
-  return /* fucking comment */ 0.1;
-  // Comment here
+param frequency {
+    min: 40,
+    max: 22000,
+    step: 1,
+    initial: 220
+}
 
-/*
-Comment here as well
-  */
+output out = 0;
 
-}".to_string());
+let phase = 0;
+let increment = 0;
+
+const SR = 44100;
+
+input gain = 1;
+input kick = 0;
+
+block {
+   increment = frequency / SR;
+}
+
+    process {
+phase = increment + (phase - floor(increment + phase));
+out = (phase > 0.5) * 2 - 1;
+out = out * gain;
+    }
+
+export getSaw(phase) {
+    return phase * 2 - 1;
+}
+
+connect {
+    out -> OUTPUTS[0];
+    out -> OUTPUTS[1];
+
+    phase -> Kick.phase;
+    gain -> Kick.gain;
+
+    Kick.out -> kick;
+}
+
+    ".to_string());
 }
