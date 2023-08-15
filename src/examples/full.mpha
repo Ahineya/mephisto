@@ -1,0 +1,55 @@
+import {getSin} from "./math.auo";
+import Kick from "./kick.auo";
+
+param frequency {
+    min: 40,
+    max: 22000,
+    step: 1,
+    initial: 220
+}
+
+output out 0;
+
+static phase = 0;
+static increment = 0;
+
+input gain = 1;
+input kick = 0;
+
+block {
+    increment = frequency / SR;
+}
+
+process {
+    phase = increment + (phase - floor(increment + phase));
+
+/*
+    if (phase > 0.5) {
+        out = -1;
+    } else {
+        out = 1;
+    }
+*/
+
+    out = (phase > 0.5) * 2 - 1;
+
+    /*
+    out = getSin(phase) + kick;
+    */
+
+    out *= gain;
+}
+
+export getSaw(phase) {
+    return phase * 2 - 1;
+}
+
+connect {
+    out -> OUTPUTS[0];
+    out -> OUTPUTS[1];
+
+    phase -> Kick.phase;
+    gain -> Kick.gain;
+
+    Kick.out -> kick;
+}
