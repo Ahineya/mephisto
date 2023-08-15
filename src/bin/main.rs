@@ -23,7 +23,12 @@ fn main() {
     // println!("Output file: {:?}", args.output);
 
     let mephisto = Mephisto::new();
-    mephisto.tokenize("process { //comment
+    mephisto.tokenize("
+//block {
+  //  increment = frequency / SR;
+//}
+
+    process { //comment
   return /* fucking comment */ 0.1;
   // Comment here
 
