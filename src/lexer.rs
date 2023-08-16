@@ -18,20 +18,25 @@ impl Lexer {
                 skip_whitespaces_t,
                 |chars: &str, current: u32| full_pattern_t(TokenType::COMMENT, Regex::new(r"^//.*").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::COMMENT, Regex::new(r"^/\*[^*]*\*+(?:[^/*][^*]*\*+)*/").unwrap(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::PROCESS, "process".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::BLOCK, "block".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::RETURN, "return".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::INPUT, "input".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::PARAM, "param".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::OUTPUT, "output".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::OUTPUTS, "OUTPUTS".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::LET, "let".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::CONST, "const".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::IMPORT, "import".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::FROM, "from".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::EXPORT, "export".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::CONNECT, "connect".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::BUFFER, "buffer".to_string(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::PROCESS, Regex::new(r"^process\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::BLOCK, Regex::new(r"^block\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::RETURN, Regex::new(r"^return\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::INPUT, Regex::new(r"^input\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::PARAM, Regex::new(r"^param\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::OUTPUT, Regex::new(r"^output\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::OUTPUTS, Regex::new(r"^OUTPUTS\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::LET, Regex::new(r"^let\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::CONST, Regex::new(r"^const\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::IMPORT, Regex::new(r"^import\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::FROM, Regex::new(r"^from\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::EXPORT, Regex::new(r"^export\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::CONNECT, Regex::new(r"^connect\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::BUFFER, Regex::new(r"^buffer\b").unwrap(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::EQ, "==".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::NE, "!=".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::GE, ">=".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::LE, "<=".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LCURLY, "{".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::RCURLY, "}".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LPAREN, "(".to_string(), chars, current),
@@ -43,7 +48,6 @@ impl Lexer {
                 |chars: &str, current: u32| match_word_t(TokenType::COLON, ":".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::DOT, ".".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::COMMA, ",".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::EQ, "==".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::DEF, "=".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::DIV, "/".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::MUL, "*".to_string(), chars, current),
@@ -51,9 +55,6 @@ impl Lexer {
                 |chars: &str, current: u32| match_word_t(TokenType::PLUS, "+".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::GT, ">".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LT, "<".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::GE, ">=".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::LE, "<=".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::NUMBER, Regex::new(r"^[+-]?([0-9]*[.])?[0-9]+").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::STRING, Regex::new(r#"^"([^"\\]|\\.)*""#).unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::ID, Regex::new(r"^[_$]*[_$a-zA-Z][$_a-zA-Z0-9]*").unwrap(), chars, current),
@@ -88,17 +89,13 @@ impl Lexer {
             }
 
             if !tokenized {
-                println!("Unknown token at position {}", position.start);
                 let mut t = Token::new(TokenType::UNKNOWN, "".to_string(), position.clone());
                 t.literal = input.chars().nth(position.start as usize).unwrap().to_string();
                 t.position.start = position.start;
                 t.position.end = position.start + 1;
 
                 tokens.push(t);
-                for token in tokens {
-                    println!("{}", token.to_string());
-                }
-                panic!("Unknown token");
+                break;
             }
         }
 
@@ -108,7 +105,6 @@ impl Lexer {
             if token.token_type == TokenType::COMMENT {
                 continue;
             }
-            println!("{}", token.to_string());
         }
 
         tokens.retain(|t| t.token_type != TokenType::COMMENT);

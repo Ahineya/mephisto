@@ -1,19 +1,10 @@
-mod lexer;
-mod parser;
+pub mod lexer;
+pub mod parser;
 
-use std::fmt;
-use std::fmt::Formatter;
-
-use regex::Regex;
 use crate::lexer::{token::{Token}, Lexer};
 use crate::parser::{AST, Parser};
 
-fn main() {
-    println!("Hello, world!");
-}
-
 pub struct Mephisto {}
-
 
 impl Mephisto {
     pub fn new() -> Mephisto {
@@ -38,7 +29,7 @@ impl Mephisto {
         println!();
         println!("AST:");
 
-        let mut parser = Parser::new(input);
-        parser.parse()
+        let mut parser = Parser::new();
+        parser.parse(input)
     }
 }

@@ -1,6 +1,6 @@
 use crate::lexer::token_type::TokenType;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Position {
     pub start: u32,
     pub end: u32,
@@ -8,7 +8,7 @@ pub struct Position {
     pub column: u32,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct Token {
     pub token_type: TokenType,
     pub literal: String,

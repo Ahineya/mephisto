@@ -84,7 +84,7 @@ process {
 
 connect {
     out -> OUTPUTS[0];
-    out -> OUTPUTS[1];
+    out -> OUTPUTS;
 
     phase -> Kick.phase;
     gain -> Kick.gain;
