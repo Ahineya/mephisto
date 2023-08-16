@@ -242,29 +242,7 @@ impl Parser {
 
         match token.token_type {
             TokenType::LPAREN => {
-                self.skip(TokenType::LPAREN);
-                let lhs = self.parse_expr();
-                self.skip(TokenType::RPAREN);
-
-                let tok = self.peek();
-
-                if (tok.token_type == TokenType::SEMI) {
-                    return lhs;
-                }
-
-                if tok.token_type != TokenType::RPAREN {
-                    let op = self.parse_operator();
-                    let rhs = self.parse_expr();
-
-                    Node::BinaryExpr {
-                        op,
-                        lhs: Box::new(lhs),
-                        rhs: Box::new(rhs),
-                    }
-                } else {
-                    self.skip(TokenType::RPAREN);
-                    lhs
-                }
+                self.parse_binary_expr()
             }
             TokenType::NUMBER => {
                 self.parse_binary_expr()
@@ -293,33 +271,97 @@ impl Parser {
     }
 
     fn parse_binary_expr(&mut self) -> Node {
-        let lhs = self.parse_primitive();
+        self.parse_comparison()
+    }
 
-        let token = self.peek();
+    fn parse_comparison(&mut self) -> Node {
+        let mut lhs = self.parse_add_sub();
 
-        match token.token_type {
-            TokenType::PLUS | TokenType::MINUS | TokenType::MUL | TokenType::DIV | TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
-                let op = self.parse_operator();
-                let rhs = self.parse_expr();
-
-                Node::BinaryExpr {
-                    op,
-                    lhs: Box::new(lhs),
-                    rhs: Box::new(rhs),
+        loop {
+            let token = self.peek();
+            match token.token_type {
+                TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
+                    let op = self.parse_operator();
+                    let rhs = self.parse_add_sub();
+                    lhs = Node::BinaryExpr {
+                        op,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    };
                 }
-            }
-            _ => {
-                lhs
+                _ => break,
             }
         }
+
+        lhs
     }
+
+    fn parse_add_sub(&mut self) -> Node {
+        let mut lhs = self.parse_mul_div();
+
+        loop {
+            let token = self.peek();
+            match token.token_type {
+                TokenType::PLUS | TokenType::MINUS => {
+                    let op = self.parse_operator();
+                    let rhs = self.parse_mul_div();
+                    lhs = Node::BinaryExpr {
+                        op,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    };
+                }
+                _ => break,
+            }
+        }
+
+        lhs
+    }
+
+    fn parse_mul_div(&mut self) -> Node {
+        let mut lhs = self.parse_primitive();
+
+        loop {
+            let token = self.peek();
+            match token.token_type {
+                TokenType::MUL | TokenType::DIV => {
+                    let op = self.parse_operator();
+                    let rhs = self.parse_primitive();
+                    lhs = Node::BinaryExpr {
+                        op,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    };
+                }
+                _ => break,
+            }
+        }
+
+        lhs
+    }
+
 
     fn parse_primitive(&mut self) -> Node {
         let token = self.peek();
 
         match token.token_type {
+            TokenType::LPAREN => {
+                self.skip(TokenType::LPAREN);
+                let expr = self.parse_expr();
+                self.skip(TokenType::RPAREN);
+                expr
+            }
             TokenType::ID => {
-                self.parse_id()
+
+                let next_token = self.tokens[self.position + 1].clone();
+                match next_token.token_type {
+                    TokenType::LPAREN => {
+                        self.parse_fn_call()
+                    }
+                    _ => {
+                        self.parse_id()
+                    }
+                }
             }
             TokenType::NUMBER => {
                 self.parse_number()

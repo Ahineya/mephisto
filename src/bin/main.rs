@@ -29,6 +29,8 @@ fn main() {
 phase = increment + (phase - floor(increment + phase));
 out = (phase > 0.5) * 2 - 1;
 out = out * gain;
+
+test = floor(2.5);
     }
 
     ".to_string());
