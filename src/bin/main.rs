@@ -36,16 +36,44 @@ input kick = 0;
 
 block {
     increment = frequency / SR;
+    return 123;
+}
+
+getSaw(phase) {
+    return phase * 2 - 1;
+}
+
+export const PI = 3.14;
+
+export getSin(phase) {
+    return sin(phase * 2 * PI);
 }
 
 process {
+    const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
     phase = increment + (phase - floor(increment + phase, -2));
     out = (phase > -0.5) * 2 - 1;
     out = out * gain.value;
 
+    let a = 0;
+
     test = floor(2.5);
 
     a = foo.value;
+
+    let a = 0;
+
+    return a + 1.1;
+}
+
+connect {
+    out -> OUTPUTS[0];
+    out -> OUTPUTS[1];
+
+    phase -> Kick.phase;
+    gain -> Kick.gain;
+
+    Kick.out -> kick;
 }
 
     ".to_string());

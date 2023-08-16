@@ -35,6 +35,12 @@ pub enum Node {
     BlockNode {
         children: Vec<Node>,
     },
+    ConnectNode {
+        children: Vec<Node>,
+    },
+    FunctionBody {
+        children: Vec<Node>,
+    },
     Identifier(String),
     ExpressionStmt {
         child: Box<Node>,
@@ -43,16 +49,31 @@ pub enum Node {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
-
+    ConnectStmt {
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
+    ReturnStmt {
+        child: Box<Node>,
+    },
     VariableDeclarationStmt {
         id: Box<Node>,
         initializer: Box<Node>,
         specifier: VariableSpecifier,
     },
+    FunctionDeclarationStmt {
+        id: Box<Node>,
+        params: Vec<Node>,
+        body: Box<Node>,
+    },
 
     MemberExpr {
         object: Box<Node>,
         property: Box<Node>,
+    },
+
+    ExportDeclarationStmt {
+        declaration: Box<Node>,
     },
 
     Stub,
@@ -72,6 +93,8 @@ pub enum Node {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
+    OutputsStmt,
+    OutputsNumberedStmt(i32)
 }
 
 pub struct Parser {
@@ -112,6 +135,15 @@ impl Parser {
                     TokenType::INPUT | TokenType::OUTPUT | TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
                         children.push(self.parse_variable_declaration_stmt())
                     }
+                    TokenType::ID => {
+                        children.push(self.parse_statement())
+                    }
+                    TokenType::EXPORT => {
+                        children.push(self.parse_export_declaration_stmt())
+                    }
+                    TokenType::CONNECT => {
+                        children.push(self.parse_connect())
+                    }
                     TokenType::EOF => {
                         break;
                     }
@@ -128,17 +160,205 @@ impl Parser {
         }
     }
 
-    fn parse_statement(&mut self) -> Node {
+    fn parse_connect(&mut self) -> Node {
+        self.skip(TokenType::CONNECT);
+        self.skip(TokenType::LCURLY);
+
+        let mut connect = Node::ConnectNode { children: Vec::new() };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::ConnectNode { children } = &mut connect {
+                children.push(self.parse_connect_statement());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        connect
+    }
+
+    fn parse_connect_statement(&mut self) -> Node {
         let token = self.peek();
 
         match token.token_type {
             TokenType::ID => {
-                Node::ExpressionStmt { child: Box::new(self.parse_assignment_expression()) }
+                let lhs = self.parse_connection_member();
+                self.skip(TokenType::CABLE);
+                let rhs = self.parse_right_connection_member();
+
+                println!("LHS: {:?}", lhs);
+                println!("RHS: {:?}", rhs);
+
+                self.skip(TokenType::SEMI);
+
+                Node::ConnectStmt {
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                }
             }
             _ => {
                 panic!("Unexpected token: {}", token.to_string());
             }
         }
+    }
+
+    fn parse_right_connection_member(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::ID => {
+                self.parse_connection_member()
+            }
+            TokenType::OUTPUTS => {
+                self.parse_outputs_stmt()
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_outputs_stmt(&mut self) -> Node {
+        self.skip(TokenType::OUTPUTS);
+
+        let token = self.peek();
+
+        if token.token_type != TokenType::LSQUARE {
+            return Node::OutputsStmt;
+        }
+
+        self.skip(TokenType::LSQUARE);
+        let specifier = self.parse_number();
+        self.skip(TokenType::RSQUARE);
+
+        if let Node::Number(number) = specifier {
+            return Node::OutputsNumberedStmt(number as i32);
+        }
+
+        panic!("Unexpected token: {}", token.to_string());
+    }
+
+    fn parse_connection_member(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::ID => {
+                let next_token = self.tokens[self.position + 1].clone();
+
+                if next_token.token_type != TokenType::DOT {
+                    return self.parse_id();
+                }
+
+                let member = self.parse_member_expr();
+
+                member
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_export_declaration_stmt(&mut self) -> Node {
+        self.skip(TokenType::EXPORT);
+
+        let token = self.peek();
+
+        let declaration = match token.token_type {
+            TokenType::INPUT | TokenType::OUTPUT | TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+                self.parse_variable_declaration_stmt()
+            }
+            TokenType::ID => {
+                let next_token = self.tokens[self.position + 1].clone();
+
+                match next_token.token_type {
+                    TokenType::LPAREN => {
+                        self.parse_function_declaration_stmt()
+                    }
+                    _ => {
+                        panic!("Unexpected token: {}", next_token.to_string());
+                    }
+                }
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        };
+
+        Node::ExportDeclarationStmt {
+            declaration: Box::new(declaration),
+        }
+    }
+
+    fn parse_statement(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::ID => {
+                let next_token = self.tokens[self.position + 1].clone();
+
+                let node = match next_token.token_type {
+                    TokenType::LPAREN => {
+                        self.parse_function_declaration_stmt()
+                    }
+                    TokenType::DEF => {
+                        self.parse_assignment_expression()
+                    }
+                    _ => {
+                        panic!("Unexpected token: {}", next_token.to_string());
+                    }
+                };
+
+                node
+            }
+            TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+                self.parse_variable_declaration_stmt()
+            }
+            TokenType::RETURN => {
+                self.parse_return_stmt()
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_return_stmt(&mut self) -> Node {
+        self.skip(TokenType::RETURN);
+        let expr = self.parse_expression();
+        self.skip(TokenType::SEMI);
+
+        Node::ReturnStmt {
+            child: Box::new(expr),
+        }
+    }
+
+    fn parse_function_declaration_stmt(&mut self) -> Node {
+        let id = self.parse_id();
+        self.skip(TokenType::LPAREN);
+        let params = self.parse_params();
+        self.skip(TokenType::RPAREN);
+        let body = self.parse_function_body();
+
+        Node::FunctionDeclarationStmt {
+            id: Box::new(id),
+            params,
+            body: Box::new(body),
+        }
+    }
+
+    fn parse_params(&mut self) -> Vec<Node> {
+        let mut params = Vec::new();
+
+        while self.tokens[self.position].token_type != TokenType::RPAREN {
+            params.push(self.parse_id());
+
+            if self.tokens[self.position].token_type == TokenType::COMMA {
+                self.skip(TokenType::COMMA);
+            }
+        }
+
+        params
     }
 
     fn parse_process(&mut self) -> Node {
@@ -177,6 +397,23 @@ impl Parser {
         process
     }
 
+    fn parse_function_body(&mut self) -> Node {
+        // Should skip {
+        self.skip(TokenType::LCURLY);
+
+        let mut process = Node::FunctionBody { children: Vec::new() };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::FunctionBody { children } = &mut process {
+                children.push(self.parse_statement());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        process
+    }
+
     fn parse_variable_specifier(&mut self) -> VariableSpecifier {
         let token = self.consume();
 
@@ -206,7 +443,7 @@ impl Parser {
         let specifier = self.parse_variable_specifier();
         let id = self.parse_id();
         self.skip(TokenType::DEF);
-        let initializer = self.parse_expr();
+        let initializer = self.parse_expression();
         self.skip(TokenType::SEMI);
 
         Node::VariableDeclarationStmt {
@@ -220,7 +457,7 @@ impl Parser {
         let id = self.parse_id();
         self.skip(TokenType::DEF);
 
-        let expr = self.parse_expr();
+        let expr = self.parse_expression();
 
         println!("id: {:?}, expr: {:?}", id, expr);
 
@@ -232,7 +469,7 @@ impl Parser {
         }
     }
 
-    fn parse_expr(&mut self) -> Node {
+    fn parse_expression(&mut self) -> Node {
         /*
         Expression is defined as:
         expr -> infix_expr | unary_expr
@@ -259,13 +496,13 @@ impl Parser {
             TokenType::PLUS => {
                 Node::UnaryExpr {
                     op: Operator::Plus,
-                    child: Box::new(self.parse_expr()),
+                    child: Box::new(self.parse_expression()),
                 }
             }
             TokenType::MINUS => {
                 Node::UnaryExpr {
                     op: Operator::Minus,
-                    child: Box::new(self.parse_expr()),
+                    child: Box::new(self.parse_expression()),
                 }
             }
             _ => {
@@ -392,7 +629,7 @@ impl Parser {
         match token.token_type {
             TokenType::LPAREN => {
                 self.skip(TokenType::LPAREN);
-                let expr = self.parse_expr();
+                let expr = self.parse_expression();
                 self.skip(TokenType::RPAREN);
                 expr
             }
@@ -462,13 +699,12 @@ impl Parser {
                     break;
                 }
                 _ => {
-                    args.push(self.parse_expr());
+                    args.push(self.parse_expression());
                 }
             }
         }
 
         args
-
     }
 
     fn parse_operator(&mut self) -> Operator {
