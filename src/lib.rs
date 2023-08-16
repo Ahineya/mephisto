@@ -1,10 +1,12 @@
 mod lexer;
+mod parser;
 
 use std::fmt;
 use std::fmt::Formatter;
 
 use regex::Regex;
 use crate::lexer::{token::{Token}, Lexer};
+use crate::parser::{AST, Parser};
 
 fn main() {
     println!("Hello, world!");
@@ -27,5 +29,16 @@ impl Mephisto {
 
         let lexer = Lexer::new();
         lexer.tokenize(input)
+    }
+
+    pub fn parse(&self, input: Vec<Token>) -> AST {
+        println!("Input string: {:?}", input);
+        println!();
+        println!("Mephisto is parsing...");
+        println!();
+        println!("AST:");
+
+        let mut parser = Parser::new(input);
+        parser.parse()
     }
 }

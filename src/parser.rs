@@ -1,0 +1,416 @@
+use crate::lexer::token::Token;
+use crate::lexer::token_type::TokenType;
+use crate::parser::Node::Stub;
+
+#[derive(Debug, Clone)]
+pub enum Operator {
+    Plus,
+    Minus,
+    Mul,
+    Div,
+    Eq,
+    Gt,
+    Lt,
+    Ge,
+    Le,
+}
+
+#[derive(Debug, Clone)]
+pub enum Node {
+    ProgramNode {
+        children: Vec<Node>,
+    },
+    ProcessNode {
+        children: Vec<Node>,
+    },
+    Identifier(String),
+    ExpressionStmt {
+        child: Box<Node>,
+    },
+    AssignmentExpr {
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
+
+    Stub,
+
+    FnCallExpr {
+        id: Box<Node>,
+        args: Vec<Node>,
+    },
+
+    Number(f64),
+    UnaryExpr {
+        op: Operator,
+        child: Box<Node>,
+    },
+    BinaryExpr {
+        op: Operator,
+        lhs: Box<Node>,
+        rhs: Box<Node>,
+    },
+}
+
+struct OperatorPrecedence {
+    precedence: i32,
+    is_right_associative: bool,
+}
+
+// Define the precedence of each operator.
+impl OperatorPrecedence {
+    fn new(op: Operator) -> OperatorPrecedence {
+        match op {
+            Operator::Plus => OperatorPrecedence {
+                precedence: 1,
+                is_right_associative: false,
+            },
+            Operator::Minus => OperatorPrecedence {
+                precedence: 1,
+                is_right_associative: false,
+            },
+            Operator::Mul => OperatorPrecedence {
+                precedence: 2,
+                is_right_associative: false,
+            },
+            Operator::Div => OperatorPrecedence {
+                precedence: 2,
+                is_right_associative: false,
+            },
+            Operator::Eq => OperatorPrecedence {
+                precedence: 3,
+                is_right_associative: false,
+            },
+            Operator::Gt => OperatorPrecedence {
+                precedence: 3,
+                is_right_associative: false,
+            },
+            Operator::Lt => OperatorPrecedence {
+                precedence: 3,
+                is_right_associative: false,
+            },
+            Operator::Ge => OperatorPrecedence {
+                precedence: 3,
+                is_right_associative: false,
+            },
+            Operator::Le => OperatorPrecedence {
+                precedence: 3,
+                is_right_associative: false,
+            },
+        }
+    }
+}
+
+pub struct Parser {
+    tokens: Vec<Token>,
+    position: usize,
+    ast: Node,
+}
+
+#[derive(Debug, Clone)]
+pub struct AST {
+    pub root: Node,
+    pub errors: Vec<String>,
+}
+
+impl Parser {
+    pub fn new(input: Vec<Token>) -> Parser {
+        Parser {
+            tokens: input,
+            position: 0,
+            ast: Node::ProgramNode { children: Vec::new() },
+        }
+    }
+
+    pub fn parse(&mut self) -> AST {
+        let mut ast = Node::ProgramNode { children: Vec::new() };
+
+        while self.position < self.tokens.len() {
+            if let Node::ProgramNode { children } = &mut ast {
+                let token = self.peek();
+
+                match token.token_type {
+                    TokenType::PROCESS => {
+                        children.push(self.parse_process())
+                    }
+                    TokenType::EOF => {
+                        break;
+                    }
+                    _ => {
+                        panic!("Unexpected token: {}", token.to_string());
+                    }
+                }
+            }
+        }
+
+        AST {
+            root: ast.clone(),
+            errors: Vec::new(),
+        }
+    }
+
+    fn parse_statement(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::ID => {
+                Node::ExpressionStmt { child: Box::new(self.parse_assignment_expression()) }
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_process(&mut self) -> Node {
+        // Should skip {
+        self.skip(TokenType::PROCESS);
+        self.skip(TokenType::LCURLY);
+
+        let mut process = Node::ProcessNode { children: Vec::new() };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::ProcessNode { children } = &mut process {
+                children.push(self.parse_statement());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        process
+    }
+
+    fn parse_assignment_expression(&mut self) -> Node {
+        let id = self.parse_id();
+        self.skip(TokenType::DEF);
+
+        let expr = self.parse_expr();
+
+        println!("id: {:?}, expr: {:?}", id, expr);
+
+        self.skip(TokenType::SEMI);
+
+        Node::AssignmentExpr {
+            lhs: Box::new(id),
+            rhs: Box::new(expr),
+        }
+    }
+
+    fn parse_expr(&mut self) -> Node {
+        /*
+        Expression is defined as:
+        expr -> infix_expr | unary_expr
+        infix_expr -> expr op expr | expr LPAR params RPAR
+        unary_expr -> op expr
+         */
+
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::PLUS | TokenType::MINUS => {
+                self.parse_unary_expr()
+            }
+            _ => {
+                self.parse_infix_expr()
+            }
+        }
+    }
+
+    fn parse_unary_expr(&mut self) -> Node {
+        let token = self.consume();
+
+        match token.token_type {
+            TokenType::PLUS => {
+                Node::UnaryExpr {
+                    op: Operator::Plus,
+                    child: Box::new(self.parse_expr()),
+                }
+            }
+            TokenType::MINUS => {
+                Node::UnaryExpr {
+                    op: Operator::Minus,
+                    child: Box::new(self.parse_expr()),
+                }
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_infix_expr(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::LPAREN => {
+                self.skip(TokenType::LPAREN);
+                let lhs = self.parse_expr();
+                self.skip(TokenType::RPAREN);
+
+                let tok = self.peek();
+
+                if (tok.token_type == TokenType::SEMI) {
+                    return lhs;
+                }
+
+                if tok.token_type != TokenType::RPAREN {
+                    let op = self.parse_operator();
+                    let rhs = self.parse_expr();
+
+                    Node::BinaryExpr {
+                        op,
+                        lhs: Box::new(lhs),
+                        rhs: Box::new(rhs),
+                    }
+                } else {
+                    self.skip(TokenType::RPAREN);
+                    lhs
+                }
+            }
+            TokenType::NUMBER => {
+                self.parse_binary_expr()
+            }
+            TokenType::ID => {
+                self.parse_id_expr()
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_id_expr(&mut self) -> Node {
+        // let id = self.peek();
+        let token = self.tokens[self.position + 1].clone();
+
+        match token.token_type {
+            TokenType::LPAREN => {
+                self.parse_fn_call()
+            }
+            _ => {
+                self.parse_binary_expr()
+            }
+        }
+    }
+
+    fn parse_binary_expr(&mut self) -> Node {
+        let lhs = self.parse_primitive();
+
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::PLUS | TokenType::MINUS | TokenType::MUL | TokenType::DIV | TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
+                let op = self.parse_operator();
+                let rhs = self.parse_expr();
+
+                Node::BinaryExpr {
+                    op,
+                    lhs: Box::new(lhs),
+                    rhs: Box::new(rhs),
+                }
+            }
+            _ => {
+                lhs
+            }
+        }
+    }
+
+    fn parse_primitive(&mut self) -> Node {
+        let token = self.peek();
+
+        match token.token_type {
+            TokenType::ID => {
+                self.parse_id()
+            }
+            TokenType::NUMBER => {
+                self.parse_number()
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_number(&mut self) -> Node {
+        let token = self.consume();
+
+        match token.token_type {
+            TokenType::NUMBER => {
+                Node::Number(token.literal.parse::<f64>().unwrap())
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_fn_call(&mut self) -> Node {
+        let id = self.parse_id();
+        self.skip(TokenType::LPAREN);
+        // let expr = self.parse_expr();
+
+
+        self.skip_until(TokenType::RPAREN);
+        self.skip(TokenType::RPAREN);
+
+        // expr
+
+        Stub
+    }
+
+    fn parse_operator(&mut self) -> Operator {
+        let tok = self.consume();
+
+        match tok.token_type {
+            TokenType::PLUS => Operator::Plus,
+            TokenType::MINUS => Operator::Minus,
+            TokenType::MUL => Operator::Mul,
+            TokenType::DIV => Operator::Div,
+            TokenType::EQ => Operator::Eq,
+            TokenType::GT => Operator::Gt,
+            TokenType::LT => Operator::Lt,
+            TokenType::GE => Operator::Ge,
+            TokenType::LE => Operator::Le,
+            _ => {
+                panic!("Unexpected token: {}", tok.to_string());
+            }
+        }
+    }
+
+    fn parse_id(&mut self) -> Node {
+        let token = self.consume();
+
+        match token.token_type {
+            TokenType::ID => {
+                Node::Identifier(token.literal)
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn skip(&mut self, token_type: TokenType) {
+        if self.tokens[self.position].token_type == token_type {
+            self.position += 1;
+        } else {
+            println!("PARSED: {:?}", self.ast);
+            panic!("Expected token: {:?}", token_type);
+        }
+    }
+
+    fn skip_until(&mut self, token_type: TokenType) {
+        while self.tokens[self.position].token_type != token_type {
+            self.position += 1;
+        }
+    }
+
+    fn peek(&self) -> Token {
+        self.tokens[self.position].clone()
+    }
+
+    fn consume(&mut self) -> Token {
+        let token = self.tokens[self.position].clone();
+        self.position += 1;
+        token
+    }
+}
