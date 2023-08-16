@@ -388,15 +388,37 @@ impl Parser {
     fn parse_fn_call(&mut self) -> Node {
         let id = self.parse_id();
         self.skip(TokenType::LPAREN);
-        // let expr = self.parse_expr();
-
+        let args = self.parse_arguments();
 
         self.skip_until(TokenType::RPAREN);
         self.skip(TokenType::RPAREN);
 
-        // expr
+        Node::FnCallExpr {
+            id: Box::new(id),
+            args,
+        }
+    }
 
-        Stub
+    fn parse_arguments(&mut self) -> Vec<Node> {
+        let mut args = Vec::new();
+
+        loop {
+            let token = self.peek();
+            match token.token_type {
+                TokenType::COMMA => {
+                    self.skip(TokenType::COMMA);
+                }
+                TokenType::RPAREN => {
+                    break;
+                }
+                _ => {
+                    args.push(self.parse_expr());
+                }
+            }
+        }
+
+        args
+
     }
 
     fn parse_operator(&mut self) -> Operator {
