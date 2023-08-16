@@ -24,14 +24,29 @@ fn main() {
 
     let mephisto = Mephisto::new();
     let tokens = mephisto.tokenize("
+output out = 0;
 
-    process {
-phase = increment + (phase - floor(increment + phase));
-out = (phase > 0.5) * 2 - 1;
-out = out * gain;
+let phase = 0;
+let increment = 0;
 
-test = floor(2.5);
-    }
+const SR = 44100;
+
+input gain = 1 + 0.5 * getSin(0.5 + (moo.foo));
+input kick = 0;
+
+block {
+    increment = frequency / SR;
+}
+
+process {
+    phase = increment + (phase - floor(increment + phase, -2));
+    out = (phase > -0.5) * 2 - 1;
+    out = out * gain.value;
+
+    test = floor(2.5);
+
+    a = foo.value;
+}
 
     ".to_string());
 

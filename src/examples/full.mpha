@@ -15,7 +15,7 @@ let increment = 0;
 
 const SR = 44100;
 
-input gain = 1;
+input gain = 1 + 0.5 * getSin(0.5);
 input kick = 0;
 
 block {

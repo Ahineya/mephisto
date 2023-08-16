@@ -109,8 +109,8 @@ impl Lexer {
             println!("{}", token.to_string());
         }
 
+        tokens.retain(|t| t.token_type != TokenType::COMMENT);
+
         tokens
     }
 }
-
-

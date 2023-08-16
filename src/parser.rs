@@ -16,11 +16,23 @@ pub enum Operator {
 }
 
 #[derive(Debug, Clone)]
+pub enum VariableSpecifier {
+    Let,
+    Const,
+    Input,
+    Output,
+    Buffer,
+}
+
+#[derive(Debug, Clone)]
 pub enum Node {
     ProgramNode {
         children: Vec<Node>,
     },
     ProcessNode {
+        children: Vec<Node>,
+    },
+    BlockNode {
         children: Vec<Node>,
     },
     Identifier(String),
@@ -30,6 +42,17 @@ pub enum Node {
     AssignmentExpr {
         lhs: Box<Node>,
         rhs: Box<Node>,
+    },
+
+    VariableDeclarationStmt {
+        id: Box<Node>,
+        initializer: Box<Node>,
+        specifier: VariableSpecifier,
+    },
+
+    MemberExpr {
+        object: Box<Node>,
+        property: Box<Node>,
     },
 
     Stub,
@@ -49,55 +72,6 @@ pub enum Node {
         lhs: Box<Node>,
         rhs: Box<Node>,
     },
-}
-
-struct OperatorPrecedence {
-    precedence: i32,
-    is_right_associative: bool,
-}
-
-// Define the precedence of each operator.
-impl OperatorPrecedence {
-    fn new(op: Operator) -> OperatorPrecedence {
-        match op {
-            Operator::Plus => OperatorPrecedence {
-                precedence: 1,
-                is_right_associative: false,
-            },
-            Operator::Minus => OperatorPrecedence {
-                precedence: 1,
-                is_right_associative: false,
-            },
-            Operator::Mul => OperatorPrecedence {
-                precedence: 2,
-                is_right_associative: false,
-            },
-            Operator::Div => OperatorPrecedence {
-                precedence: 2,
-                is_right_associative: false,
-            },
-            Operator::Eq => OperatorPrecedence {
-                precedence: 3,
-                is_right_associative: false,
-            },
-            Operator::Gt => OperatorPrecedence {
-                precedence: 3,
-                is_right_associative: false,
-            },
-            Operator::Lt => OperatorPrecedence {
-                precedence: 3,
-                is_right_associative: false,
-            },
-            Operator::Ge => OperatorPrecedence {
-                precedence: 3,
-                is_right_associative: false,
-            },
-            Operator::Le => OperatorPrecedence {
-                precedence: 3,
-                is_right_associative: false,
-            },
-        }
-    }
 }
 
 pub struct Parser {
@@ -131,6 +105,12 @@ impl Parser {
                 match token.token_type {
                     TokenType::PROCESS => {
                         children.push(self.parse_process())
+                    }
+                    TokenType::BLOCK => {
+                        children.push(self.parse_block())
+                    }
+                    TokenType::INPUT | TokenType::OUTPUT | TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+                        children.push(self.parse_variable_declaration_stmt())
                     }
                     TokenType::EOF => {
                         break;
@@ -177,6 +157,63 @@ impl Parser {
         self.skip(TokenType::RCURLY);
 
         process
+    }
+
+    fn parse_block(&mut self) -> Node {
+        // Should skip {
+        self.skip(TokenType::BLOCK);
+        self.skip(TokenType::LCURLY);
+
+        let mut process = Node::BlockNode { children: Vec::new() };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::BlockNode { children } = &mut process {
+                children.push(self.parse_statement());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        process
+    }
+
+    fn parse_variable_specifier(&mut self) -> VariableSpecifier {
+        let token = self.consume();
+
+        match token.token_type {
+            TokenType::INPUT => {
+                VariableSpecifier::Input
+            }
+            TokenType::OUTPUT => {
+                VariableSpecifier::Output
+            }
+            TokenType::BUFFER => {
+                VariableSpecifier::Buffer
+            }
+            TokenType::LET => {
+                VariableSpecifier::Let
+            }
+            TokenType::CONST => {
+                VariableSpecifier::Const
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        }
+    }
+
+    fn parse_variable_declaration_stmt(&mut self) -> Node {
+        let specifier = self.parse_variable_specifier();
+        let id = self.parse_id();
+        self.skip(TokenType::DEF);
+        let initializer = self.parse_expr();
+        self.skip(TokenType::SEMI);
+
+        Node::VariableDeclarationStmt {
+            id: Box::new(id),
+            initializer: Box::new(initializer),
+            specifier,
+        }
     }
 
     fn parse_assignment_expression(&mut self) -> Node {
@@ -241,14 +278,8 @@ impl Parser {
         let token = self.peek();
 
         match token.token_type {
-            TokenType::LPAREN => {
+            TokenType::LPAREN | TokenType::NUMBER | TokenType::ID => {
                 self.parse_binary_expr()
-            }
-            TokenType::NUMBER => {
-                self.parse_binary_expr()
-            }
-            TokenType::ID => {
-                self.parse_id_expr()
             }
             _ => {
                 panic!("Unexpected token: {}", token.to_string());
@@ -264,9 +295,23 @@ impl Parser {
             TokenType::LPAREN => {
                 self.parse_fn_call()
             }
+            TokenType::DOT => {
+                self.parse_member_expr()
+            }
             _ => {
                 self.parse_binary_expr()
             }
+        }
+    }
+
+    fn parse_member_expr(&mut self) -> Node {
+        let id = self.parse_id();
+        self.skip(TokenType::DOT);
+        let member = self.parse_id();
+
+        Node::MemberExpr {
+            object: Box::new(id),
+            property: Box::new(member),
         }
     }
 
@@ -351,12 +396,17 @@ impl Parser {
                 self.skip(TokenType::RPAREN);
                 expr
             }
+            TokenType::MINUS => {
+                self.parse_unary_expr()
+            }
             TokenType::ID => {
-
                 let next_token = self.tokens[self.position + 1].clone();
                 match next_token.token_type {
                     TokenType::LPAREN => {
                         self.parse_fn_call()
+                    }
+                    TokenType::DOT => {
+                        self.parse_member_expr()
                     }
                     _ => {
                         self.parse_id()
