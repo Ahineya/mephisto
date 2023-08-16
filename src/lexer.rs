@@ -28,6 +28,7 @@ impl Lexer {
                 |chars: &str, current: u32| match_word_t(TokenType::LET, "let".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::CONST, "const".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::IMPORT, "import".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::FROM, "from".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::EXPORT, "export".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::CONNECT, "connect".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::BUFFER, "buffer".to_string(), chars, current),
@@ -52,9 +53,10 @@ impl Lexer {
                 |chars: &str, current: u32| match_word_t(TokenType::LT, "<".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::GE, ">=".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LE, "<=".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::NUMBER, Regex::new(r"^[+-]?([0-9]*[.])?[0-9]+").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::STRING, Regex::new(r#"^"([^"\\]|\\.)*""#).unwrap(), chars, current),
-                |chars: &str, current: u32| full_pattern_t(TokenType::ID, Regex::new(r"^_*[a-zA-Z][_a-zA-Z0-9]*").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::ID, Regex::new(r"^[_$]*[_$a-zA-Z][$_a-zA-Z0-9]*").unwrap(), chars, current),
             ]
         }
     }

@@ -1,6 +1,5 @@
 use crate::lexer::token::Token;
 use crate::lexer::token_type::TokenType;
-use crate::parser::Node::Stub;
 
 #[derive(Debug, Clone)]
 pub enum Operator {
@@ -66,17 +65,23 @@ pub enum Node {
         params: Vec<Node>,
         body: Box<Node>,
     },
-
     MemberExpr {
         object: Box<Node>,
         property: Box<Node>,
     },
-
     ExportDeclarationStmt {
         declaration: Box<Node>,
     },
 
-    Stub,
+    ParameterDeclarationStmt {
+        id: Box<Node>,
+        fields: Vec<Node>,
+    },
+
+    ParameterDeclarationField {
+        id: Box<Node>,
+        specifier: f64,
+    },
 
     FnCallExpr {
         id: Box<Node>,
@@ -94,7 +99,19 @@ pub enum Node {
         rhs: Box<Node>,
     },
     OutputsStmt,
-    OutputsNumberedStmt(i32)
+    OutputsNumberedStmt(i32),
+    BufferDeclarationStmt {
+        id: Box<Node>,
+        size: Box<Node>,
+        initializer: Box<Node>,
+    },
+    BufferInitializer {
+        children: Vec<Node>,
+    },
+    ImportStatement {
+        id: Box<Node>,
+        path: String,
+    }
 }
 
 pub struct Parser {
@@ -126,14 +143,20 @@ impl Parser {
                 let token = self.peek();
 
                 match token.token_type {
+                    TokenType::IMPORT => {
+                        children.push(self.parse_import_statement())
+                    }
                     TokenType::PROCESS => {
                         children.push(self.parse_process())
                     }
                     TokenType::BLOCK => {
                         children.push(self.parse_block())
                     }
-                    TokenType::INPUT | TokenType::OUTPUT | TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+                    TokenType::INPUT | TokenType::OUTPUT | TokenType::LET | TokenType::CONST => {
                         children.push(self.parse_variable_declaration_stmt())
+                    }
+                    TokenType::BUFFER => {
+                        children.push(self.parse_buffer_declaration_stmt())
                     }
                     TokenType::ID => {
                         children.push(self.parse_statement())
@@ -143,6 +166,9 @@ impl Parser {
                     }
                     TokenType::CONNECT => {
                         children.push(self.parse_connect())
+                    }
+                    TokenType::PARAM => {
+                        children.push(self.parse_parameter_declaration_stmt())
                     }
                     TokenType::EOF => {
                         break;
@@ -157,6 +183,126 @@ impl Parser {
         AST {
             root: ast.clone(),
             errors: Vec::new(),
+        }
+    }
+
+    fn parse_import_statement(&mut self) -> Node {
+        self.skip(TokenType::IMPORT);
+        let id = self.parse_id();
+        self.skip(TokenType::FROM);
+
+        let path = self.consume();
+        if let TokenType::STRING = path.token_type {
+            let path = path.literal.clone();
+
+            // Remove quotes
+            let path = path[1..path.len() - 1].to_string();
+
+            let node = Node::ImportStatement {
+                id: Box::new(id),
+                path,
+            };
+
+            self.skip(TokenType::SEMI);
+            node
+        } else {
+            panic!("Expected string literal");
+        }
+
+
+    }
+
+    fn parse_buffer_declaration_stmt(&mut self) -> Node {
+        self.skip(TokenType::BUFFER);
+        let id = self.parse_id();
+        self.skip(TokenType::LSQUARE);
+        let specifier = self.parse_number();
+        self.skip(TokenType::RSQUARE);
+
+        let token = self.peek();
+
+        let node = match token.token_type {
+            TokenType::SEMI => {
+                Node::BufferDeclarationStmt {
+                    id: Box::new(id),
+                    initializer: Box::new(Node::Number(0.0)),
+                    size: Box::new(specifier),
+                }
+            }
+            TokenType::DEF => {
+                self.skip(TokenType::DEF);
+                let initializer = self.parse_buffer_initialization();
+                Node::BufferDeclarationStmt {
+                    id: Box::new(id),
+                    initializer: Box::new(initializer),
+                    size: Box::new(specifier),
+                }
+            }
+            _ => {
+                panic!("Unexpected token: {}", token.to_string());
+            }
+        };
+
+        self.skip(TokenType::SEMI);
+
+        node
+    }
+
+    fn parse_buffer_initialization(&mut self) -> Node {
+        self.skip(TokenType::BUFI);
+        self.skip(TokenType::LCURLY);
+
+        let mut buffer_initialization = Node::BufferInitializer {
+            children: Vec::new(),
+        };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::BufferInitializer { children } = &mut buffer_initialization {
+                children.push(self.parse_statement());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        buffer_initialization
+    }
+
+    fn parse_parameter_declaration_stmt(&mut self) -> Node {
+        self.skip(TokenType::PARAM);
+        let id = self.parse_id();
+        self.skip(TokenType::LCURLY);
+
+        let mut parameter_declaration_stmt = Node::ParameterDeclarationStmt {
+            id: Box::new(id),
+            fields: Vec::new(),
+        };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::ParameterDeclarationStmt { id, fields } = &mut parameter_declaration_stmt {
+                fields.push(self.parse_parameter_declaration_field());
+            }
+        }
+
+        self.skip(TokenType::RCURLY);
+
+        parameter_declaration_stmt
+    }
+
+    fn parse_parameter_declaration_field(&mut self) -> Node {
+        let id = self.parse_id();
+        self.skip(TokenType::COLON);
+        let specifier = self.parse_number();
+
+        let specifier = match specifier {
+            Node::Number(n) => n,
+            _ => panic!("Expected number")
+        };
+
+        self.skip(TokenType::SEMI);
+
+        Node::ParameterDeclarationField {
+            id: Box::new(id),
+            specifier
         }
     }
 
@@ -265,7 +411,7 @@ impl Parser {
         let token = self.peek();
 
         let declaration = match token.token_type {
-            TokenType::INPUT | TokenType::OUTPUT | TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+            TokenType::INPUT | TokenType::OUTPUT | TokenType::LET | TokenType::CONST => {
                 self.parse_variable_declaration_stmt()
             }
             TokenType::ID => {
@@ -311,7 +457,7 @@ impl Parser {
 
                 node
             }
-            TokenType::BUFFER | TokenType::LET | TokenType::CONST => {
+            TokenType::LET | TokenType::CONST => {
                 self.parse_variable_declaration_stmt()
             }
             TokenType::RETURN => {
@@ -423,9 +569,6 @@ impl Parser {
             }
             TokenType::OUTPUT => {
                 VariableSpecifier::Output
-            }
-            TokenType::BUFFER => {
-                VariableSpecifier::Buffer
             }
             TokenType::LET => {
                 VariableSpecifier::Let

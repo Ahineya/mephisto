@@ -1,11 +1,11 @@
-import {getSin, smockva} from "./math.auo";
+import Math from "./math.auo";
 import Kick from "./kick.auo";
 
 param frequency {
-    min: 40,
-    max: 22000,
-    step: 1,
-    initial: 220
+    min: 40;
+    max: 22000;
+    step: 1;
+    initial: 220;
 }
 
 output out = 0;
@@ -14,6 +14,10 @@ let phase = 0;
 let increment = 0;
 
 const SR = 44100;
+
+buffer b[1024] = |i| {
+    return i / 1024;
+};
 
 input gain = 1 + 0.5 * getSin(0.5);
 input kick = 0;

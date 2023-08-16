@@ -46,7 +46,7 @@ pub enum TokenType {
     CONST,
     BUFFER,
 
-    IMPORT, EXPORT,
+    IMPORT, EXPORT, FROM,
 
     CONNECT,
     CABLE,
@@ -61,4 +61,6 @@ pub enum TokenType {
     COMMENT,
 
     UNKNOWN,
+
+    BUFI,
 }

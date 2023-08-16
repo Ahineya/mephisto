@@ -24,6 +24,22 @@ fn main() {
 
     let mephisto = Mephisto::new();
     let tokens = mephisto.tokenize("
+import Math from \"./math.auo\";
+import Kick from \"./kick.auo\";
+
+param frequency {
+    min: 40;
+    max: 22000;
+    step: 1;
+    initial: 220;
+}
+
+buffer b[1024];
+
+buffer moo[10] = |i| {
+    return i * 2;
+};
+
 output out = 0;
 
 let phase = 0;
