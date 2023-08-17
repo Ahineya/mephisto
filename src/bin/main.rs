@@ -23,7 +23,7 @@ fn main() {
     // println!("Output file: {:?}", args.output);
 
     let mephisto = Mephisto::new();
-    let tokens = mephisto.tokenize("
+    let compilation_result = mephisto.compile("
 
 import Math from \"./math.auo\";
 import Kick from \"./kick.auo\";
@@ -99,11 +99,8 @@ connect {
 
     ".to_string());
 
-    let mut ast = mephisto.parse(tokens);
-
-    println!("{:#?}", ast);
-
-    let symbol_table = mephisto.create_symbol_table(&mut ast);
-
-    println!("{:#?}", symbol_table);
+    match compilation_result {
+        Ok(_) => println!("Compilation successful!"),
+        Err(e) => println!("Compilation failed: {}", e),
+    }
 }
