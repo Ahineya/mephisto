@@ -1,8 +1,11 @@
 pub mod lexer;
 pub mod parser;
+pub mod symbol_table;
 
 use crate::lexer::{token::{Token}, Lexer};
-use crate::parser::{AST, Parser};
+use crate::parser::{Parser};
+use crate::parser::ast::AST;
+use crate::symbol_table::SymbolTable;
 
 pub struct Mephisto {}
 
@@ -22,14 +25,24 @@ impl Mephisto {
         lexer.tokenize(input)
     }
 
-    pub fn parse(&self, input: Vec<Token>) -> AST {
-        println!("Input string: {:?}", input);
+    pub fn parse(&self, tokens: Vec<Token>) -> AST {
+        println!("Input string: {:?}", tokens);
         println!();
         println!("Mephisto is parsing...");
         println!();
         println!("AST:");
 
         let mut parser = Parser::new();
-        parser.parse(input)
+        parser.parse(tokens)
+    }
+
+    pub fn create_symbol_table(&self, ast: &mut AST) -> SymbolTable {
+        println!("Input AST: {:#?}", ast);
+        println!();
+        println!("Mephisto is creating symbol table...");
+        println!();
+        println!("Symbol table:");
+
+        SymbolTable::from_ast(ast)
     }
 }

@@ -24,6 +24,7 @@ fn main() {
 
     let mephisto = Mephisto::new();
     let tokens = mephisto.tokenize("
+
 import Math from \"./math.auo\";
 import Kick from \"./kick.auo\";
 
@@ -75,6 +76,10 @@ process {
 
     test = floor(2.5);
 
+    getPoo() {
+        return 1;
+    }
+
     a = foo.value;
 
     let a = 0;
@@ -94,7 +99,11 @@ connect {
 
     ".to_string());
 
-    let ast = mephisto.parse(tokens);
+    let mut ast = mephisto.parse(tokens);
 
     println!("{:#?}", ast);
+
+    let symbol_table = mephisto.create_symbol_table(&mut ast);
+
+    println!("{:#?}", symbol_table);
 }

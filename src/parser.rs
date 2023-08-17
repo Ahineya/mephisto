@@ -1,130 +1,14 @@
+pub mod ast;
+
 use crate::lexer::token::Token;
 use crate::lexer::token_type::TokenType;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Operator {
-    Plus,
-    Minus,
-    Mul,
-    Div,
-    Eq,
-    Gt,
-    Lt,
-    Ge,
-    Le,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum VariableSpecifier {
-    Let,
-    Const,
-    Input,
-    Output,
-    Buffer,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum Node {
-    ProgramNode {
-        children: Vec<Node>,
-    },
-    ProcessNode {
-        children: Vec<Node>,
-    },
-    BlockNode {
-        children: Vec<Node>,
-    },
-    ConnectNode {
-        children: Vec<Node>,
-    },
-    FunctionBody {
-        children: Vec<Node>,
-    },
-    Identifier(String),
-    ExpressionStmt {
-        child: Box<Node>,
-    },
-    AssignmentExpr {
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    ConnectStmt {
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    ReturnStmt {
-        child: Box<Node>,
-    },
-    VariableDeclarationStmt {
-        id: Box<Node>,
-        initializer: Box<Node>,
-        specifier: VariableSpecifier,
-    },
-    FunctionDeclarationStmt {
-        id: Box<Node>,
-        params: Vec<Node>,
-        body: Box<Node>,
-    },
-    MemberExpr {
-        object: Box<Node>,
-        property: Box<Node>,
-    },
-    ExportDeclarationStmt {
-        declaration: Box<Node>,
-    },
-
-    ParameterDeclarationStmt {
-        id: Box<Node>,
-        fields: Vec<Node>,
-    },
-
-    ParameterDeclarationField {
-        id: Box<Node>,
-        specifier: f64,
-    },
-
-    FnCallExpr {
-        id: Box<Node>,
-        args: Vec<Node>,
-    },
-
-    Number(f64),
-    UnaryExpr {
-        op: Operator,
-        child: Box<Node>,
-    },
-    BinaryExpr {
-        op: Operator,
-        lhs: Box<Node>,
-        rhs: Box<Node>,
-    },
-    OutputsStmt,
-    OutputsNumberedStmt(i32),
-    BufferDeclarationStmt {
-        id: Box<Node>,
-        size: Box<Node>,
-        initializer: Box<Node>,
-    },
-    BufferInitializer {
-        children: Vec<Node>,
-    },
-    ImportStatement {
-        id: Box<Node>,
-        path: String,
-    },
-}
+use crate::parser::ast::{AST, Node, Operator, VariableSpecifier};
 
 pub struct Parser {
     tokens: Vec<Token>,
     position: usize,
     ast: Node,
     errors: Vec<String>,
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub struct AST {
-    pub root: Node,
-    pub errors: Vec<String>,
 }
 
 impl Parser {
