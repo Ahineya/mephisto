@@ -122,93 +122,93 @@ pub enum ASTTraverseStage {
     Exit,
 }
 
-pub fn traverse<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage, &mut Node, &mut Context), context: &mut Context) {
+pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage, &mut Node, &mut Context), context: &mut Context) {
     f(ASTTraverseStage::Enter, node, context);
 
     match node {
         Node::ProgramNode { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::ProcessNode { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::BlockNode { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::ConnectNode { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::FunctionBody { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::ExpressionStmt { child } => {
-            traverse(child, f, context);
+            traverse_ast(child, f, context);
         }
         Node::AssignmentExpr { lhs, rhs } => {
-            traverse(lhs, f, context);
-            traverse(rhs, f, context);
+            traverse_ast(lhs, f, context);
+            traverse_ast(rhs, f, context);
         }
         Node::ConnectStmt { lhs, rhs } => {
-            traverse(lhs, f, context);
-            traverse(rhs, f, context);
+            traverse_ast(lhs, f, context);
+            traverse_ast(rhs, f, context);
         }
         Node::ReturnStmt { child } => {
-            traverse(child, f, context);
+            traverse_ast(child, f, context);
         }
         Node::VariableDeclarationStmt {
             id,
             initializer,
             specifier: _,
         } => {
-            traverse(id, f, context);
-            traverse(initializer, f, context);
+            traverse_ast(id, f, context);
+            traverse_ast(initializer, f, context);
         }
         Node::FunctionDeclarationStmt { id, params, body } => {
-            traverse(id, f, context);
+            traverse_ast(id, f, context);
             for param in params {
-                traverse(param, f, context);
+                traverse_ast(param, f, context);
             }
-            traverse(body, f, context);
+            traverse_ast(body, f, context);
         }
         Node::MemberExpr { object, property } => {
-            traverse(object, f, context);
-            traverse(property, f, context);
+            traverse_ast(object, f, context);
+            traverse_ast(property, f, context);
         }
         Node::ExportDeclarationStmt { declaration } => {
-            traverse(declaration, f, context);
+            traverse_ast(declaration, f, context);
         }
         Node::ParameterDeclarationStmt { id, fields } => {
-            traverse(id, f, context);
+            traverse_ast(id, f, context);
             for field in fields {
-                traverse(field, f, context);
+                traverse_ast(field, f, context);
             }
         }
         Node::ParameterDeclarationField { id, specifier: _ } => {
-            traverse(id, f, context);
+            traverse_ast(id, f, context);
         }
         Node::FnCallExpr { id, args } => {
-            traverse(id, f, context);
+            traverse_ast(id, f, context);
             for arg in args {
-                traverse(arg, f, context);
+                traverse_ast(arg, f, context);
             }
         }
         Node::Number(_) => {}
         Node::UnaryExpr { op: _, child } => {
-            traverse(child, f, context);
+            traverse_ast(child, f, context);
         }
         Node::BinaryExpr { op: _, lhs, rhs } => {
-            traverse(lhs, f, context);
-            traverse(rhs, f, context);
+            traverse_ast(lhs, f, context);
+            traverse_ast(rhs, f, context);
         }
         Node::OutputsStmt => {}
         Node::OutputsNumberedStmt(_) => {}
@@ -217,17 +217,17 @@ pub fn traverse<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage, &m
             size,
             initializer,
         } => {
-            traverse(id, f, context);
-            traverse(size, f, context);
-            traverse(initializer, f, context);
+            traverse_ast(id, f, context);
+            traverse_ast(size, f, context);
+            traverse_ast(initializer, f, context);
         }
         Node::BufferInitializer { children } => {
             for child in children {
-                traverse(child, f, context);
+                traverse_ast(child, f, context);
             }
         }
         Node::ImportStatement { id, path: _ } => {
-            traverse(id, f, context);
+            traverse_ast(id, f, context);
         }
         Node::Identifier(_) => {}
     }
@@ -257,7 +257,7 @@ mod tests {
             some_vec: vec![]
         };
 
-        traverse(&mut ast.root, &mut |enter_exit, node, context: &mut Context| {
+        traverse_ast(&mut ast.root, &mut |enter_exit, node, context: &mut Context| {
             match node {
                 Node::ProgramNode { children } => {
                     match enter_exit {

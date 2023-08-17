@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
-use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse, VariableSpecifier};
+use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast, VariableSpecifier};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SymbolVisibility {
     Public,
     Private,
@@ -40,14 +40,15 @@ pub enum SymbolInfo {
 pub struct Scope {
     symbols: HashMap<String, SymbolInfo>,
     children: Vec<usize>,
-    // Indices of child scopes
-    parent: Option<usize>, // Index of the parent scope
+    parent: Option<usize>,
 }
 
 #[derive(Debug, Clone)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
     current_scope_index: usize,
+
+    traversed_scopes: usize,
 }
 
 /*
@@ -151,6 +152,7 @@ impl SymbolTable {
         Self {
             scopes: vec![global_scope],
             current_scope_index: 0,
+            traversed_scopes: 0,
         }
     }
 
@@ -165,7 +167,7 @@ impl SymbolTable {
             public_visibility: false,
         };
 
-        traverse(&mut ast.root, &mut |traverse_stage, node, context: &mut Context| {
+        traverse_ast(&mut ast.root, &mut |traverse_stage, node, context: &mut Context| {
             match node {
                 |
                 Node::ProcessNode {
@@ -182,7 +184,7 @@ impl SymbolTable {
                 => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            context.symbol_table.enter_scope();
+                            context.symbol_table.create_and_enter_scope();
                         }
                         ASTTraverseStage::Exit => {
                             context.symbol_table.exit_scope();
@@ -262,7 +264,7 @@ impl SymbolTable {
                                 });
                             }
 
-                            context.symbol_table.enter_scope();
+                            context.symbol_table.create_and_enter_scope();
 
                             for param in params {
                                 if let Node::Identifier(name) = param {
@@ -316,7 +318,7 @@ impl SymbolTable {
         return context.symbol_table;
     }
 
-    pub fn enter_scope(&mut self) {
+    pub fn create_and_enter_scope(&mut self) {
         let new_scope = Scope {
             symbols: HashMap::new(),
             children: Vec::new(),
@@ -330,6 +332,18 @@ impl SymbolTable {
         self.scopes[self.current_scope_index].children.push(new_scope_index);
 
         // Update the current scope index
+        self.current_scope_index = new_scope_index;
+    }
+
+    pub fn reset_scopes_indexes(&mut self) {
+        self.traversed_scopes = 0;
+        self.current_scope_index = 0;
+    }
+
+    pub fn enter_next_scope(&mut self) {
+        self.traversed_scopes += 1;
+        let new_scope_index = self.traversed_scopes;
+
         self.current_scope_index = new_scope_index;
     }
 
@@ -373,16 +387,19 @@ impl SymbolTable {
             }
         }
     }
-
-    // ... other methods for name resolution, adding symbols, etc. ...
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::parser::ast::Operator;
+
     use super::*;
 
     #[test]
     fn test_symbol_table() {
+
+        // Symbol table creation
+
         let mut symbol_table = SymbolTable::new();
         symbol_table.insert(
             "foo".to_string(),
@@ -392,10 +409,7 @@ mod tests {
             },
         );
 
-        symbol_table.enter_scope();
-
-// Add a symbol to the current scope
-
+        symbol_table.create_and_enter_scope();
 
         symbol_table.insert(
             "bar".to_string(),
@@ -408,6 +422,17 @@ mod tests {
 
         symbol_table.exit_scope();
 
+        symbol_table.create_and_enter_scope();
+
+        symbol_table.insert(
+            "baz".to_string(),
+            SymbolInfo::Variable {
+                visibility: SymbolVisibility::Private,
+                origin: SymbolOrigin::Local,
+            },
+        );
+
+        symbol_table.exit_scope();
 
         let symbol = symbol_table.lookup("foo");
         assert!(symbol.is_some());
@@ -415,8 +440,124 @@ mod tests {
         let symbol = symbol_table.lookup("bar");
         assert!(symbol.is_none());
 
+        // Symbol table traversal
 
-        // lookup a symbol
+        symbol_table.reset_scopes_indexes();
+
+        let symbol = symbol_table.lookup("foo");
+        assert!(symbol.is_some());
+
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("bar");
+        assert!(symbol.is_some());
+
+        symbol_table.exit_scope();
+
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("baz");
+        assert!(symbol.is_some());
+
+        symbol_table.exit_scope();
+
+        println!("{:#?}", symbol_table);
+    }
+
+    #[test]
+    fn test_from_ast() {
+        let mut symbol_table = SymbolTable::new();
+
+        let mut ast = AST {
+            root: Node::ProgramNode {
+                children: vec![
+                    Node::VariableDeclarationStmt {
+                        id: Box::new(Node::Identifier("foo".to_string())),
+                        initializer: Box::new(Node::Number(42.0)),
+                        specifier: VariableSpecifier::Let,
+                    },
+                    Node::FunctionDeclarationStmt {
+                        id: Box::new(Node::Identifier("bar".to_string())),
+                        params: vec![
+                            Node::Identifier("function_argument_a".to_string()),
+                            Node::Identifier("b".to_string()),
+                        ],
+                        body: Box::new(Node::FunctionBody {
+                            children: vec![
+                                Node::ReturnStmt {
+                                    child: Box::new(Node::BinaryExpr {
+                                        op: Operator::Plus,
+                                        lhs: Box::new(Node::Identifier("a".to_string())),
+                                        rhs: Box::new(Node::Identifier("b".to_string())),
+                                    }),
+                                },
+                            ],
+                        }),
+                    },
+                    Node::ExportDeclarationStmt {
+                        declaration: Box::new(
+                            Node::VariableDeclarationStmt {
+                                id: Box::new(Node::Identifier("exported_variable".to_string())),
+                                initializer: Box::new(Node::Number(42.0)),
+                                specifier: VariableSpecifier::Let,
+                            }
+                        )
+                    },
+                    Node::ProcessNode {
+                        children: vec![
+                            Node::VariableDeclarationStmt {
+                                id: Box::new(Node::Identifier("PI".to_string())),
+                                initializer: Box::new(Node::Number(3.14)),
+                                specifier: VariableSpecifier::Const,
+                            },
+                        ],
+                    },
+                ],
+            },
+            errors: vec![],
+        };
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast);
+
+        let symbol = symbol_table.lookup("foo");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("bar");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("baz");
+        assert!(symbol.is_none());
+
+        // Enter the function scope
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("PI");
+        assert!(symbol.is_none());
+
+        let symbol = symbol_table.lookup("function_argument_a");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("a");
+        assert!(symbol.is_none()); // Checking that the function body tries to access an undefined variable
+
+        symbol_table.exit_scope();
+
+        // Check that the export declaration has been processed
+        let symbol = symbol_table.lookup("exported_variable");
+        assert!(symbol.is_some());
+
+        let resolved_symbol = symbol.unwrap();
+
+        if let SymbolInfo::Variable { visibility, .. } = resolved_symbol {
+            assert_eq!(*visibility, SymbolVisibility::Public);
+        } else {
+            panic!("Expected a variable symbol");
+        }
+
+        // Enter the process block scope
+        symbol_table.enter_next_scope();
+        let symbol = symbol_table.lookup("PI");
+        assert!(symbol.is_some());
 
         println!("{:#?}", symbol_table);
     }
