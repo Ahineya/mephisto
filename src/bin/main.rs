@@ -34,6 +34,8 @@ param frequency {
     initial: 220;
 }
 
+let a = 1;
+
 buffer b[1024];
 
 buffer moo[10] = |i| {
@@ -62,6 +64,8 @@ getSaw(phase) {
 export const PI = 3.14;
 
 export getSin(phase) {
+    let b = 1;
+    let b = 1;
     return sin(phase * 2 * PI);
 }
 
@@ -81,7 +85,9 @@ process {
 
     a = foo.value;
 
-    let a = 0;
+    //let a = 0;
+
+    a() {}
 
     return a + 1.1;
 }
@@ -100,6 +106,6 @@ connect {
 
     match compilation_result {
         Ok(_) => println!("Compilation successful!"),
-        Err(e) => println!("Compilation failed: {}", e),
+        Err(e) => println!("Compilation failed: {:#?}", e),
     }
 }

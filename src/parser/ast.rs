@@ -446,7 +446,7 @@ mod tests {
 
         traverse_ast(&mut ast.root, &mut |enter_exit, node, context: &mut Context| {
             match node {
-                Node::ProgramNode { children, position } => {
+                Node::ProgramNode { children, ..} => {
                     match enter_exit {
                         ASTTraverseStage::Enter => {
                             children.push(Node::Identifier {

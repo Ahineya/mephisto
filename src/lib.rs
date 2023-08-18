@@ -36,7 +36,7 @@ impl Mephisto {
         parser.parse(tokens)
     }
 
-    pub fn create_symbol_table(&self, ast: &mut AST) -> SymbolTable {
+    pub fn create_symbol_table(&self, ast: &mut AST) -> Result<SymbolTable, Vec<String>> {
         println!("Input AST: {:#?}", ast);
         println!();
         println!("Mephisto is creating symbol table...");
@@ -57,20 +57,32 @@ impl Mephisto {
         todo!("Validating semantics")
     }
 
-    pub fn compile(&self, input: String) -> Result<String, String> {
+    pub fn compile(&self, input: String) -> Result<String, Vec<String>> {
         let tokens = self.tokenize(input);
         let mut ast = self.parse(tokens);
 
         if ast.errors.len() > 0 {
-            return Err(ast.errors[0].clone());
+            return Err(ast.errors);
         }
 
         println!("{}", ast.to_json());
 
-        let mut symbol_table = self.create_symbol_table(&mut ast);
+        let symbol_table = self.create_symbol_table(&mut ast);
 
-        self.validate_semantics(&mut ast, &mut symbol_table)?;
+        match symbol_table {
+            Ok(mut symbol_table) => {
+                match self.validate_semantics(&mut ast, &mut symbol_table) {
+                    Ok(_) => {},
+                    Err(errors) => {
+                        return Err(vec![errors]);
+                    }
+                }
 
-        Err("Not finished".to_string())
+                todo!("Compiling")
+            },
+            Err(errors) => {
+                return Err(errors);
+            }
+        }
     }
 }
