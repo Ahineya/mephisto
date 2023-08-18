@@ -299,5 +299,11 @@ input gain = 0;
 
         assert_eq!(tokens[21].token_type, TokenType::RCURLY);
         assert_eq!(tokens[22].token_type, TokenType::EOF);
+
+        // Kick in "phase -> Kick.phase"
+        assert_eq!(tokens[11].position.line, 3);
+        assert_eq!(tokens[11].position.column, 12);
+        assert_eq!(tokens[11].position.start, 46);
+        assert_eq!(tokens[11].position.end, 50);
     }
 }
