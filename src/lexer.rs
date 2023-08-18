@@ -8,7 +8,7 @@ use crate::lexer::token_type::TokenType;
 use crate::lexer::tokenizers::{full_pattern_t, match_word_t, skip_whitespaces_t};
 
 pub struct Lexer {
-    tokenizers: Vec<fn(&str, u32) -> (Option<Token>, u32)>,
+    tokenizers: Vec<fn(&str, u32) -> (Option<Token>, u32, u32, u32)>,
 }
 
 impl Lexer {
@@ -71,19 +71,24 @@ impl Lexer {
         while position.start < input.len() as u32 {
             let mut tokenized = false;
 
-            // println!("Current position: {}", position.start);
-
             for tokenizer in &self.tokenizers {
-                let (token, consumed) = tokenizer(&orig_str, position.start);
+                let (token, consumed, skipped_lines, skipped_columns) = tokenizer(&orig_str, position.start);
 
                 if consumed > 0 {
                     tokenized = true;
                     position.start += consumed;
+                    position.line += skipped_lines;
+                    position.column = if skipped_lines > 0 { skipped_columns + 1 } else {position.column};
                 }
 
                 if let Some(mut t) = token {
                     t.position.start = position.start - consumed;
                     t.position.end = position.start;
+                    t.position.line += position.line - skipped_lines;
+                    t.position.column = position.column;
+
+                    position.column += consumed;
+
                     tokens.push(t);
                 }
             }
@@ -93,6 +98,8 @@ impl Lexer {
                 t.literal = input.chars().nth(position.start as usize).unwrap().to_string();
                 t.position.start = position.start;
                 t.position.end = position.start + 1;
+                t.position.column += 1;
+                position.start += 1;
 
                 tokens.push(t);
                 break;
