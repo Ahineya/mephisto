@@ -65,6 +65,8 @@ impl Mephisto {
             return Err(ast.errors[0].clone());
         }
 
+        println!("{}", ast.to_json());
+
         let mut symbol_table = self.create_symbol_table(&mut ast);
 
         self.validate_semantics(&mut ast, &mut symbol_table)?;

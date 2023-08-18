@@ -172,14 +172,17 @@ impl SymbolTable {
                 |
                 Node::ProcessNode {
                     children: _,
+                    position: _,
                 }
                 |
                 Node::BlockNode {
                     children: _,
+                    position: _,
                 }
                 |
                 Node::BufferInitializer {
                     children: _,
+                    position: _,
                 }
                 => {
                     match traverse_stage {
@@ -196,6 +199,7 @@ impl SymbolTable {
                 // They may contain either a function or a variable
                 Node::ExportDeclarationStmt {
                     declaration: _,
+                    position: _,
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
@@ -211,10 +215,11 @@ impl SymbolTable {
                     id,
                     initializer: _,
                     specifier,
+                    position: _,
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier(name) = id.as_mut() {
+                            if let Node::Identifier{name, position: _} = id.as_mut() {
                                 let visibility = match specifier {
                                     VariableSpecifier::Input => SymbolVisibility::Public,
                                     VariableSpecifier::Output => SymbolVisibility::Public,
@@ -241,10 +246,11 @@ impl SymbolTable {
                     id,
                     params,
                     body: _,
+                    position: _,
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier(name) = id.as_mut() {
+                            if let Node::Identifier{name, position: _} = id.as_mut() {
                                 let visibility = if context.public_visibility {
                                     SymbolVisibility::Public
                                 } else {
@@ -253,7 +259,7 @@ impl SymbolTable {
 
                                 context.symbol_table.insert(name.clone(), SymbolInfo::Function {
                                     parameters: params.iter().map(|param| {
-                                        if let Node::Identifier(name) = param {
+                                        if let Node::Identifier{name, position: _} = param {
                                             name.clone()
                                         } else {
                                             panic!("Expected identifier in function parameter list");
@@ -267,7 +273,7 @@ impl SymbolTable {
                             context.symbol_table.create_and_enter_scope();
 
                             for param in params {
-                                if let Node::Identifier(name) = param {
+                                if let Node::Identifier{name, position: _} = param {
                                     context.symbol_table.insert(name.clone(), SymbolInfo::FunctionArgument {
                                         origin: SymbolOrigin::Local,
                                     });
@@ -283,10 +289,11 @@ impl SymbolTable {
                 Node::ParameterDeclarationStmt {
                     id,
                     fields: _,
+                    position: _
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier(name) = id.as_mut() {
+                            if let Node::Identifier{name, position: _} = id.as_mut() {
                                 context.symbol_table.insert(name.clone(), SymbolInfo::Parameter {
                                     origin: SymbolOrigin::Local,
                                 });
@@ -299,10 +306,11 @@ impl SymbolTable {
                 Node::ImportStatement {
                     id,
                     path,
+                    position: _
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier(name) = id.as_mut() {
+                            if let Node::Identifier{name, position: _} = id.as_mut() {
                                 context.symbol_table.insert(name.clone(), SymbolInfo::ImportedModule {
                                     module: path.clone(),
                                 });
@@ -391,6 +399,7 @@ impl SymbolTable {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::token::Position;
     use crate::parser::ast::Operator;
 
     use super::*;
@@ -472,47 +481,57 @@ mod tests {
             root: Node::ProgramNode {
                 children: vec![
                     Node::VariableDeclarationStmt {
-                        id: Box::new(Node::Identifier("foo".to_string())),
-                        initializer: Box::new(Node::Number(42.0)),
+                        id: Box::new(Node::Identifier{name: "foo".to_string(), position: Position::new()}),
+                        initializer: Box::new(Node::Number{value: 42.0, position: Position::new()}),
                         specifier: VariableSpecifier::Let,
+                        position: Position::new()
                     },
                     Node::FunctionDeclarationStmt {
-                        id: Box::new(Node::Identifier("bar".to_string())),
+                        id: Box::new(Node::Identifier{name: "bar".to_string(), position: Position::new()}),
                         params: vec![
-                            Node::Identifier("function_argument_a".to_string()),
-                            Node::Identifier("b".to_string()),
+                            Node::Identifier{name: "function_argument_a".to_string(), position: Position::new()},
+                            Node::Identifier{name: "b".to_string(), position: Position::new()},
                         ],
                         body: Box::new(Node::FunctionBody {
                             children: vec![
                                 Node::ReturnStmt {
                                     child: Box::new(Node::BinaryExpr {
                                         op: Operator::Plus,
-                                        lhs: Box::new(Node::Identifier("a".to_string())),
-                                        rhs: Box::new(Node::Identifier("b".to_string())),
+                                        lhs: Box::new(Node::Identifier{name: "a".to_string(), position: Position::new()}),
+                                        rhs: Box::new(Node::Identifier{name: "b".to_string(), position: Position::new()}),
+                                        position: Position::new()
                                     }),
+                                    position: Position::new()
                                 },
                             ],
+                            position: Position::new()
                         }),
+                        position: Position::new()
                     },
                     Node::ExportDeclarationStmt {
                         declaration: Box::new(
                             Node::VariableDeclarationStmt {
-                                id: Box::new(Node::Identifier("exported_variable".to_string())),
-                                initializer: Box::new(Node::Number(42.0)),
+                                id: Box::new(Node::Identifier{name: "exported_variable".to_string(), position: Position::new()}),
+                                initializer: Box::new(Node::Number{value: 42.0, position: Position::new()}),
                                 specifier: VariableSpecifier::Let,
+                                position: Position::new()
                             }
-                        )
+                        ),
+                        position: Position::new()
                     },
                     Node::ProcessNode {
                         children: vec![
                             Node::VariableDeclarationStmt {
-                                id: Box::new(Node::Identifier("PI".to_string())),
-                                initializer: Box::new(Node::Number(3.14)),
+                                id: Box::new(Node::Identifier{name: "PI".to_string(), position: Position::new()}),
+                                initializer: Box::new(Node::Number{value: 3.14, position: Position::new()}),
                                 specifier: VariableSpecifier::Const,
+                                position: Position::new()
                             },
                         ],
+                        position: Position::new()
                     },
                 ],
+                position: Position::new(),
             },
             errors: vec![],
         };

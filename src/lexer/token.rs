@@ -1,11 +1,23 @@
 use crate::lexer::token_type::TokenType;
+use serde::Serialize;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize)]
 pub struct Position {
     pub start: u32,
     pub end: u32,
     pub line: u32,
     pub column: u32,
+}
+
+impl Position {
+    pub fn new() -> Position {
+        Position {
+            start: 0,
+            end: 0,
+            line: 1,
+            column: 1,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

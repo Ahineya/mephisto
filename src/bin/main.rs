@@ -15,7 +15,6 @@ struct Args {
     output: Option<String>,
 }
 
-
 fn main() {
     // let args = Args::parse();
 

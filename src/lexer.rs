@@ -74,9 +74,11 @@ impl Lexer {
             for tokenizer in &self.tokenizers {
                 let (token, consumed, skipped_lines, skipped_columns) = tokenizer(&orig_str, position.start);
 
+                // TODO: Some bullshit here
                 if consumed > 0 {
                     tokenized = true;
                     position.start += consumed;
+                    position.end += consumed;
                     position.line += skipped_lines;
                     position.column = if skipped_lines > 0 { skipped_columns + 1 } else {position.column};
                 }
@@ -106,7 +108,7 @@ impl Lexer {
             }
         }
 
-        tokens.push(Token::new(TokenType::EOF, "".to_string(), position.clone()));
+        tokens.push(Token::new(TokenType::EOF, "".to_string(), position));
 
         for token in &tokens {
             if token.token_type == TokenType::COMMENT {

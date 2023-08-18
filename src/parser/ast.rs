@@ -1,10 +1,24 @@
-#[derive(Debug, Clone, PartialEq)]
+use crate::lexer::token::Position;
+use serde::Serialize;
+use serde_json;
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct AST {
     pub root: Node,
     pub errors: Vec<String>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+impl AST {
+    pub fn new(root: Node, errors: Vec<String>) -> AST {
+        AST { root, errors }
+    }
+
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(&self).unwrap()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Operator {
     Plus,
     Minus,
@@ -17,7 +31,7 @@ pub enum Operator {
     Le,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum VariableSpecifier {
     Let,
     Const,
@@ -26,95 +40,266 @@ pub enum VariableSpecifier {
     Buffer,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
 pub enum Node {
     ProgramNode {
         children: Vec<Node>,
+        position: Position,
     },
     ProcessNode {
         children: Vec<Node>,
+        position: Position,
     },
     BlockNode {
         children: Vec<Node>,
+        position: Position,
     },
     ConnectNode {
         children: Vec<Node>,
+        position: Position,
     },
     FunctionBody {
         children: Vec<Node>,
+        position: Position,
     },
-    Identifier(String),
+    Identifier {
+        name: String,
+        position: Position,
+    },
     ExpressionStmt {
         child: Box<Node>,
+        position: Position,
     },
     AssignmentExpr {
         lhs: Box<Node>,
         rhs: Box<Node>,
+        position: Position,
     },
     ConnectStmt {
         lhs: Box<Node>,
         rhs: Box<Node>,
+        position: Position,
     },
     ReturnStmt {
         child: Box<Node>,
+        position: Position,
     },
     VariableDeclarationStmt {
         id: Box<Node>,
         initializer: Box<Node>,
         specifier: VariableSpecifier,
+        position: Position,
     },
     FunctionDeclarationStmt {
         id: Box<Node>,
         params: Vec<Node>,
         body: Box<Node>,
+        position: Position,
     },
     MemberExpr {
         object: Box<Node>,
         property: Box<Node>,
+        position: Position,
     },
     ExportDeclarationStmt {
         declaration: Box<Node>,
+        position: Position,
     },
 
     ParameterDeclarationStmt {
         id: Box<Node>,
         fields: Vec<Node>,
+        position: Position,
     },
 
     ParameterDeclarationField {
         id: Box<Node>,
         specifier: f64,
+        position: Position,
     },
 
     FnCallExpr {
         id: Box<Node>,
         args: Vec<Node>,
+        position: Position,
     },
 
-    Number(f64),
+    Number {
+        value: f64,
+        position: Position,
+    },
     UnaryExpr {
         op: Operator,
         child: Box<Node>,
+        position: Position,
     },
     BinaryExpr {
         op: Operator,
         lhs: Box<Node>,
         rhs: Box<Node>,
+        position: Position,
     },
-    OutputsStmt,
-    OutputsNumberedStmt(i32),
+    OutputsStmt {
+        position: Position,
+    },
+    OutputsNumberedStmt {
+        value: i32,
+        position: Position,
+    },
     BufferDeclarationStmt {
         id: Box<Node>,
         size: Box<Node>,
         initializer: Box<Node>,
+        position: Position,
     },
     BufferInitializer {
         children: Vec<Node>,
+        position: Position,
     },
     ImportStatement {
         id: Box<Node>,
         path: String,
+        position: Position,
     },
+}
+
+// Oooook, I definitely need to rethink data structures here. It's what you get when learn the language on the go.
+impl Node {
+    pub fn position(&self) -> &Position {
+        match self {
+            Node::ProgramNode { position, .. } => position,
+            Node::ProcessNode { position, .. } => position,
+            Node::BlockNode { position, .. } => position,
+            Node::ConnectNode { position, .. } => position,
+            Node::FunctionBody { position, .. } => position,
+            Node::Identifier { position, .. } => position,
+            Node::ExpressionStmt { position, .. } => position,
+            Node::AssignmentExpr { position, .. } => position,
+            Node::ConnectStmt { position, .. } => position,
+            Node::ReturnStmt { position, .. } => position,
+            Node::VariableDeclarationStmt { position, .. } => position,
+            Node::FunctionDeclarationStmt { position, .. } => position,
+            Node::MemberExpr { position, .. } => position,
+            Node::ExportDeclarationStmt { position, .. } => position,
+            Node::ParameterDeclarationStmt { position, .. } => position,
+            Node::ParameterDeclarationField { position, .. } => position,
+            Node::FnCallExpr { position, .. } => position,
+            Node::Number { position, .. } => position,
+            Node::UnaryExpr { position, .. } => position,
+            Node::BinaryExpr { position, .. } => position,
+            Node::OutputsStmt { position, .. } => position,
+            Node::OutputsNumberedStmt { position, .. } => position,
+            Node::BufferDeclarationStmt { position, .. } => position,
+            Node::BufferInitializer { position, .. } => position,
+            Node::ImportStatement { position, .. } => position,
+        }
+    }
+    
+    pub fn set_end(&mut self, end: u32, column: u32) {
+        match self {
+            Node::ProgramNode { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ProcessNode { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::BlockNode { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ConnectNode { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::FunctionBody { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::Identifier { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ExpressionStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::AssignmentExpr { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ConnectStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ReturnStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::VariableDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::FunctionDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::MemberExpr { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ExportDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ParameterDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ParameterDeclarationField { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::FnCallExpr { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::Number { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::UnaryExpr { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::BinaryExpr { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::OutputsStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::OutputsNumberedStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::BufferDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::BufferInitializer { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::ImportStatement { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+
+        }
+    }
 }
 
 pub enum ASTTraverseStage {
@@ -126,110 +311,112 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
     f(ASTTraverseStage::Enter, node, context);
 
     match node {
-        Node::ProgramNode { children } => {
+        Node::ProgramNode { children, position: _ } => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::ProcessNode { children } => {
+        Node::ProcessNode { children, position: _ } => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::BlockNode { children } => {
+        Node::BlockNode { children, position: _ } => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::ConnectNode { children } => {
+        Node::ConnectNode { children , position: _} => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::FunctionBody { children } => {
+        Node::FunctionBody { children , position: _} => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::ExpressionStmt { child } => {
+        Node::ExpressionStmt { child , position: _} => {
             traverse_ast(child, f, context);
         }
-        Node::AssignmentExpr { lhs, rhs } => {
+        Node::AssignmentExpr { lhs, rhs , position: _} => {
             traverse_ast(lhs, f, context);
             traverse_ast(rhs, f, context);
         }
-        Node::ConnectStmt { lhs, rhs } => {
+        Node::ConnectStmt { lhs, rhs , position: _} => {
             traverse_ast(lhs, f, context);
             traverse_ast(rhs, f, context);
         }
-        Node::ReturnStmt { child } => {
+        Node::ReturnStmt { child , position: _} => {
             traverse_ast(child, f, context);
         }
         Node::VariableDeclarationStmt {
             id,
             initializer,
             specifier: _,
+            position: _
         } => {
             traverse_ast(id, f, context);
             traverse_ast(initializer, f, context);
         }
-        Node::FunctionDeclarationStmt { id, params, body } => {
+        Node::FunctionDeclarationStmt { id, params, body, position: _ } => {
             traverse_ast(id, f, context);
             for param in params {
                 traverse_ast(param, f, context);
             }
             traverse_ast(body, f, context);
         }
-        Node::MemberExpr { object, property } => {
+        Node::MemberExpr { object, property , position: _} => {
             traverse_ast(object, f, context);
             traverse_ast(property, f, context);
         }
-        Node::ExportDeclarationStmt { declaration } => {
+        Node::ExportDeclarationStmt { declaration , position: _} => {
             traverse_ast(declaration, f, context);
         }
-        Node::ParameterDeclarationStmt { id, fields } => {
+        Node::ParameterDeclarationStmt { id, fields , position: _} => {
             traverse_ast(id, f, context);
             for field in fields {
                 traverse_ast(field, f, context);
             }
         }
-        Node::ParameterDeclarationField { id, specifier: _ } => {
+        Node::ParameterDeclarationField { id, specifier: _ , position: _} => {
             traverse_ast(id, f, context);
         }
-        Node::FnCallExpr { id, args } => {
+        Node::FnCallExpr { id, args , position: _} => {
             traverse_ast(id, f, context);
             for arg in args {
                 traverse_ast(arg, f, context);
             }
         }
-        Node::Number(_) => {}
-        Node::UnaryExpr { op: _, child } => {
+        Node::Number { value: _ , position: _} => {}
+        Node::UnaryExpr { op: _, child , position: _} => {
             traverse_ast(child, f, context);
         }
-        Node::BinaryExpr { op: _, lhs, rhs } => {
+        Node::BinaryExpr { op: _, lhs, rhs , position: _} => {
             traverse_ast(lhs, f, context);
             traverse_ast(rhs, f, context);
         }
-        Node::OutputsStmt => {}
-        Node::OutputsNumberedStmt(_) => {}
+        Node::OutputsStmt {position: _} => {}
+        Node::OutputsNumberedStmt { value: _ , position: _} => {}
         Node::BufferDeclarationStmt {
             id,
             size,
             initializer,
+            position: _
         } => {
             traverse_ast(id, f, context);
             traverse_ast(size, f, context);
             traverse_ast(initializer, f, context);
         }
-        Node::BufferInitializer { children } => {
+        Node::BufferInitializer { children , position: _} => {
             for child in children {
                 traverse_ast(child, f, context);
             }
         }
-        Node::ImportStatement { id, path: _ } => {
+        Node::ImportStatement { id, path: _ , position: _} => {
             traverse_ast(id, f, context);
         }
-        Node::Identifier(_) => {}
+        Node::Identifier { name: _ , position: _} => {}
     }
 
     f(ASTTraverseStage::Exit, node, context);
@@ -243,10 +430,10 @@ mod tests {
     fn test_traverse() {
         let mut ast = AST {
             root: Node::ProgramNode {
-                children: vec![
-                ],
+                children: vec![],
+                position: Position { line: 0, column: 0, start: 0, end: 0 },
             },
-            errors: vec![]
+            errors: vec![],
         };
 
         struct Context {
@@ -259,14 +446,19 @@ mod tests {
 
         traverse_ast(&mut ast.root, &mut |enter_exit, node, context: &mut Context| {
             match node {
-                Node::ProgramNode { children } => {
+                Node::ProgramNode { children, position } => {
                     match enter_exit {
                         ASTTraverseStage::Enter => {
-                            children.push(Node::Identifier("on_enter".to_string()));
+                            children.push(Node::Identifier {
+                                name: "on_enter".to_string(), position: Position::new()
+                            });
                             context.some_vec.push("on_enter".to_string());
                         }
                         ASTTraverseStage::Exit => {
-                            children.push(Node::Identifier("on_exit".to_string()));
+                            children.push(Node::Identifier {
+                                name: "on_exit".to_string(),
+                                position: Position::new()
+                            });
                             context.some_vec.push("on_exit".to_string());
                         }
                     }
@@ -277,9 +469,16 @@ mod tests {
 
         assert_eq!(ast.root, Node::ProgramNode {
             children: vec![
-                Node::Identifier("on_enter".to_string()),
-                Node::Identifier("on_exit".to_string()),
+                Node::Identifier {
+                    name: "on_enter".to_string(),
+                    position: Position::new()
+                },
+                Node::Identifier {
+                    name: "on_exit".to_string(),
+                    position: Position::new()
+                },
             ],
+            position: Position { line: 0, column: 0, start: 0, end: 0 },
         });
 
         assert_eq!(context.some_vec, vec!["on_enter".to_string(), "on_exit".to_string()]);

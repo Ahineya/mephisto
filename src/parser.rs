@@ -1,8 +1,8 @@
-pub mod ast;
-
-use crate::lexer::token::Token;
+use crate::lexer::token::{Position, Token};
 use crate::lexer::token_type::TokenType;
 use crate::parser::ast::{AST, Node, Operator, VariableSpecifier};
+
+pub mod ast;
 
 pub struct Parser {
     tokens: Vec<Token>,
@@ -16,14 +16,14 @@ impl Parser {
         Parser {
             tokens: Vec::new(),
             position: 0,
-            ast: Node::ProgramNode { children: Vec::new() },
+            ast: Node::ProgramNode { children: Vec::new(), position: Position::new() },
             errors: Vec::new(),
         }
     }
 
     pub fn clean(&mut self) {
         self.tokens = Vec::new();
-        self.ast = Node::ProgramNode { children: Vec::new() };
+        self.ast = Node::ProgramNode { children: Vec::new(), position: Position::new() };
         self.errors = Vec::new();
         self.position = 0;
     }
@@ -33,10 +33,11 @@ impl Parser {
 
         self.tokens = input;
 
-        let mut ast = Node::ProgramNode { children: Vec::new() };
+        let position = self.position();
+        let mut ast = Node::ProgramNode { children: Vec::new(), position };
 
         while self.position < self.tokens.len() {
-            if let Node::ProgramNode { children } = &mut ast {
+            if let Node::ProgramNode { children, .. } = &mut ast {
                 let token = self.peek();
 
                 match token.token_type {
@@ -190,13 +191,22 @@ impl Parser {
             }
         }
 
+
+        let end = self.position();
+
+        println!("End: {:?}", end);
+
+        self.set_end(&mut ast);
+
         AST {
-            root: ast.clone(),
+            root: ast,
             errors: Vec::new(),
         }
     }
 
     fn parse_import_statement(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         self.skip(TokenType::IMPORT)?;
         let id = match self.parse_id() {
             Ok(id) => id,
@@ -212,12 +222,16 @@ impl Parser {
             // Remove quotes
             let path = path[1..path.len() - 1].to_string();
 
-            let node = Node::ImportStatement {
+            let mut node = Node::ImportStatement {
                 id: Box::new(id),
                 path,
+                position: position.clone(),
             };
 
             self.skip(TokenType::SEMI)?;
+
+            self.set_end(&mut node);
+
             Ok(node)
         } else {
             Err(self.generic_error(&path, "Expected string literal"))
@@ -225,6 +239,8 @@ impl Parser {
     }
 
     fn parse_buffer_declaration_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         self.skip(TokenType::BUFFER)?;
         let id = match self.parse_id() {
             Ok(id) => id,
@@ -237,12 +253,13 @@ impl Parser {
 
         let token = self.peek();
 
-        let node = match token.token_type {
+        let mut node = match token.token_type {
             TokenType::SEMI => {
                 Node::BufferDeclarationStmt {
                     id: Box::new(id),
-                    initializer: Box::new(Node::Number(0.0)),
+                    initializer: Box::new(Node::Number { value: 0.0, position: Position::new() }),
                     size: Box::new(specifier),
+                    position,
                 }
             }
             TokenType::DEF => {
@@ -252,6 +269,7 @@ impl Parser {
                     id: Box::new(id),
                     initializer: Box::new(initializer),
                     size: Box::new(specifier),
+                    position,
                 }
             }
             _ => {
@@ -261,19 +279,22 @@ impl Parser {
 
         self.skip(TokenType::SEMI)?;
 
+        self.set_end(&mut node);
+
         Ok(node)
     }
 
     fn parse_buffer_initialization(&mut self) -> Result<Node, String> {
+        let mut buffer_initialization = Node::BufferInitializer {
+            children: Vec::new(),
+            position: self.position(),
+        };
+
         self.skip(TokenType::BUFI)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut buffer_initialization = Node::BufferInitializer {
-            children: Vec::new(),
-        };
-
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::BufferInitializer { children } = &mut buffer_initialization {
+            if let Node::BufferInitializer { children, position: _ } = &mut buffer_initialization {
                 let statement = self.parse_statement()?;
                 children.push(statement);
             }
@@ -281,10 +302,14 @@ impl Parser {
 
         self.skip(TokenType::RCURLY)?;
 
+        self.set_end(&mut buffer_initialization);
+
         Ok(buffer_initialization)
     }
 
     fn parse_parameter_declaration_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         self.skip(TokenType::PARAM)?;
         let id = match self.parse_id() {
             Ok(id) => id,
@@ -296,10 +321,11 @@ impl Parser {
         let mut parameter_declaration_stmt = Node::ParameterDeclarationStmt {
             id: Box::new(id),
             fields: Vec::new(),
+            position,
         };
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::ParameterDeclarationStmt { id: _, fields } = &mut parameter_declaration_stmt {
+            if let Node::ParameterDeclarationStmt { id: _, fields, position: _ } = &mut parameter_declaration_stmt {
                 let field = match self.parse_parameter_declaration_field() {
                     Ok(field) => field,
                     Err(e) => return Err(e),
@@ -310,10 +336,14 @@ impl Parser {
 
         self.skip(TokenType::RCURLY)?;
 
+        self.set_end(&mut parameter_declaration_stmt);
+
         Ok(parameter_declaration_stmt)
     }
 
     fn parse_parameter_declaration_field(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let id = match self.parse_id() {
             Ok(id) => id,
             Err(e) => return Err(e),
@@ -323,7 +353,7 @@ impl Parser {
         let specifier = self.parse_number()?;
 
         let specifier = match specifier {
-            Node::Number(n) => n,
+            Node::Number { value, position: _ } => value,
             _ => {
                 return Err(self.generic_error(&self.tokens[self.position - 1], "Expected number"));
             }
@@ -331,20 +361,27 @@ impl Parser {
 
         self.skip(TokenType::SEMI)?;
 
-        Ok(Node::ParameterDeclarationField {
+        let mut node = Node::ParameterDeclarationField {
             id: Box::new(id),
             specifier,
-        })
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_connect(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         self.skip(TokenType::CONNECT)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut connect = Node::ConnectNode { children: Vec::new() };
+        let mut connect = Node::ConnectNode { children: Vec::new(), position };
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::ConnectNode { children } = &mut connect {
+            if let Node::ConnectNode { children, position: _ } = &mut connect {
                 let child = self.parse_connect_statement()?;
                 children.push(child);
             }
@@ -352,10 +389,14 @@ impl Parser {
 
         self.skip(TokenType::RCURLY)?;
 
+        self.set_end(&mut connect);
+
         Ok(connect)
     }
 
     fn parse_connect_statement(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let token = self.peek();
 
         match token.token_type {
@@ -370,10 +411,15 @@ impl Parser {
 
                 self.skip(TokenType::SEMI)?;
 
-                Ok(Node::ConnectStmt {
+                let mut connect_statement = Node::ConnectStmt {
                     lhs: Box::new(lhs),
                     rhs: Box::new(rhs),
-                })
+                    position,
+                };
+
+                self.set_end(&mut connect_statement);
+
+                Ok(connect_statement)
             }
             _ => {
                 Err(self.generic_error(&token, "identifier"))
@@ -398,20 +444,24 @@ impl Parser {
     }
 
     fn parse_outputs_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         self.skip(TokenType::OUTPUTS)?;
 
         let token = self.peek();
 
         if token.token_type != TokenType::LSQUARE {
-            return Ok(Node::OutputsStmt);
+            return Ok(Node::OutputsStmt { position });
         }
 
         self.skip(TokenType::LSQUARE)?;
         let specifier = self.parse_number()?;
         self.skip(TokenType::RSQUARE)?;
 
-        if let Node::Number(number) = specifier {
-            return Ok(Node::OutputsNumberedStmt(number as i32));
+        if let Node::Number { value, position: _ } = specifier {
+            let mut node = Node::OutputsNumberedStmt { value: value as i32, position: Position::new() };
+            self.set_end(&mut node);
+            return Ok(node);
         }
 
         Err(self.generic_error(&token, "number"))
@@ -437,6 +487,7 @@ impl Parser {
     }
 
     fn parse_export_declaration_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
         self.skip(TokenType::EXPORT)?;
 
         let token = self.peek();
@@ -462,9 +513,14 @@ impl Parser {
             }
         };
 
-        Ok(Node::ExportDeclarationStmt {
+        let mut export_declaration_stmt = Node::ExportDeclarationStmt {
             declaration: Box::new(declaration),
-        })
+            position,
+        };
+
+        self.set_end(&mut export_declaration_stmt);
+
+        Ok(export_declaration_stmt)
     }
 
     fn parse_statement(&mut self) -> Result<Node, String> {
@@ -501,27 +557,39 @@ impl Parser {
     }
 
     fn parse_return_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
         self.skip(TokenType::RETURN)?;
         let expr = self.parse_expression()?;
         self.skip(TokenType::SEMI)?;
 
-        Ok(Node::ReturnStmt {
+        let mut return_stmt = Node::ReturnStmt {
             child: Box::new(expr),
-        })
+            position,
+        };
+
+        self.set_end(&mut return_stmt);
+        Ok(return_stmt)
     }
 
     fn parse_function_declaration_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let id = self.parse_id()?;
         self.skip(TokenType::LPAREN)?;
         let params = self.parse_params()?;
         self.skip(TokenType::RPAREN)?;
         let body = self.parse_function_body()?;
 
-        Ok(Node::FunctionDeclarationStmt {
+        let mut node = Node::FunctionDeclarationStmt {
             id: Box::new(id),
             params,
             body: Box::new(body),
-        })
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_params(&mut self) -> Result<Vec<Node>, String> {
@@ -540,14 +608,15 @@ impl Parser {
     }
 
     fn parse_process(&mut self) -> Result<Node, String> {
+        let position = self.position();
         // Should skip {
         self.skip(TokenType::PROCESS)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut process = Node::ProcessNode { children: Vec::new() };
+        let mut process = Node::ProcessNode { children: Vec::new(), position };
 
-        while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::ProcessNode { children } = &mut process {
+        while self.peek().token_type != TokenType::RCURLY {
+            if let Node::ProcessNode { children, .. } = &mut process {
                 let child = self.parse_statement()?;
                 children.push(child);
             }
@@ -555,41 +624,59 @@ impl Parser {
 
         self.skip(TokenType::RCURLY)?;
 
+        self.set_end(&mut process);
+
         Ok(process)
     }
 
     fn parse_block(&mut self) -> Result<Node, String> {
-        // Should skip {
+        let mut block = Node::BlockNode {
+            children: Vec::new(),
+            position: self.position()
+        };
+
         self.skip(TokenType::BLOCK)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut process = Node::BlockNode { children: Vec::new() };
-
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::BlockNode { children } = &mut process {
+            if let Node::BlockNode { children, .. } = &mut block {
                 children.push(self.parse_statement()?);
             }
         }
 
         self.skip(TokenType::RCURLY)?;
 
-        Ok(process)
+        self.set_end(&mut block);
+
+        Ok(block)
+    }
+
+    fn set_end(&mut self, node: &mut Node) {
+        let position = self.position();
+
+        let end = position.end;
+        let column = position.column;
+
+        node.set_end(end, column);
     }
 
     fn parse_function_body(&mut self) -> Result<Node, String> {
+        let position = self.position();
         // Should skip {
         self.skip(TokenType::LCURLY)?;
 
-        let mut process = Node::FunctionBody { children: Vec::new() };
+        let mut process = Node::FunctionBody { children: Vec::new(), position: Position::new() };
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::FunctionBody { children } = &mut process {
+            if let Node::FunctionBody { children, .. } = &mut process {
                 let child = self.parse_statement()?;
                 children.push(child);
             }
         }
 
         self.skip(TokenType::RCURLY)?;
+
+        self.set_end(&mut process);
 
         Ok(process)
     }
@@ -619,20 +706,29 @@ impl Parser {
     }
 
     fn parse_variable_declaration_stmt(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let specifier = self.parse_variable_specifier()?;
         let id = self.parse_id()?;
         self.skip(TokenType::DEF)?;
         let initializer = self.parse_expression()?;
         self.skip(TokenType::SEMI)?;
 
-        Ok(Node::VariableDeclarationStmt {
+        let mut node = Node::VariableDeclarationStmt {
             id: Box::new(id),
             initializer: Box::new(initializer),
             specifier,
-        })
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_assignment_expression(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let id = self.parse_id()?;
         self.skip(TokenType::DEF)?;
 
@@ -642,10 +738,15 @@ impl Parser {
 
         self.skip(TokenType::SEMI)?;
 
-        Ok(Node::AssignmentExpr {
+        let mut node = Node::AssignmentExpr {
             lhs: Box::new(id),
             rhs: Box::new(expr),
-        })
+            position: Position::new(),
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_expression(&mut self) -> Result<Node, String> {
@@ -669,27 +770,32 @@ impl Parser {
     }
 
     fn parse_unary_expr(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let token = self.consume();
 
-        match token.token_type {
+        let operator = match token.token_type {
             TokenType::PLUS => {
-                let expr = self.parse_expression()?;
-                Ok(Node::UnaryExpr {
-                    op: Operator::Plus,
-                    child: Box::new(expr),
-                })
+                Operator::Plus
             }
             TokenType::MINUS => {
-                let expr = self.parse_expression()?;
-                Ok(Node::UnaryExpr {
-                    op: Operator::Minus,
-                    child: Box::new(expr),
-                })
+                Operator::Minus
             }
             _ => {
-                Err(self.generic_error(&token, "plus or minus"))
+                Err(self.generic_error(&token, "plus or minus"))?
             }
-        }
+        };
+
+        let child = self.parse_expression()?;
+
+        let mut node = Node::UnaryExpr {
+            op: operator,
+            child: Box::new(child),
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_infix_expr(&mut self) -> Result<Node, String> {
@@ -706,14 +812,20 @@ impl Parser {
     }
 
     fn parse_member_expr(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let id = self.parse_id()?;
         self.skip(TokenType::DOT)?;
         let member = self.parse_id()?;
 
-        Ok(Node::MemberExpr {
+        let mut node = Node::MemberExpr {
             object: Box::new(id),
             property: Box::new(member),
-        })
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_binary_expr(&mut self) -> Result<Node, String> {
@@ -721,6 +833,7 @@ impl Parser {
     }
 
     fn parse_comparison(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let mut lhs = self.parse_add_sub()?;
 
         loop {
@@ -733,16 +846,20 @@ impl Parser {
                         op,
                         lhs: Box::new(lhs),
                         rhs: Box::new(rhs),
+                        position,
                     };
                 }
                 _ => break,
             }
         }
 
+        self.set_end(&mut lhs);
+
         Ok(lhs)
     }
 
     fn parse_add_sub(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let mut lhs = self.parse_mul_div()?;
 
         loop {
@@ -755,16 +872,20 @@ impl Parser {
                         op,
                         lhs: Box::new(lhs),
                         rhs: Box::new(rhs),
+                        position,
                     };
                 }
                 _ => break,
             }
         }
 
+        self.set_end(&mut lhs);
+
         Ok(lhs)
     }
 
     fn parse_mul_div(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let mut lhs = self.parse_primitive()?;
 
         loop {
@@ -777,11 +898,14 @@ impl Parser {
                         op,
                         lhs: Box::new(lhs),
                         rhs: Box::new(rhs),
+                        position,
                     };
                 }
                 _ => break,
             }
         }
+
+        self.set_end(&mut lhs);
 
         Ok(lhs)
     }
@@ -824,11 +948,14 @@ impl Parser {
     }
 
     fn parse_number(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let token = self.consume();
 
         match token.token_type {
             TokenType::NUMBER => {
-                Ok(Node::Number(token.literal.parse::<f64>().unwrap()))
+                let mut node = Node::Number { value: token.literal.parse::<f64>().unwrap(), position };
+                self.set_end(&mut node);
+                Ok(node)
             }
             _ => {
                 Err(self.generic_error(&token, "number"))
@@ -837,15 +964,22 @@ impl Parser {
     }
 
     fn parse_fn_call(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
         let id = self.parse_id()?;
         self.skip(TokenType::LPAREN)?;
         let args = self.parse_arguments()?;
         self.skip(TokenType::RPAREN)?;
 
-        Ok(Node::FnCallExpr {
+        let mut node = Node::FnCallExpr {
             id: Box::new(id),
             args,
-        })
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_arguments(&mut self) -> Result<Vec<Node>, String> {
@@ -891,11 +1025,12 @@ impl Parser {
     }
 
     fn parse_id(&mut self) -> Result<Node, String> {
+        let position = self.position();
         let token = self.consume();
 
         match token.token_type {
             TokenType::ID => {
-                Ok(Node::Identifier(token.literal))
+                Ok(Node::Identifier { name: token.literal, position })
             }
             _ => {
                 Err(self.generic_error(&token, "identifier"))
@@ -929,6 +1064,10 @@ impl Parser {
         self.position += 1;
         token
     }
+
+    fn position(&self) -> Position {
+        self.tokens[self.position].position
+    }
 }
 
 #[cfg(test)]
@@ -940,10 +1079,10 @@ mod tests {
     #[test]
     fn test_parser_lotion() {
         let tokens = vec![
-            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }),
-            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 5, line: 0 }),
-            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 6, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }),
+            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }),
+            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 6, line: 1 }),
+            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 7, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -954,8 +1093,10 @@ mod tests {
                 children: vec![
                     Node::BlockNode {
                         children: vec![],
+                        position: Position { start: 0, end: 7, line: 1, column: 7 },
                     },
                 ],
+                position: Position { start: 0, end: 7, line: 1, column: 7 },
             },
             errors: vec![],
         });
@@ -964,10 +1105,10 @@ mod tests {
     #[test]
     fn test_consume() {
         let tokens = vec![
-            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }),
-            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 5, line: 0 }),
-            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 6, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }),
+            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }),
+            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 6, line: 1 }),
+            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 7, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -975,29 +1116,29 @@ mod tests {
         parser.position = 0;
 
         let token = parser.consume();
-        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }));
         assert_eq!(parser.position, 1);
 
         let token = parser.consume();
-        assert_eq!(token, Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 5, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 6, line: 1 }));
         assert_eq!(parser.position, 2);
 
         let token = parser.consume();
-        assert_eq!(token, Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 6, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 7, line: 1 }));
         assert_eq!(parser.position, 3);
 
         let token = parser.consume();
-        assert_eq!(token, Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 1 }));
         assert_eq!(parser.position, 4);
     }
 
     #[test]
     fn test_peek() {
         let tokens = vec![
-            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }),
-            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 5, line: 0 }),
-            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 6, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }),
+            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }),
+            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 6, line: 1 }),
+            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 7, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -1005,21 +1146,21 @@ mod tests {
         parser.position = 0;
 
         let token = parser.peek();
-        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }));
         assert_eq!(parser.position, 0);
 
         let token = parser.peek();
-        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }));
+        assert_eq!(token, Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }));
         assert_eq!(parser.position, 0);
     }
 
     #[test]
     fn test_skip() {
         let tokens = vec![
-            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }),
-            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 5, line: 0 }),
-            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 6, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }),
+            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }),
+            Token::new(TokenType::LCURLY, "{".to_string(), Position { start: 5, end: 6, column: 6, line: 1 }),
+            Token::new(TokenType::RCURLY, "}".to_string(), Position { start: 6, end: 7, column: 7, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -1039,15 +1180,15 @@ mod tests {
         assert_eq!(parser.position, 3);
 
         let result = parser.skip(TokenType::UNKNOWN); // Should be EOF, but let's test the error message
-        assert_eq!(result, Err("Unexpected token: <EOF: [Position { start: 7, end: 7, line: 0, column: 7 }]>, expected UNKNOWN".to_string()));
+        assert_eq!(result, Err("Unexpected token: <EOF: [Position { start: 7, end: 7, line: 1, column: 7 }]>, expected UNKNOWN".to_string()));
         assert_eq!(parser.position, 3);
     }
 
     #[test]
     fn test_generic_error() {
         let tokens = vec![
-            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 0, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 7, end: 7, column: 7, line: 0 }),
+            Token::new(TokenType::BLOCK, "block".to_string(), Position { start: 0, end: 5, column: 1, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 5, end: 5, column: 5, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -1058,14 +1199,14 @@ mod tests {
 
         let result = parser.generic_error(&token, "Test error");
 
-        assert_eq!(result, "Unexpected token: <BLOCK:block [Position { start: 0, end: 5, line: 0, column: 0 }]>, expected Test error");
+        assert_eq!(result, "Unexpected token: <BLOCK:block [Position { start: 0, end: 5, line: 1, column: 1 }]>, expected Test error");
     }
 
     #[test]
     fn test_parse_id() {
         let tokens = vec![
-            Token::new(TokenType::ID, "id".to_string(), Position { start: 0, end: 2, column: 0, line: 0 }),
-            Token::new(TokenType::EOF, "".to_string(), Position { start: 2, end: 2, column: 2, line: 0 }),
+            Token::new(TokenType::ID, "id".to_string(), Position { start: 0, end: 2, column: 1, line: 1 }),
+            Token::new(TokenType::EOF, "".to_string(), Position { start: 2, end: 2, column: 2, line: 1 }),
         ];
 
         let mut parser = Parser::new();
@@ -1074,7 +1215,12 @@ mod tests {
 
         let result = parser.parse_id();
 
-        assert_eq!(result, Ok(Node::Identifier("id".to_string())));
+        assert_eq!(result, Ok(Node::Identifier { name: "id".to_string(), position: Position {
+            start: 0,
+            end: 2,
+            column: 1,
+            line: 1,
+        }}));
     }
 
     #[test]
