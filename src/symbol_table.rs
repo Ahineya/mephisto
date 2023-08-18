@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::lexer::token::Position;
 
 use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast, VariableSpecifier};
 
@@ -19,20 +20,25 @@ pub enum SymbolInfo {
     Variable {
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
+        position: Position,
     },
     Parameter {
         origin: SymbolOrigin,
+        position: Position,
     },
     Function {
         parameters: Vec<String>,
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
+        position: Position,
     },
     FunctionArgument {
         origin: SymbolOrigin,
+        position: Position,
     },
     ImportedModule {
         module: String,
+        position: Position,
     },
 }
 
@@ -219,7 +225,7 @@ impl SymbolTable {
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier{name, position: _} = id.as_mut() {
+                            if let Node::Identifier{name, position} = id.as_mut() {
                                 let visibility = match specifier {
                                     VariableSpecifier::Input => SymbolVisibility::Public,
                                     VariableSpecifier::Output => SymbolVisibility::Public,
@@ -235,6 +241,7 @@ impl SymbolTable {
                                 context.symbol_table.insert(name.clone(), SymbolInfo::Variable {
                                     visibility,
                                     origin: SymbolOrigin::Local,
+                                    position: position.clone(),
                                 });
                             }
                         }
@@ -250,7 +257,7 @@ impl SymbolTable {
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier{name, position: _} = id.as_mut() {
+                            if let Node::Identifier{name, position} = id.as_mut() {
                                 let visibility = if context.public_visibility {
                                     SymbolVisibility::Public
                                 } else {
@@ -267,15 +274,17 @@ impl SymbolTable {
                                     }).collect(),
                                     visibility,
                                     origin: SymbolOrigin::Local,
+                                    position: position.clone(),
                                 });
                             }
 
                             context.symbol_table.create_and_enter_scope();
 
                             for param in params {
-                                if let Node::Identifier{name, position: _} = param {
+                                if let Node::Identifier{name, position} = param {
                                     context.symbol_table.insert(name.clone(), SymbolInfo::FunctionArgument {
                                         origin: SymbolOrigin::Local,
+                                        position: position.clone(),
                                     });
                                 }
                             }
@@ -293,9 +302,10 @@ impl SymbolTable {
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier{name, position: _} = id.as_mut() {
+                            if let Node::Identifier{name, position} = id.as_mut() {
                                 context.symbol_table.insert(name.clone(), SymbolInfo::Parameter {
                                     origin: SymbolOrigin::Local,
+                                    position: position.clone(),
                                 });
                             }
                         }
@@ -310,9 +320,10 @@ impl SymbolTable {
                 } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
-                            if let Node::Identifier{name, position: _} = id.as_mut() {
+                            if let Node::Identifier{name, position} = id.as_mut() {
                                 context.symbol_table.insert(name.clone(), SymbolInfo::ImportedModule {
                                     module: path.clone(),
+                                    position: position.clone(),
                                 });
                             }
                         }
@@ -415,6 +426,7 @@ mod tests {
             SymbolInfo::Variable {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
+                position: Position::new(),
             },
         );
 
@@ -426,6 +438,7 @@ mod tests {
                 parameters: vec!["a".to_string(), "b".to_string()],
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
+                position: Position::new()
             },
         );
 
@@ -438,6 +451,7 @@ mod tests {
             SymbolInfo::Variable {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
+                position: Position::new(),
             },
         );
 
