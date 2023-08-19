@@ -141,6 +141,32 @@ impl SemanticAnalyzer {
                         }
                     }
                 }
+                Node::AssignmentExpr {
+                    lhs,
+                    position,
+                    ..
+                } => {
+                    match traverse_stage {
+                        ASTTraverseStage::Enter => {
+                            match lhs.as_ref() {
+                                Node::Identifier { name, .. } => {
+                                    match context.symbol_table.lookup(name) {
+                                        Some(symbol_info) => {
+                                            if symbol_info.is_constant() {
+                                                context.errors.push(format!("Cannot assign to constant \"{}\", {:?}", name, position));
+                                            }
+                                        }
+                                        None => {
+                                            context.errors.push(format!("Cannot find name \"{}\", {:?}", name, position));
+                                        }
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        ASTTraverseStage::Exit => {}
+                    }
+                }
                 _ => {}
             }
         }, &mut context);
@@ -324,5 +350,182 @@ mod tests {
         let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
 
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_should_work_with_imports() {
+        let code = "
+            import Kick from './kick.meph';
+
+            let a = Kick.out;
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_ok());
+
+        todo!("Implement imports")
+    }
+
+    #[test]
+    fn test_connect_block() {
+        let code = "
+            import Kick from './kick.meph';
+
+            let a = 0;
+
+            connect {
+                Kick.out -> Kick.in;
+                a -> OUTPUTS[0];
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_ok());
+
+        todo!("Implement imports")
+    }
+
+    #[test]
+    fn test_incorrect_connect_block() {
+        let code = "
+            import Kick from \"./kick.meph\";
+
+            let a = 0;
+
+            connect {
+                b -> OUTPUTS;
+                a -> c;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+        assert_eq!(errors[0], "Cannot find name \"b\", Position { start: 108, end: 109, line: 7, column: 17 }");
+        assert_eq!(errors[1], "Cannot find name \"c\", Position { start: 143, end: 144, line: 8, column: 20 }");
+
+        todo!("Implement imports")
+    }
+
+    #[test]
+    fn test_buffer_initializer() {
+        let code = "
+buffer foo[10] = |i| {
+    return i * 2;
+};
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_constant_assignment() {
+        let code = "
+        const foo = 10;
+        foo = 12;
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        println!("{:#?}", ast);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_function_assignment() {
+        let code = "
+        foo() {
+            return 12;
+        }
+
+        foo = 12;
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_input_assignment() {
+        let code = "
+        input foo = 0;
+
+        foo = 10;
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let mut symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+        let result = semantic.validate_semantics(&mut ast, &mut symbol_table);
+
+        assert!(result.is_err());
     }
 }

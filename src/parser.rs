@@ -406,9 +406,6 @@ impl Parser {
                 self.skip(TokenType::CABLE)?;
                 let rhs = self.parse_right_connection_member()?;
 
-                println!("LHS: {:?}", lhs);
-                println!("RHS: {:?}", rhs);
-
                 self.skip(TokenType::SEMI)?;
 
                 let mut connect_statement = Node::ConnectStmt {

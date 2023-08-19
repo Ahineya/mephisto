@@ -1,5 +1,7 @@
-import Math from "./math.auo";
-import Kick from "./kick.auo";
+
+
+import Math from \"./math.auo\";
+import Kick from \"./kick.auo\";
 
 param frequency {
     min: 40;
@@ -8,6 +10,14 @@ param frequency {
     initial: 220;
 }
 
+let a = 1;
+
+buffer b[1024];
+
+buffer moo[10] = |i| {
+    return i * 2;
+};
+
 output out = 0;
 
 let phase = 0;
@@ -15,47 +25,54 @@ let increment = 0;
 
 const SR = 44100;
 
-buffer b[1024] = |i| {
-    return i / 1024;
-};
-
-input gain = 1 + 0.5 * getSin(0.5);
+input gain = 1 + 0.5 * getSin(0.5 + (Math.foo));
 input kick = 0;
 
 block {
     increment = frequency / SR;
+    return 123;
+}
+
+getSaw(phase) {
+    return phase * 2 - 1;
+}
+
+export const PI = 3.14;
+
+export getSin(phase) {
+    let b = 1;
+    return sin(phase * 2 * PI);
 }
 
 process {
-    phase = increment + (phase - floor(increment + phase));
+    const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
+    phase = increment + (phase - floor(increment + phase, -2));
+    out = (phase > -0.5) * 2 - 1;
+    out = out * gain.value;
 
-/*
-    if (phase > 0.5) {
-        out = -1;
-    } else {
-        out = 1;
+    let a = 0;
+
+    test = floor(2.5);
+
+    getPoo() {
+        return 1;
     }
-*/
 
-    out = (phase > 0.5) * 2 - 1;
+    a = foo.value;
 
-    /*
-    out = getSin(phase) + kick;
-    */
+    //let a = 0;
 
-    out = out * gain;
-}
-
-export getSaw(phase) {
-    return phase * 2 - 1;
+    return a + 1.1;
 }
 
 connect {
     out -> OUTPUTS[0];
-    out -> OUTPUTS[1];
+    out -> OUTPUTS;
 
     phase -> Kick.phase;
     gain -> Kick.gain;
 
     Kick.out -> kick;
 }
+
+    

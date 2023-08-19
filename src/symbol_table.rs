@@ -9,15 +9,22 @@ pub enum SymbolVisibility {
     Private,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum SymbolOrigin {
     Local,
     ImportedModule { module: String },
+    StandardLibrary,
 }
 
 #[derive(Debug, Clone)]
 pub enum SymbolInfo {
     Variable {
+        visibility: SymbolVisibility,
+        origin: SymbolOrigin,
+        position: Position,
+        constant: bool,
+    },
+    Buffer {
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
         position: Position,
@@ -50,6 +57,17 @@ impl SymbolInfo {
             SymbolInfo::Function { position, .. } => position,
             SymbolInfo::FunctionArgument { position, .. } => position,
             SymbolInfo::ImportedModule { position, .. } => position,
+            SymbolInfo::Buffer { position, .. } => position,
+        }
+    }
+
+    pub fn is_constant(&self) -> bool {
+        match self {
+            SymbolInfo::Variable { constant, .. } => *constant,
+            SymbolInfo::Function { .. } => true,
+            SymbolInfo::ImportedModule { .. } => true,
+            SymbolInfo::Parameter { .. } => true,
+                _ => false,
         }
     }
 }
@@ -167,10 +185,56 @@ impl SymbolTable {
             children: Vec::new(),
             parent: None,
         };
-        Self {
+
+        let mut symbol_table = Self {
             scopes: vec![global_scope],
             current_scope_index: 0,
             traversed_scopes: 0,
+        };
+
+        symbol_table.define_stdlib_fn("abs", vec!["x"]);
+        symbol_table.define_stdlib_fn("sqrt", vec!["x"]);
+        symbol_table.define_stdlib_fn("pow", vec!["x", "y"]);
+        symbol_table.define_stdlib_fn("exp", vec!["x"]);
+        symbol_table.define_stdlib_fn("min", vec!["x", "y"]);
+        symbol_table.define_stdlib_fn("max", vec!["x", "y"]);
+        symbol_table.define_stdlib_fn("mod", vec!["x", "y"]);
+        symbol_table.define_stdlib_fn("rand", vec![]);
+
+        // Trigonometric functions
+        symbol_table.define_stdlib_fn("sin", vec!["x"]);
+        symbol_table.define_stdlib_fn("cos", vec!["x"]);
+        symbol_table.define_stdlib_fn("tan", vec!["x"]);
+        symbol_table.define_stdlib_fn("asin", vec!["x"]);
+        symbol_table.define_stdlib_fn("acos", vec!["x"]);
+        symbol_table.define_stdlib_fn("atan", vec!["x"]);
+        symbol_table.define_stdlib_fn("atan2", vec!["x", "y"]);
+
+        // Logarithmic functions
+        symbol_table.define_stdlib_fn("log", vec!["x"]);
+        symbol_table.define_stdlib_fn("log10", vec!["x"]);
+
+        // Rounding functions
+        symbol_table.define_stdlib_fn("floor", vec!["x"]);
+        symbol_table.define_stdlib_fn("ceil", vec!["x"]);
+        symbol_table.define_stdlib_fn("round", vec!["x"]);
+
+        symbol_table
+    }
+
+    fn define_stdlib_fn(&mut self, name: &str, parameters: Vec<&str>) {
+        if let Ok(()) = self.insert(
+            name.to_string(),
+            SymbolInfo::Function {
+                parameters: parameters.iter().map(|s| s.to_string()).collect(),
+                visibility: SymbolVisibility::Private,
+                origin: SymbolOrigin::StandardLibrary,
+                position: Position::new(),
+            },
+        ) {
+            // Do nothing
+        } else {
+            panic!("Failed to insert \"{}\" function into symbol table", name);
         }
     }
 
@@ -198,13 +262,7 @@ impl SymbolTable {
                 Node::BlockNode {
                     children: _,
                     position: _,
-                }
-                |
-                Node::BufferInitializer {
-                    children: _,
-                    position: _,
-                }
-                => {
+                } => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
                             context.symbol_table.create_and_enter_scope();
@@ -252,7 +310,47 @@ impl SymbolTable {
                                     visibility
                                 };
 
+                                let constant = match specifier {
+                                    VariableSpecifier::Const => true,
+                                    VariableSpecifier::Input => true,
+                                    _ => false,
+                                };
+
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Variable {
+                                    visibility,
+                                    constant,
+                                    origin: SymbolOrigin::Local,
+                                    position: position.clone(),
+                                }) {
+                                    Ok(_) => {}
+                                    Err(err) => {
+                                        context.errors.push(err);
+                                    }
+                                }
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+
+                Node::BufferDeclarationStmt {
+                    id,
+                    size: _,
+                    initializer: _,
+                    position: _,
+                } => {
+                    match traverse_stage {
+                        ASTTraverseStage::Enter => {
+                            if let Node::Identifier { name, position } = id.as_mut() {
+                                let visibility = SymbolVisibility::Private;
+
+                                let visibility = if context.public_visibility {
+                                    SymbolVisibility::Public
+                                } else {
+                                    visibility
+                                };
+
+                                match context.symbol_table.insert(name.clone(), SymbolInfo::Buffer {
                                     visibility,
                                     origin: SymbolOrigin::Local,
                                     position: position.clone(),
@@ -265,6 +363,36 @@ impl SymbolTable {
                             }
                         }
                         _ => {}
+                    }
+                }
+
+                Node::BufferInitializer {
+                    ..
+                } => {
+                    match traverse_stage {
+                        ASTTraverseStage::Enter => {
+                            context.symbol_table.create_and_enter_scope();
+
+                            // Add "i" as a variable to the scope
+                            let visibility = SymbolVisibility::Private;
+                            let origin = SymbolOrigin::Local;
+                            let position = Position::new();
+
+                            match context.symbol_table.insert("i".to_string(), SymbolInfo::Variable {
+                                visibility,
+                                origin,
+                                position,
+                                constant: true,
+                            }) {
+                                Ok(_) => {}
+                                Err(err) => {
+                                    context.errors.push(err);
+                                }
+                            }
+                        }
+                        ASTTraverseStage::Exit => {
+                            context.symbol_table.exit_scope();
+                        }
                     }
                 }
 
@@ -485,6 +613,7 @@ mod tests {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
                 position: Position::new(),
+                constant: false,
             },
         ).unwrap();
 
@@ -510,6 +639,7 @@ mod tests {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
                 position: Position::new(),
+                constant: false,
             },
         ).unwrap();
 
@@ -640,5 +770,184 @@ mod tests {
         let symbol_table = SymbolTable::from_ast(&mut ast);
 
         assert!(symbol_table.is_err());
+    }
+
+    #[test]
+    fn test_buffer() {
+        let code = "buffer b[1024];".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast);
+
+        assert!(symbol_table.is_ok());
+
+        let symbol_table = symbol_table.unwrap();
+
+        println!("{:#?}", symbol_table);
+
+        let symbol = symbol_table.lookup("b");
+
+        assert!(symbol.is_some());
+    }
+
+    #[test]
+    fn test_buffer_initializer_has_i() {
+        let code = "
+buffer foo[10] = |i| {
+    return i * 2;
+};
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast);
+
+        let mut symbol_table = symbol_table.unwrap();
+
+        symbol_table.reset_scopes_indexes();
+
+        let symbol = symbol_table.lookup("foo");
+
+        assert!(symbol.is_some());
+
+        symbol_table.enter_next_scope();
+
+        println!("{:#?}", symbol_table);
+
+        let symbol = symbol_table.lookup("i");
+
+        assert!(symbol.is_some());
+    }
+
+    #[test]
+    fn test_constants() {
+        let code = "
+buffer buf[10] = |i| {
+    return i * 2;
+};
+
+input inp = 42;
+output out = 42;
+
+let var = 42;
+const constant = 42;
+
+someFn() {
+    return 42;
+}
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast);
+        let mut symbol_table = symbol_table.unwrap();
+
+        symbol_table.reset_scopes_indexes();
+
+        let symbol = symbol_table.lookup("buf");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert_eq!(is_constant, false);
+
+        let symbol = symbol_table.lookup("inp");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert!(is_constant);
+
+        let symbol = symbol_table.lookup("out");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert_eq!(is_constant, false);
+
+        let symbol = symbol_table.lookup("var");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert_eq!(is_constant, false);
+
+        let symbol = symbol_table.lookup("constant");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert!(is_constant);
+
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("i");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert!(is_constant);
+
+        let symbol = symbol_table.lookup("someFn");
+        assert!(symbol.is_some());
+        let is_constant = symbol.unwrap().is_constant();
+        assert!(is_constant);
+    }
+
+    fn check_std_library_symbol(symbol_table: &SymbolTable, symbol_name: &str, params: Vec<&str>) {
+        let symbol = symbol_table.lookup(symbol_name);
+        assert!(symbol.is_some());
+        let symbol_info = symbol.unwrap();
+
+        if let SymbolInfo::Function {
+            parameters,
+            visibility,
+            origin,
+            ..
+        } = symbol_info {
+            assert_eq!(parameters.len(), params.len());
+
+            for (i, param) in params.iter().enumerate() {
+                assert_eq!(parameters[i], *param);
+            }
+
+            assert_eq!(visibility, &SymbolVisibility::Private);
+            assert_eq!(origin, &SymbolOrigin::StandardLibrary);
+        } else {
+            panic!("Expected a function symbol");
+        }
+    }
+
+    #[test]
+    fn test_prepopulated_with_std_library() {
+        let symbol_table = SymbolTable::new();
+
+        check_std_library_symbol(&symbol_table, "abs", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "sqrt", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "pow", vec!["x", "y"]);
+        check_std_library_symbol(&symbol_table, "exp", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "min", vec!["x", "y"]);
+        check_std_library_symbol(&symbol_table, "max", vec!["x", "y"]);
+        check_std_library_symbol(&symbol_table, "mod", vec!["x", "y"]);
+        check_std_library_symbol(&symbol_table, "rand", vec![]);
+
+        // Trigonometric functions
+        check_std_library_symbol(&symbol_table, "sin", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "cos", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "tan", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "asin", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "acos", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "atan", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "atan2", vec!["x", "y"]);
+
+        // Logarithmic functions
+        check_std_library_symbol(&symbol_table, "log", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "log10", vec!["x"]);
+
+        // Rounding functions
+        check_std_library_symbol(&symbol_table, "floor", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "ceil", vec!["x"]);
+        check_std_library_symbol(&symbol_table, "round", vec!["x"]);
     }
 }

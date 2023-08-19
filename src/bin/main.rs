@@ -49,7 +49,7 @@ let increment = 0;
 
 const SR = 44100;
 
-input gain = 1 + 0.5 * getSin(0.5 + (moo.foo));
+input gain = 1 + 0.5 * getSin(0.5 + (Math.foo));
 input kick = 0;
 
 block {
@@ -70,19 +70,19 @@ export getSin(phase) {
 
 process {
     const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
-    phase = increment + (phase - floor(increment + phase, -2));
+    phase = increment + (phase - floor(increment + phase));
     out = (phase > -0.5) * 2 - 1;
-    out = out * gain.value;
+    out = out * gain;
 
     let a = 0;
 
-    test = floor(2.5);
+    const test = floor(2.5);
 
     getPoo() {
         return 1;
     }
 
-    a = foo.value;
+    a = 123;
 
     //let a = 0;
 
