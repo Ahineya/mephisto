@@ -1,10 +1,12 @@
 pub mod lexer;
 pub mod parser;
 pub mod symbol_table;
+pub mod semantic;
 
 use crate::lexer::{token::{Token}, Lexer};
 use crate::parser::{Parser};
 use crate::parser::ast::AST;
+use crate::semantic::SemanticAnalyzer;
 use crate::symbol_table::SymbolTable;
 
 pub struct Mephisto {}
@@ -46,13 +48,14 @@ impl Mephisto {
         SymbolTable::from_ast(ast)
     }
 
-    pub fn validate_semantics(&self, ast: &mut AST, symbol_table: &mut SymbolTable) -> Result<String, String> {
+    pub fn validate_semantics(&self, ast: &mut AST, symbol_table: &mut SymbolTable) -> Result<String, Vec<String>> {
         println!("Input symbol table: {:#?}", symbol_table);
         println!();
         println!("Mephisto is validating semantics...");
         println!();
 
-        // Err("Not implemented".to_string())
+        let mut semantic = SemanticAnalyzer::new();
+        semantic.validate_semantics(ast, symbol_table)?;
 
         todo!("Validating semantics")
     }
@@ -71,12 +74,7 @@ impl Mephisto {
 
         match symbol_table {
             Ok(mut symbol_table) => {
-                match self.validate_semantics(&mut ast, &mut symbol_table) {
-                    Ok(_) => {},
-                    Err(errors) => {
-                        return Err(vec![errors]);
-                    }
-                }
+                self.validate_semantics(&mut ast, &mut symbol_table)?;
 
                 todo!("Compiling")
             },

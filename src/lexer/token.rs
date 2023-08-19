@@ -40,3 +40,24 @@ impl Token {
         format!("<{:?}:{} [{:?}]>", self.token_type, self.literal, self.position)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_token_to_string() {
+        let token = Token::new(
+            TokenType::ID,
+            "foo".to_string(),
+            Position {
+                start: 0,
+                end: 3,
+                line: 1,
+                column: 1,
+            },
+        );
+
+        assert_eq!(token.to_string(), "<ID:foo [Position { start: 0, end: 3, line: 1, column: 1 }]>");
+    }
+}

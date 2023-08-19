@@ -285,8 +285,12 @@ impl SymbolTable {
 
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Function {
                                     parameters: params.iter().map(|param| {
-                                        if let Node::Identifier { name, position: _ } = param {
-                                            name.clone()
+                                        if let Node::FunctionParameter { id, .. } = param {
+                                            if let Node::Identifier { name, .. } = id.as_ref() {
+                                                name.clone()
+                                            } else {
+                                                panic!("[COMPILER ERROR] Expected identifier in function parameter list");
+                                            }
                                         } else {
                                             panic!("[COMPILER ERROR] Expected identifier in function parameter list");
                                         }
@@ -305,14 +309,16 @@ impl SymbolTable {
                             context.symbol_table.create_and_enter_scope();
 
                             for param in params {
-                                if let Node::Identifier { name, position } = param {
-                                    match context.symbol_table.insert(name.clone(), SymbolInfo::FunctionArgument {
-                                        origin: SymbolOrigin::Local,
-                                        position: position.clone(),
-                                    }) {
-                                        Ok(_) => {}
-                                        Err(err) => {
-                                            context.errors.push(err);
+                                if let Node::FunctionParameter { id, .. } = param {
+                                    if let Node::Identifier { name, position } = id.as_ref() {
+                                        match context.symbol_table.insert(name.clone(), SymbolInfo::FunctionArgument {
+                                            origin: SymbolOrigin::Local,
+                                            position: position.clone(),
+                                        }) {
+                                            Ok(_) => {}
+                                            Err(err) => {
+                                                context.errors.push(err);
+                                            }
                                         }
                                     }
                                 }
@@ -461,8 +467,9 @@ impl SymbolTable {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::Lexer;
     use crate::lexer::token::Position;
-    use crate::parser::ast::Operator;
+    use crate::parser::Parser;
 
     use super::*;
 
@@ -540,70 +547,33 @@ mod tests {
 
     #[test]
     fn test_from_ast() {
-        let mut symbol_table = SymbolTable::new();
+        let code = "
+            let foo = 42;
 
-        let mut ast = AST {
-            root: Node::ProgramNode {
-                children: vec![
-                    Node::VariableDeclarationStmt {
-                        id: Box::new(Node::Identifier { name: "foo".to_string(), position: Position::new() }),
-                        initializer: Box::new(Node::Number { value: 42.0, position: Position::new() }),
-                        specifier: VariableSpecifier::Let,
-                        position: Position::new(),
-                    },
-                    Node::FunctionDeclarationStmt {
-                        id: Box::new(Node::Identifier { name: "bar".to_string(), position: Position::new() }),
-                        params: vec![
-                            Node::Identifier { name: "function_argument_a".to_string(), position: Position::new() },
-                            Node::Identifier { name: "b".to_string(), position: Position::new() },
-                        ],
-                        body: Box::new(Node::FunctionBody {
-                            children: vec![
-                                Node::ReturnStmt {
-                                    child: Box::new(Node::BinaryExpr {
-                                        op: Operator::Plus,
-                                        lhs: Box::new(Node::Identifier { name: "a".to_string(), position: Position::new() }),
-                                        rhs: Box::new(Node::Identifier { name: "b".to_string(), position: Position::new() }),
-                                        position: Position::new(),
-                                    }),
-                                    position: Position::new(),
-                                },
-                            ],
-                            position: Position::new(),
-                        }),
-                        position: Position::new(),
-                    },
-                    Node::ExportDeclarationStmt {
-                        declaration: Box::new(
-                            Node::VariableDeclarationStmt {
-                                id: Box::new(Node::Identifier { name: "exported_variable".to_string(), position: Position::new() }),
-                                initializer: Box::new(Node::Number { value: 42.0, position: Position::new() }),
-                                specifier: VariableSpecifier::Let,
-                                position: Position::new(),
-                            }
-                        ),
-                        position: Position::new(),
-                    },
-                    Node::ProcessNode {
-                        children: vec![
-                            Node::VariableDeclarationStmt {
-                                id: Box::new(Node::Identifier { name: "PI".to_string(), position: Position::new() }),
-                                initializer: Box::new(Node::Number { value: 3.14, position: Position::new() }),
-                                specifier: VariableSpecifier::Const,
-                                position: Position::new(),
-                            },
-                        ],
-                        position: Position::new(),
-                    },
-                ],
-                position: Position::new(),
-            },
-            errors: vec![],
-        };
+            bar(function_argument_a, b) {
+                return function_argument_a + b;
+            }
+
+            export let exported_variable = 42;
+
+            process {
+                let PI = 3.14;
+                let result = bar(PI, 2);
+                return result;
+            }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
 
         let mut symbol_table = SymbolTable::from_ast(&mut ast);
 
         assert!(symbol_table.is_ok());
+
+        println!("{:#?}", symbol_table);
 
         if let Ok(symbol_table) = &mut symbol_table {
             let symbol = symbol_table.lookup("foo");
@@ -646,55 +616,29 @@ mod tests {
             let symbol = symbol_table.lookup("PI");
             assert!(symbol.is_some());
 
-            println!("{:#?}", symbol_table);
+            let symbol = symbol_table.lookup("result");
+            assert!(symbol.is_some());
         }
     }
 
     #[test]
     fn test_same_symbol() {
-        let mut symbol_table = SymbolTable::new();
+        let code = "
+            let foo = 42;
 
-        let mut ast = AST {
-            root: Node::ProgramNode {
-                children: vec![
-                    Node::VariableDeclarationStmt {
-                        id: Box::new(Node::Identifier { name: "foo".to_string(), position: Position::new() }),
-                        initializer: Box::new(Node::Number { value: 42.0, position: Position::new() }),
-                        specifier: VariableSpecifier::Let,
-                        position: Position::new(),
-                    },
-                    Node::FunctionDeclarationStmt {
-                        id: Box::new(Node::Identifier { name: "foo".to_string(), position: Position::new() }),
-                        params: vec![
-                            Node::Identifier { name: "function_argument_a".to_string(), position: Position::new() },
-                            Node::Identifier { name: "b".to_string(), position: Position::new() },
-                        ],
-                        body: Box::new(Node::FunctionBody {
-                            children: vec![
-                                Node::ReturnStmt {
-                                    child: Box::new(Node::BinaryExpr {
-                                        op: Operator::Plus,
-                                        lhs: Box::new(Node::Identifier { name: "a".to_string(), position: Position::new() }),
-                                        rhs: Box::new(Node::Identifier { name: "b".to_string(), position: Position::new() }),
-                                        position: Position::new(),
-                                    }),
-                                    position: Position::new(),
-                                },
-                            ],
-                            position: Position::new(),
-                        }),
-                        position: Position::new(),
-                    },
-                ],
-                position: Position::new(),
-            },
-            errors: vec![],
-        };
+            foo(a, b) {
+                return a + b;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
 
         let symbol_table = SymbolTable::from_ast(&mut ast);
 
         assert!(symbol_table.is_err());
-
-        println!("{:#?}", symbol_table);
     }
 }

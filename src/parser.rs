@@ -596,8 +596,7 @@ impl Parser {
         let mut params = Vec::new();
 
         while self.tokens[self.position].token_type != TokenType::RPAREN {
-            let id = self.parse_id()?;
-            params.push(id);
+            params.push(self.parse_param()?);
 
             if self.tokens[self.position].token_type == TokenType::COMMA {
                 self.skip(TokenType::COMMA)?;
@@ -605,6 +604,21 @@ impl Parser {
         }
 
         Ok(params)
+    }
+
+    fn parse_param(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
+        let id = self.parse_id()?;
+
+        let mut node = Node::FunctionParameter {
+            id: Box::new(id),
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_process(&mut self) -> Result<Node, String> {
@@ -665,7 +679,7 @@ impl Parser {
         // Should skip {
         self.skip(TokenType::LCURLY)?;
 
-        let mut process = Node::FunctionBody { children: Vec::new(), position: Position::new() };
+        let mut process = Node::FunctionBody { children: Vec::new(), position };
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
             if let Node::FunctionBody { children, .. } = &mut process {
@@ -741,7 +755,7 @@ impl Parser {
         let mut node = Node::AssignmentExpr {
             lhs: Box::new(id),
             rhs: Box::new(expr),
-            position: Position::new(),
+            position,
         };
 
         self.set_end(&mut node);

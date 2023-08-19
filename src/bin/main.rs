@@ -65,7 +65,6 @@ export const PI = 3.14;
 
 export getSin(phase) {
     let b = 1;
-    let b = 1;
     return sin(phase * 2 * PI);
 }
 
@@ -86,8 +85,6 @@ process {
     a = foo.value;
 
     //let a = 0;
-
-    a() {}
 
     return a + 1.1;
 }

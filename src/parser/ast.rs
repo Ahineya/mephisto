@@ -96,6 +96,10 @@ pub enum Node {
         body: Box<Node>,
         position: Position,
     },
+    FunctionParameter {
+        id: Box<Node>,
+        position: Position,
+    },
     MemberExpr {
         object: Box<Node>,
         property: Box<Node>,
@@ -179,6 +183,7 @@ impl Node {
             Node::ReturnStmt { position, .. } => position,
             Node::VariableDeclarationStmt { position, .. } => position,
             Node::FunctionDeclarationStmt { position, .. } => position,
+            Node::FunctionParameter { position, .. } => position,
             Node::MemberExpr { position, .. } => position,
             Node::ExportDeclarationStmt { position, .. } => position,
             Node::ParameterDeclarationStmt { position, .. } => position,
@@ -242,6 +247,10 @@ impl Node {
                 position.column = column;
             },
             Node::FunctionDeclarationStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            },
+            Node::FunctionParameter { position, .. } => {
                 position.end = end;
                 position.column = column;
             },
@@ -365,6 +374,9 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
                 traverse_ast(param, f, context);
             }
             traverse_ast(body, f, context);
+        }
+        Node::FunctionParameter { id, position: _} => {
+            traverse_ast(id, f, context);
         }
         Node::MemberExpr { object, property , position: _} => {
             traverse_ast(object, f, context);
