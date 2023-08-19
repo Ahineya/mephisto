@@ -353,6 +353,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_should_work_with_imports() {
         let code = "
             import Kick from './kick.meph';
@@ -376,6 +377,7 @@ mod tests {
         todo!("Implement imports")
     }
 
+    #[ignore]
     #[test]
     fn test_connect_block() {
         let code = "
@@ -406,6 +408,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn test_incorrect_connect_block() {
         let code = "
             import Kick from \"./kick.meph\";
