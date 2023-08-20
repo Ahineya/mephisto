@@ -44,7 +44,7 @@ pub enum SymbolInfo {
         position: Position,
     },
     ImportedModule {
-        module: String,
+        path: String,
         position: Position,
     },
 }
@@ -68,6 +68,17 @@ impl SymbolInfo {
             SymbolInfo::ImportedModule { .. } => true,
             SymbolInfo::Parameter { .. } => true,
                 _ => false,
+        }
+    }
+
+    pub fn is_private(&self) -> bool {
+        match self {
+            SymbolInfo::Variable { visibility, .. } => *visibility == SymbolVisibility::Private,
+            SymbolInfo::Function { visibility, .. } => *visibility == SymbolVisibility::Private,
+            SymbolInfo::Buffer { visibility, .. } => *visibility == SymbolVisibility::Private,
+            SymbolInfo::Parameter { .. } => true,
+            SymbolInfo::FunctionArgument { .. } => true,
+            SymbolInfo::ImportedModule { .. } => true,
         }
     }
 }
@@ -490,7 +501,7 @@ impl SymbolTable {
                         ASTTraverseStage::Enter => {
                             if let Node::Identifier { name, position } = id.as_mut() {
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::ImportedModule {
-                                    module: path.clone(),
+                                    path: path.clone(),
                                     position: position.clone(),
                                 }) {
                                     Ok(_) => {}

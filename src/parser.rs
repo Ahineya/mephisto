@@ -828,10 +828,29 @@ impl Parser {
         self.skip(TokenType::DOT)?;
         let member = self.parse_id()?;
 
-        let mut node = Node::MemberExpr {
+        let next_token = self.peek();
+
+        let member_node = Node::MemberExpr {
             object: Box::new(id),
             property: Box::new(member),
             position,
+        };
+
+        let mut node = match next_token.token_type {
+            TokenType::LPAREN => {
+                self.skip(TokenType::LPAREN)?;
+                let args = self.parse_arguments()?;
+                self.skip(TokenType::RPAREN)?;
+
+                Node::FnCallExpr {
+                    callee: Box::new(member_node),
+                    args,
+                    position,
+                }
+            }
+            _ => {
+                member_node
+            }
         };
 
         self.set_end(&mut node);
@@ -926,12 +945,6 @@ impl Parser {
         let token = self.peek();
 
         match token.token_type {
-            TokenType::LPAREN => {
-                self.skip(TokenType::LPAREN)?;
-                let expr = self.parse_expression()?;
-                self.skip(TokenType::RPAREN)?;
-                Ok(expr)
-            }
             TokenType::MINUS => {
                 self.parse_unary_expr()
             }
@@ -948,6 +961,12 @@ impl Parser {
                         self.parse_id()
                     }
                 }
+            }
+            TokenType::LPAREN => {
+                self.skip(TokenType::LPAREN)?;
+                let expr = self.parse_expression()?;
+                self.skip(TokenType::RPAREN)?;
+                Ok(expr)
             }
             TokenType::NUMBER => {
                 self.parse_number()
@@ -983,7 +1002,7 @@ impl Parser {
         self.skip(TokenType::RPAREN)?;
 
         let mut node = Node::FnCallExpr {
-            id: Box::new(id),
+            callee: Box::new(id),
             args,
             position,
         };
@@ -1083,6 +1102,7 @@ impl Parser {
 
 #[cfg(test)]
 mod tests {
+    use crate::lexer::Lexer;
     use crate::lexer::token::{Position, Token};
     use crate::lexer::token_type::TokenType;
     use crate::parser::{AST, Node, Parser};
@@ -1247,5 +1267,28 @@ mod tests {
         let result = parser.parse_id();
 
         assert_eq!(result, Err("Unexpected token: <EOF: [Position { start: 0, end: 0, line: 0, column: 0 }]>, expected identifier".to_string()));
+    }
+
+    #[test]
+    fn test_module_fn_call() {
+        let code = "
+            import Kick from \"./kick.meph\";
+
+            // let a = Kick.test();
+
+
+            let a = sin(42);
+            let b = Kick.phoo();
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let ast = parser.parse(tokens);
+
+        println!("AST: {:#?}", ast);
+
+        assert_eq!(ast.errors.len(), 0);
     }
 }

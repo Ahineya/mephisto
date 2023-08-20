@@ -1,6 +1,7 @@
 extern crate mephisto;
 
 use clap::Parser;
+use mephisto::module_loader::NativeFileLoader;
 use crate::mephisto::Mephisto;
 
 #[derive(Parser, Debug)]
@@ -15,91 +16,68 @@ struct Args {
     output: Option<String>,
 }
 
-fn main() {
-    // let args = Args::parse();
+struct Test {}
 
-    // println!("Input file: {}", args.input);
-    // println!("Output file: {:?}", args.output);
-
-    let mephisto = Mephisto::new();
-    let compilation_result = mephisto.compile("
-
-import Math from \"./math.auo\";
-import Kick from \"./kick.auo\";
-
-param frequency {
-    min: 40;
-    max: 22000;
-    step: 1;
-    initial: 220;
+#[derive(Debug)]
+struct Context {
+    to_process: Box<Vec<String>>,
+    loaded_modules: Box<Vec<String>>,
 }
 
-let a = 1;
-
-buffer b[1024];
-
-buffer moo[10] = |i| {
-    return i * 2;
-};
-
-output out = 0;
-
-let phase = 0;
-let increment = 0;
-
-const SR = 44100;
-
-input gain = 1 + 0.5 * getSin(0.5 + (Math.foo));
-input kick = 0;
-
-block {
-    increment = frequency / SR;
-    return 123;
-}
-
-getSaw(phase) {
-    return phase * 2 - 1;
-}
-
-export const PI = 3.14;
-
-export getSin(phase) {
-    let b = 1;
-    return sin(phase * 2 * PI);
-}
-
-process {
-    const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
-    phase = increment + (phase - floor(increment + phase));
-    out = (phase > -0.5) * 2 - 1;
-    out = out * gain;
-
-    let a = 0;
-
-    const test = floor(2.5);
-
-    getPoo() {
-        return 1;
+impl Test {
+    fn new() -> Self {
+        Test {}
     }
 
-    a = 123;
+    fn test(&mut self) {
 
-    //let a = 0;
+        let mut context = Context {
+            to_process: Box::new(Vec::new()),
+            loaded_modules: Box::new(Vec::new()),
+        };
 
-    return a + 1.1;
+        context.to_process.push("test".to_string());
+        context.to_process.push("test2".to_string());
+        context.to_process.push("test3".to_string());
+
+        let result = self.test_recursive(&mut context);
+
+        println!("Result: {:#?}", result);
+
+        println!("Context: {:#?}", context);
+    }
+
+    fn test_recursive(&mut self, context: &mut Context) -> Result<(), String> {
+        let module_name = context.to_process.pop().unwrap();
+
+        if context.to_process.len() > 0 {
+            self.test_recursive(context)?;
+        }
+
+        if context.loaded_modules.contains(&module_name) {
+            return Ok(());
+        }
+
+        context.loaded_modules.push(module_name.clone());
+
+        Ok(())
+    }
 }
 
-connect {
-    out -> OUTPUTS[0];
-    out -> OUTPUTS;
+fn main() {
 
-    phase -> Kick.phase;
-    gain -> Kick.gain;
+    // let mut test = Test::new();
+    // test.test();
+    //
+    // return;
+    let args = Args::parse();
 
-    Kick.out -> kick;
-}
+    println!("Input file: {}", args.input);
+    // println!("Output file: {:?}", args.output);
 
-    ".to_string());
+    let loader = NativeFileLoader;
+    let mut mephisto = Mephisto::new(loader);
+    let compilation_result = mephisto.compile(&args.input);
 
     match compilation_result {
         Ok(_) => println!("Compilation successful!"),

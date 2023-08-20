@@ -16,6 +16,24 @@ impl AST {
     pub fn to_json(&self) -> String {
         serde_json::to_string_pretty(&self).unwrap()
     }
+
+    pub fn imports(&self) -> Vec<String> {
+        let mut imports = Vec::new();
+        traverse_ast(&mut self.root.clone(), &mut |enter_exit, node, context: &mut Vec<String>| {
+            match node {
+                Node::ImportStatement {path, .. } => {
+                    match enter_exit {
+                        ASTTraverseStage::Enter => {
+                            context.push(path.clone());
+                        }
+                        ASTTraverseStage::Exit => {}
+                    }
+                }
+                _ => {}
+            }
+        }, &mut imports);
+        imports
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
@@ -123,7 +141,7 @@ pub enum Node {
     },
 
     FnCallExpr {
-        id: Box<Node>,
+        callee: Box<Node>,
         args: Vec<Node>,
         position: Position,
     },
@@ -394,8 +412,8 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
         Node::ParameterDeclarationField { id, specifier: _ , position: _} => {
             traverse_ast(id, f, context);
         }
-        Node::FnCallExpr { id, args , position: _} => {
-            traverse_ast(id, f, context);
+        Node::FnCallExpr { callee, args , position: _} => {
+            traverse_ast(callee, f, context);
             for arg in args {
                 traverse_ast(arg, f, context);
             }

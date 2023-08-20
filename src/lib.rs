@@ -1,86 +1,158 @@
+use std::collections::HashMap;
+use std::error::Error;
+use indexmap::IndexMap;
+
+use crate::lexer::{Lexer, token::Token};
+use crate::module_data::ModuleData;
+use crate::module_loader::{FileLoader, StubFileLoader};
+use crate::parser::ast::{AST};
+use crate::parser::Parser;
+use crate::semantic::SemanticAnalyzer;
+use crate::symbol_table::SymbolTable;
+
 pub mod lexer;
 pub mod parser;
 pub mod symbol_table;
 pub mod semantic;
 
-use crate::lexer::{token::{Token}, Lexer};
-use crate::parser::{Parser};
-use crate::parser::ast::AST;
-use crate::semantic::SemanticAnalyzer;
-use crate::symbol_table::SymbolTable;
+pub mod module_data;
 
-pub struct Mephisto {}
+pub mod module_loader;
 
-impl Mephisto {
-    pub fn new() -> Mephisto {
-        Mephisto {}
-    }
+pub struct Mephisto<T: FileLoader> {
+    loader: T,
+}
 
-    pub fn tokenize(&self, input: String) -> Vec<Token> {
-        println!("Input string: {}", input);
-        println!();
-        println!("Mephisto is tokenizing...");
-        println!();
-        println!("Tokens:");
+#[derive(Debug)]
+struct Context {
+    loaded_modules: Box<Vec<String>>,
+    modules: Box<IndexMap<String, ModuleData>>,
+}
+
+impl Mephisto<StubFileLoader> {
+    pub fn tokenize(input: String) -> Vec<Token> {
+        // println!("Input string: {}", input);
+        // println!();
+        // println!("Mephisto is tokenizing...");
+        // println!();
+        // println!("Tokens:");
 
         let lexer = Lexer::new();
         lexer.tokenize(input)
     }
 
-    pub fn parse(&self, tokens: Vec<Token>) -> AST {
-        println!("Input tokens: {:#?}", tokens);
-        println!();
-        println!("Mephisto is parsing...");
-        println!();
-        println!("AST:");
+    pub fn parse(tokens: Vec<Token>) -> AST {
+        // println!("Input tokens: {:#?}", tokens);
+        // println!();
+        // println!("Mephisto is parsing...");
+        // println!();
+        // println!("AST:");
 
         let mut parser = Parser::new();
         parser.parse(tokens)
     }
 
-    pub fn create_symbol_table(&self, ast: &mut AST) -> Result<SymbolTable, Vec<String>> {
-        println!("Input AST: {:#?}", ast);
-        println!();
-        println!("Mephisto is creating symbol table...");
-        println!();
-        println!("Symbol table:");
+    pub fn create_symbol_table(ast: &mut AST) -> Result<SymbolTable, Vec<String>> {
+        // println!("Input AST: {:#?}", ast);
+        // println!();
+        // println!("Mephisto is creating symbol table...");
+        // println!();
+        // println!("Symbol table:");
 
         SymbolTable::from_ast(ast)
     }
+}
 
-    pub fn validate_semantics(&self, ast: &mut AST, symbol_table: &mut SymbolTable) -> Result<String, Vec<String>> {
-        println!("Input symbol table: {:#?}", symbol_table);
-        println!();
-        println!("Mephisto is validating semantics...");
-        println!();
-
-        let mut semantic = SemanticAnalyzer::new();
-        semantic.validate_semantics(ast, symbol_table)?;
-
-        todo!("Validating semantics")
+impl<T: FileLoader> Mephisto<T> {
+    pub fn new(loader: T) -> Self {
+        Mephisto {
+            loader,
+        }
     }
 
-    pub fn compile(&self, input: String) -> Result<String, Vec<String>> {
-        let tokens = self.tokenize(input);
-        let mut ast = self.parse(tokens);
+    pub fn validate_semantics(&self, modules: &mut IndexMap<String, ModuleData>) -> Result<String, Vec<String>> {
+        let mut semantic = SemanticAnalyzer::new();
+        semantic.validate_semantics(modules)
+    }
+
+    pub fn compile(&mut self, main_module_path: &str) -> Result<String, Vec<String>> {
+        let modules: IndexMap<String, ModuleData> = IndexMap::new();
+
+        let mut context = Context {
+            loaded_modules: Box::new(Vec::new()),
+            modules: Box::new(modules),
+        };
+
+        self.process_module(main_module_path, &mut context)?; // Recursively process all modules
+
+        println!("Modules: {:#?}", context);
+
+        let mut modules = context.modules;
+
+        let main_module = modules.get(main_module_path);
+
+        if main_module.is_none() {
+            return Err(vec![format!("Main module {} not found", main_module_path)]);
+        }
+
+        self.validate_semantics(&mut modules)?;
+
+        // let main_module = main_module.unwrap();
+
+        // self.validate_semantics(&mut main_module.ast.to_owned(), &mut main_module.symbol_table.to_owned())?;
+
+        todo!("Compiling")
+    }
+
+    fn process_module(&mut self, path: &str, context: &mut Context) -> Result<(), Vec<String>> {
+        if context.loaded_modules.contains(&path.to_string()) {
+            return Ok(());
+        }
+
+        let mut module = ModuleData::new();
+
+        let input = self.load_module(path);
+
+        if input.is_err() {
+            module.errors.push(input.err().unwrap().to_string());
+
+            // module.ast = ast;
+            // module.symbol_table = symbol_table;
+
+            context.modules.insert(path.to_string(), module);
+
+            return Ok(());
+        }
+
+        let input = input.unwrap();
+
+        context.loaded_modules.push(path.to_string());
+
+        let tokens = Mephisto::tokenize(input);
+        let mut ast = Mephisto::parse(tokens);
+
+        let import_paths: Vec<_> = ast.imports();
+
+        for path in import_paths {
+            self.process_module(&path, context)?;
+        }
+
+        let symbol_table = Mephisto::create_symbol_table(&mut ast)?;
 
         if ast.errors.len() > 0 {
-            return Err(ast.errors);
+            module.errors = ast.errors.to_owned();
         }
 
-        println!("{}", ast.to_json());
+        module.ast = ast;
+        module.symbol_table = symbol_table;
 
-        let symbol_table = self.create_symbol_table(&mut ast);
+        context.modules.insert(path.to_string(), module);
 
-        match symbol_table {
-            Ok(mut symbol_table) => {
-                self.validate_semantics(&mut ast, &mut symbol_table)?;
+        Ok(())
+    }
 
-                todo!("Compiling")
-            },
-            Err(errors) => {
-                return Err(errors);
-            }
-        }
+    fn load_module(&self, path: &str) -> Result<String, Box<dyn Error>> {
+        let result: Result<String, Box<dyn Error>> = self.loader.load(path);
+        result
     }
 }

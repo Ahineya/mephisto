@@ -1,1 +1,10 @@
-/target
+debug/
+target/
+
+**/*.rs.bk
+
+*.pdb
+
+.DS_Store
+Thumbs.db
+

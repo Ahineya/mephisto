@@ -24,31 +24,31 @@
 +----------------------------------+--------------------------------------------------------------------------------------+
 |        Semantic Substep          |                                        Description                                   |
 +----------------------------------+--------------------------------------------------------------------------------------+
-| 1. Name Binding and Resolution   | Associates names with their intended entities (like variables, types, functions).     |
+| 1. Name Binding and Resolution   | Associates names with their intended entities (like variables, types, functions).    |
 |                                  | Resolves ambiguities in names, especially in languages that support namespaces,      |
 |                                  | modules, or scopes.                                                                  |
 |                                  |                                                                                      |
-| 2. Type Checking                 | Ensures that operations and functions are used with the correct type of data.         |
+| 2. Type Checking                 | Ensures that operations and functions are used with the correct type of data.        |
 |                                  | Infers types where not explicitly provided.                                          |
 |                                  |                                                                                      |
-| 3. Definite Assignment Analysis  | **Ensures that variables are initialized before they are used.**                      |
+| 3. Definite Assignment Analysis  | **Ensures that variables are initialized before they are used.**                     |
 |                                  |                                                                                      |
-| 4. Control Flow Analysis         | Analyzes the possible paths through the program to support other checks.              |
+| 4. Control Flow Analysis         | Analyzes the possible paths through the program to support other checks.             |
 |                                  |                                                                                      |
-| 5. Reachability Analysis         | Checks that every statement in the program can be executed (e.g., there's no code     |
+| 5. Reachability Analysis         | Checks that every statement in the program can be executed (e.g., there's no code    |
 |                                  | after a return statement that would never be reached).                               |
 |                                  |                                                                                      |
 | 6. Exception Handling Analysis   | Ensures that exceptions are properly caught or declared to be thrown.                |
 |                                  |                                                                                      |
-| 7. Uniqueness and Ownership      | For languages that have unique ownership models (like Rust), ensures that data        |
+| 7. Uniqueness and Ownership      | For languages that have unique ownership models (like Rust), ensures that data       |
 |    Analysis                      | ownership and borrowing rules are adhered to.                                        |
 |                                  |                                                                                      |
-| 8. Overload Resolution           | Determines the correct version of a function or operator to call when multiple        |
+| 8. Overload Resolution           | Determines the correct version of a function or operator to call when multiple       |
 |                                  | versions are possible (common in languages that support function/operator overloading|
 |                                  | or generics).                                                                        |
 |                                  |                                                                                      |
-| 9. Constant Folding              | Evaluates constant expressions at compile time to optimize them.                      |
+| 9. Constant Folding              | Evaluates constant expressions at compile time to optimize them.                     |
 |                                  |                                                                                      |
-| 10. Limit Checks                 | Ensures that certain language-specific limits are adhered to, like maximum array      |
+| 10. Limit Checks                 | Ensures that certain language-specific limits are adhered to, like maximum array     |
 |                                  | sizes or recursion depths.                                                           |
 +----------------------------------+--------------------------------------------------------------------------------------+
