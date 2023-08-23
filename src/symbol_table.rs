@@ -559,6 +559,8 @@ impl SymbolTable {
                 }
                 _ => {}
             }
+
+            false
         }, &mut context);
 
         if context.errors.len() > 0 {

@@ -104,6 +104,14 @@ impl<T: FileLoader> Mephisto<T> {
 
         self.validate_semantics(&mut modules)?;
 
+
+        let mut main_module = modules.get_mut(main_module_path).unwrap();
+
+        let mut code = main_module.ast.to_code_string();
+
+        code.push_str("\n\n");
+
+        println!("Code: {}", code);
         let mut ir = IR::new();
         let ir_result = ir.create(&mut modules, main_module_path.to_string())?;
 

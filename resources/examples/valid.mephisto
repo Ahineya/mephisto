@@ -6,7 +6,7 @@ param frequency {
     max: 22000;
     step: 1;
     initial: 220;
-}
+};
 
 let a = 1;
 

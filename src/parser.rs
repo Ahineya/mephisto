@@ -335,6 +335,7 @@ impl Parser {
         }
 
         self.skip(TokenType::RCURLY)?;
+        self.skip(TokenType::SEMI)?;
 
         self.set_end(&mut parameter_declaration_stmt);
 

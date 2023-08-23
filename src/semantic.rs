@@ -128,12 +128,12 @@ impl SemanticAnalyzer {
                         match traverse_stage {
                             ASTTraverseStage::Enter => {
                                 if context.skip_identifier_check {
-                                    return;
+                                    return false;
                                 }
 
                                 if context.skip_identifier_check_once {
                                     context.skip_identifier_check_once = false;
-                                    return;
+                                    return false;
                                 }
 
                                 let symbol = context.symbol_table.lookup(name);
@@ -449,7 +449,7 @@ impl SemanticAnalyzer {
                                 if context.skip_module_check_once {
                                     context.skip_identifier_check = true;
                                     context.skip_module_check_once = false;
-                                    return;
+                                    return false;
                                 }
 
                                 let object_name = match object.as_ref() {
@@ -582,6 +582,8 @@ impl SemanticAnalyzer {
 
                     _ => {}
                 }
+
+                false
             }, &mut context);
 
             // self.errors = context.errors;
