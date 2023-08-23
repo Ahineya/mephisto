@@ -1,5 +1,6 @@
 use std::error::Error;
 use indexmap::IndexMap;
+use crate::ir::IR;
 
 use crate::lexer::{Lexer, token::Token};
 use crate::module_data::ModuleData;
@@ -17,6 +18,8 @@ pub mod semantic;
 pub mod module_data;
 
 pub mod module_loader;
+
+pub mod ir;
 
 pub struct Mephisto<T: FileLoader> {
     loader: T,
@@ -60,6 +63,11 @@ impl Mephisto<StubFileLoader> {
 
         SymbolTable::from_ast(ast)
     }
+
+    pub fn create_ir(modules: &mut Box<IndexMap<String, ModuleData>>, main_module: String) -> Result<ir::IRResult, Vec<String>> {
+        let mut ir = IR::new();
+        ir.create(&mut *modules, main_module)
+    }
 }
 
 impl<T: FileLoader> Mephisto<T> {
@@ -96,9 +104,10 @@ impl<T: FileLoader> Mephisto<T> {
 
         self.validate_semantics(&mut modules)?;
 
-        // let main_module = main_module.unwrap();
+        let mut ir = IR::new();
+        let ir_result = ir.create(&mut modules, main_module_path.to_string())?;
 
-        // self.validate_semantics(&mut main_module.ast.to_owned(), &mut main_module.symbol_table.to_owned())?;
+        println!("IR: {:#?}", ir_result);
 
         todo!("Compiling")
     }
@@ -114,10 +123,6 @@ impl<T: FileLoader> Mephisto<T> {
 
         if input.is_err() {
             module.errors.push(input.err().unwrap().to_string());
-
-            // module.ast = ast;
-            // module.symbol_table = symbol_table;
-
             context.modules.insert(path.to_string(), module);
 
             return Ok(());
