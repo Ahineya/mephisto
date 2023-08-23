@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use uuid::Uuid;
 
 use crate::lexer::token::Position;
 use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast, VariableSpecifier};
@@ -19,6 +20,7 @@ pub enum SymbolOrigin {
 #[derive(Debug, Clone)]
 pub enum SymbolInfo {
     Variable {
+        id: Uuid,
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
         position: Position,
@@ -26,31 +28,47 @@ pub enum SymbolInfo {
         constant: bool,
     },
     Buffer {
+        id: Uuid,
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
         position: Position,
     },
     Parameter {
+        id: Uuid,
         origin: SymbolOrigin,
         position: Position,
     },
     Function {
+        id: Uuid,
         parameters: Vec<String>,
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
         position: Position,
     },
     FunctionArgument {
+        id: Uuid,
         origin: SymbolOrigin,
         position: Position,
     },
     ImportedModule {
+        id: Uuid,
         path: String,
         position: Position,
     },
 }
 
 impl SymbolInfo {
+    pub fn id(&self) -> &Uuid {
+        match self {
+            SymbolInfo::Variable { id, .. } => id,
+            SymbolInfo::Parameter { id, .. } => id,
+            SymbolInfo::Function { id, .. } => id,
+            SymbolInfo::FunctionArgument { id, .. } => id,
+            SymbolInfo::ImportedModule { id, .. } => id,
+            SymbolInfo::Buffer { id, .. } => id,
+        }
+    }
+
     pub fn position(&mut self) -> &mut Position {
         match self {
             SymbolInfo::Variable { position, .. } => position,
@@ -252,6 +270,7 @@ impl SymbolTable {
         if let Ok(()) = self.insert(
             name.to_string(),
             SymbolInfo::Function {
+                id: Uuid::new_v4(),
                 parameters: parameters.iter().map(|s| s.to_string()).collect(),
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::StandardLibrary,
@@ -343,6 +362,7 @@ impl SymbolTable {
                                 };
 
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Variable {
+                                    id: Uuid::new_v4(),
                                     visibility,
                                     constant,
                                     specifier: specifier.clone(),
@@ -378,6 +398,7 @@ impl SymbolTable {
                                 };
 
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Buffer {
+                                    id: Uuid::new_v4(),
                                     visibility,
                                     origin: SymbolOrigin::Local,
                                     position: position.clone(),
@@ -406,6 +427,7 @@ impl SymbolTable {
                             let position = Position::new();
 
                             match context.symbol_table.insert("i".to_string(), SymbolInfo::Variable {
+                                id: Uuid::new_v4(),
                                 visibility,
                                 origin,
                                 position,
@@ -440,6 +462,7 @@ impl SymbolTable {
                                 };
 
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Function {
+                                    id: Uuid::new_v4(),
                                     parameters: params.iter().map(|param| {
                                         if let Node::FunctionParameter { id, .. } = param {
                                             if let Node::Identifier { name, .. } = id.as_ref() {
@@ -468,6 +491,7 @@ impl SymbolTable {
                                 if let Node::FunctionParameter { id, .. } = param {
                                     if let Node::Identifier { name, position } = id.as_ref() {
                                         match context.symbol_table.insert(name.clone(), SymbolInfo::FunctionArgument {
+                                            id: Uuid::new_v4(),
                                             origin: SymbolOrigin::Local,
                                             position: position.clone(),
                                         }) {
@@ -495,6 +519,7 @@ impl SymbolTable {
                         ASTTraverseStage::Enter => {
                             if let Node::Identifier { name, position } = id.as_mut() {
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Parameter {
+                                    id: Uuid::new_v4(),
                                     origin: SymbolOrigin::Local,
                                     position: position.clone(),
                                 }) {
@@ -518,6 +543,7 @@ impl SymbolTable {
                         ASTTraverseStage::Enter => {
                             if let Node::Identifier { name, position } = id.as_mut() {
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::ImportedModule {
+                                    id: Uuid::new_v4(),
                                     path: path.clone(),
                                     position: position.clone(),
                                 }) {
@@ -638,6 +664,7 @@ mod tests {
         symbol_table.insert(
             "foo".to_string(),
             SymbolInfo::Variable {
+                id: Uuid::new_v4(),
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
                 specifier: VariableSpecifier::Let,
@@ -651,6 +678,7 @@ mod tests {
         symbol_table.insert(
             "bar".to_string(),
             SymbolInfo::Function {
+                id: Uuid::new_v4(),
                 parameters: vec!["a".to_string(), "b".to_string()],
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
@@ -665,6 +693,7 @@ mod tests {
         symbol_table.insert(
             "baz".to_string(),
             SymbolInfo::Variable {
+                id: Uuid::new_v4(),
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
                 position: Position::new(),
