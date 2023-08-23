@@ -22,6 +22,7 @@ pub enum SymbolInfo {
         visibility: SymbolVisibility,
         origin: SymbolOrigin,
         position: Position,
+        specifier: VariableSpecifier,
         constant: bool,
     },
     Buffer {
@@ -79,6 +80,20 @@ impl SymbolInfo {
             SymbolInfo::Parameter { .. } => true,
             SymbolInfo::FunctionArgument { .. } => true,
             SymbolInfo::ImportedModule { .. } => true,
+        }
+    }
+
+    pub fn is_input(&self) -> bool {
+        match self {
+            SymbolInfo::Variable { specifier, .. } => *specifier == VariableSpecifier::Input,
+            _ => false,
+        }
+    }
+
+    pub fn is_output(&self) -> bool {
+        match self {
+            SymbolInfo::Variable { specifier, .. } => *specifier == VariableSpecifier::Output,
+            _ => false,
         }
     }
 }
@@ -330,6 +345,7 @@ impl SymbolTable {
                                 match context.symbol_table.insert(name.clone(), SymbolInfo::Variable {
                                     visibility,
                                     constant,
+                                    specifier: specifier.clone(),
                                     origin: SymbolOrigin::Local,
                                     position: position.clone(),
                                 }) {
@@ -393,6 +409,7 @@ impl SymbolTable {
                                 visibility,
                                 origin,
                                 position,
+                                specifier: VariableSpecifier::Buffer,
                                 constant: true,
                             }) {
                                 Ok(_) => {}
@@ -623,6 +640,7 @@ mod tests {
             SymbolInfo::Variable {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
+                specifier: VariableSpecifier::Let,
                 position: Position::new(),
                 constant: false,
             },
@@ -650,6 +668,7 @@ mod tests {
                 visibility: SymbolVisibility::Private,
                 origin: SymbolOrigin::Local,
                 position: Position::new(),
+                specifier: VariableSpecifier::Let,
                 constant: false,
             },
         ).unwrap();

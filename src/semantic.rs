@@ -148,6 +148,199 @@ impl SemanticAnalyzer {
                             ASTTraverseStage::Exit => {}
                         }
                     }
+
+                    Node::AssignmentExpr {
+                        lhs,
+                        rhs,
+                        position,
+                        ..
+                    } => {
+                        match traverse_stage {
+                            ASTTraverseStage::Enter => {
+                                match lhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        let symbol = context.symbol_table.lookup(name);
+
+                                        match symbol {
+                                            Some(symbol) => {
+                                                if symbol.is_constant() {
+                                                    context.errors.push(format!("Cannot assign to constant \"{}\", {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+
+                                match rhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if let SymbolInfo::Function { .. } = symbol_info {
+                                                    context.errors.push(format!("Cannot assign function \"{}\" to a variable, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    Node::MemberExpr {
+                                        object,
+                                        property,
+                                        ..
+                                    } => {
+                                        let object_name = match object.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let property_name = match property.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let result = lookup_module_symbol(&object_name, &property_name, &context.symbol_table, &modules);
+
+                                        match result {
+                                            Ok(symbol) => {
+                                                let symbol = *symbol;
+
+                                                if let SymbolInfo::Function { .. } = symbol {
+                                                    context.errors.push(format!("Cannot assign function \"{}\" to a variable, {:?}", property_name, position));
+                                                }
+                                            }
+                                            Err(_) => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ASTTraverseStage::Exit => {}
+                        }
+                    }
+
+                    Node::VariableDeclarationStmt {
+                        initializer,
+                        position,
+                        ..
+                    } => {
+                        match traverse_stage {
+                            ASTTraverseStage::Enter => {
+                                match initializer.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if let SymbolInfo::Function { .. } = symbol_info {
+                                                    context.errors.push(format!("Cannot assign function \"{}\" to a variable, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+
+                                    Node::MemberExpr {
+                                        object,
+                                        property,
+                                        ..
+                                    } => {
+                                        let object_name = match object.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let property_name = match property.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let result = lookup_module_symbol(&object_name, &property_name, &context.symbol_table, &modules);
+
+                                        match result {
+                                            Ok(symbol) => {
+                                                let symbol = *symbol;
+
+                                                if let SymbolInfo::Function { .. } = symbol {
+                                                    context.errors.push(format!("Cannot assign function \"{}\" to a variable, {:?}", property_name, position));
+                                                }
+                                            }
+                                            Err(_) => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ASTTraverseStage::Exit => {}
+                        }
+                    }
+
+                    Node::BinaryExpr {
+                        lhs,
+                        rhs,
+                        position,
+                        ..
+                    } => {
+                        match traverse_stage {
+                            ASTTraverseStage::Enter => {
+                                match lhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if let SymbolInfo::Function { .. } = symbol_info {
+                                                    context.errors.push(format!("Cannot use function \"{}\" as a variable, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+
+                                match rhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if let SymbolInfo::Function { .. } = symbol_info {
+                                                    context.errors.push(format!("Cannot use function \"{}\" as a variable, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    Node::MemberExpr {
+                                        object,
+                                        property,
+                                        ..
+                                    } => {
+                                        let object_name = match object.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let property_name = match property.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let result = lookup_module_symbol(&object_name, &property_name, &context.symbol_table, &modules);
+
+                                        match result {
+                                            Ok(symbol) => {
+                                                let symbol = *symbol;
+
+                                                if let SymbolInfo::Function { .. } = symbol {
+                                                    context.errors.push(format!("Cannot assign function \"{}\" to a variable, {:?}", property_name, position));
+                                                }
+                                            }
+                                            Err(_) => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ASTTraverseStage::Exit => {}
+                        }
+                    }
+
                     Node::FnCallExpr {
                         callee, args, position, ..
                     } => {
@@ -245,32 +438,7 @@ impl SemanticAnalyzer {
                             }
                         }
                     }
-                    Node::AssignmentExpr {
-                        lhs,
-                        position,
-                        ..
-                    } => {
-                        match traverse_stage {
-                            ASTTraverseStage::Enter => {
-                                match lhs.as_ref() {
-                                    Node::Identifier { name, .. } => {
-                                        match context.symbol_table.lookup(name) {
-                                            Some(symbol_info) => {
-                                                if symbol_info.is_constant() {
-                                                    context.errors.push(format!("Cannot assign to constant \"{}\", {:?}", name, position));
-                                                }
-                                            }
-                                            None => {
-                                                context.errors.push(format!("Cannot find name \"{}\", {:?}", name, position));
-                                            }
-                                        }
-                                    }
-                                    _ => {}
-                                }
-                            }
-                            ASTTraverseStage::Exit => {}
-                        }
-                    }
+
                     Node::MemberExpr {
                         object,
                         property,
@@ -316,6 +484,102 @@ impl SemanticAnalyzer {
                             }
                         }
                     }
+
+                    Node::ConnectStmt {
+                        lhs,
+                        rhs,
+                        position
+                    } => {
+                        match traverse_stage {
+                            ASTTraverseStage::Enter => {
+                                match lhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if !symbol_info.is_output() {
+                                                    context.errors.push(format!("Cannot connect \"{}\" to an input, declare it using \"output\" instead, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    Node::MemberExpr {
+                                        object,
+                                        property,
+                                        ..
+                                    } => {
+                                        let object_name = match object.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let property_name = match property.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let result = lookup_module_symbol(&object_name, &property_name, &context.symbol_table, &modules);
+
+                                        match result {
+                                            Ok(symbol) => {
+                                                let symbol = *symbol;
+
+                                                if !symbol.is_output() {
+                                                    context.errors.push(format!("Cannot connect \"{}\" to an input, declare it using \"output\" instead, {:?}", property_name, position));
+                                                }
+                                            }
+                                            Err(_) => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+
+                                match rhs.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if !symbol_info.is_input() {
+                                                    context.errors.push(format!("Cannot connect to \"{}\", declare it using \"input\" instead, {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    Node::MemberExpr {
+                                        object,
+                                        property,
+                                        ..
+                                    } => {
+                                        let object_name = match object.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let property_name = match property.as_ref() {
+                                            Node::Identifier { name, .. } => name,
+                                            _ => panic!("Expected identifier")
+                                        };
+
+                                        let result = lookup_module_symbol(&object_name, &property_name, &context.symbol_table, &modules);
+
+                                        match result {
+                                            Ok(symbol) => {
+                                                let symbol = *symbol;
+
+                                                if !symbol.is_input() {
+                                                    context.errors.push(format!("Cannot connect \"{}\" to an output, declare it using \"input\" instead, {:?}", property_name, position));
+                                                }
+                                            }
+                                            Err(_) => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ASTTraverseStage::Exit => {}
+                        }
+                    }
+
                     _ => {}
                 }
             }, &mut context);
@@ -621,87 +885,144 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn test_connect_block() {
         let main_code = "
-            import Kick from './kick.meph';
+            import Module from \"./module.meph\";
 
-            let a = 0;
+            input in = 0;
+            output out = 0;
 
             connect {
-                Kick.out -> Kick.in;
-                a -> OUTPUTS[0];
+                Module.out -> in;
+                out -> in;
+                out -> OUTPUTS;
             }
             ".to_string();
 
+        let module_code = "
+            output out = 0;
+        ".to_string();
+
         let lexer = Lexer::new();
-        let tokens = lexer.tokenize(main_code);
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
 
         let mut parser = Parser::new();
-        let mut ast = parser.parse(tokens);
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
 
-        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
 
         let mut semantic = SemanticAnalyzer::new();
 
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
         let module_data = ModuleData {
-            ast,
-            symbol_table,
+            ast: module_ast,
+            symbol_table: module_symbol_table,
             errors: vec![],
         };
 
         let mut modules = IndexMap::new();
-        modules.insert("main".to_string(), module_data);
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
 
         let result = semantic.validate_semantics(&mut modules);
 
-        assert!(result.is_ok());
+        println!("{:#?}", result);
 
-        todo!("Implement imports")
+        assert!(result.is_ok());
     }
 
     #[test]
-    #[ignore]
     fn test_incorrect_connect_block() {
-        let code = "
-            import Kick from \"./kick.meph\";
+        let main_code = "
+            import Module from \"./module.meph\";
 
-            let a = 0;
+            input in = 0;
+            output out = 0;
+
+            let b = 12;
 
             connect {
-                b -> OUTPUTS;
-                a -> c;
+                Module.out -> in1; // Incorrect input name
+                in1 -> out; // Incorrect output name
+
+                out -> OUTPUTS; // valid
+                out -> OUTPUTS; // Duplicate OUTPUTS
+
+                out -> in; // valid
+                b -> in; // Cannot connect variable to output, declare it using \"output\" instead
+
+                out -> b; // Cannot connect output to variable
+
+                in -> out; // Cannot connect input to output, should be output -> input
+
+                out -> Module.out; // Cannot connect to the output of a module, should be input -> output
+
+                // Rule 1: Connection may only be made between an output and an (input or OUTPUTS)
+                // Rule 2: Each input can accept only one connection
             }
             ".to_string();
 
+        let module_code = "
+            output out = 0;
+        ".to_string();
+
         let lexer = Lexer::new();
-        let tokens = lexer.tokenize(code);
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
 
         let mut parser = Parser::new();
-        let mut ast = parser.parse(tokens);
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
 
-        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
 
         let mut semantic = SemanticAnalyzer::new();
 
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
         let module_data = ModuleData {
-            ast,
-            symbol_table,
+            ast: module_ast,
+            symbol_table: module_symbol_table,
             errors: vec![],
         };
 
         let mut modules = IndexMap::new();
-        modules.insert("main".to_string(), module_data);
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+
+        println!("{:#?}", modules);
 
         let result = semantic.validate_semantics(&mut modules);
 
         assert!(result.is_err());
 
         let errors = result.unwrap_err();
-        assert_eq!(errors[0], "Cannot find name \"b\", Position { start: 108, end: 109, line: 7, column: 17 }");
-        assert_eq!(errors[1], "Cannot find name \"c\", Position { start: 143, end: 144, line: 8, column: 20 }");
 
-        todo!("Implement imports")
+        println!("{:#?}", errors);
+
+        assert_eq!(errors.len(), 8);
+
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot find name \"in1\", Position { start: 182, end: 185, line: 10, column: 29 }");
+        assert_eq!(errors[1], "[Module \"main\"]: Cannot connect to \"out\", declare it using \"input\" instead, Position { start: 227, end: 284, line: 11, column: 17 }");
+        assert_eq!(errors[2], "[Module \"main\"]: Cannot find name \"in1\", Position { start: 227, end: 230, line: 11, column: 17 }");
+        assert_eq!(errors[3], "[Module \"main\"]: Cannot connect \"b\" to an input, declare it using \"output\" instead, Position { start: 412, end: 513, line: 17, column: 17 }");
+        assert_eq!(errors[4], "[Module \"main\"]: Cannot connect to \"b\", declare it using \"input\" instead, Position { start: 510, end: 576, line: 19, column: 17 }");
+        assert_eq!(errors[5], "[Module \"main\"]: Cannot connect \"in\" to an input, declare it using \"output\" instead, Position { start: 574, end: 666, line: 21, column: 17 }");
+        assert_eq!(errors[6], "[Module \"main\"]: Cannot connect to \"out\", declare it using \"input\" instead, Position { start: 574, end: 666, line: 21, column: 17 }");
+        assert_eq!(errors[7], "[Module \"main\"]: Cannot connect \"out\" to an output, declare it using \"input\" instead, Position { start: 663, end: 935, line: 23, column: 13 }");
     }
 
     #[test]
@@ -894,6 +1215,8 @@ buffer foo[10] = |i| {
 
         let errors = result.unwrap_err();
 
+        println!("{:#?}", errors);
+
         assert_eq!(errors.len(), 3);
 
         assert_eq!(errors[0], "[Module \"main\"]: Function \"Module.getSomethingElse\" does not exist (Cannot find name \"getSomethingElse\" in module \"./module.meph\"), Position { start: 145, end: 171, line: 6, column: 43 }");
@@ -959,15 +1282,15 @@ buffer foo[10] = |i| {
             output f = 0;
 
             connect {
-                a -> d;
+                d -> a;
             }
 
             connect {
-                b -> e;
+                e -> b;
             }
 
             connect {
-                c -> f;
+                f -> c;
             }
             ".to_string();
 
@@ -1004,5 +1327,194 @@ buffer foo[10] = |i| {
         assert_eq!(errors.len(), 2);
         assert_eq!(errors[0], "[Module \"main\"]: Cannot have more than one connect block, Position { start: 229, end: 297, line: 14, column: 13 }");
         assert_eq!(errors[1], "[Module \"main\"]: Cannot have more than one connect block, Position { start: 290, end: 350, line: 18, column: 13 }");
+    }
+
+    #[test]
+    fn test_const_assign() {
+        let code = "
+            const a = 1;
+            a = 2;
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+
+        println!("{:#?}", errors);
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign to constant \"a\", Position { start: 38, end: 57, line: 3, column: 13 }");
+    }
+
+    #[test]
+    fn test_fn_assign() {
+        let code = "
+            foo() {
+                return 1;
+            }
+
+            let a = foo;
+            a = foo;
+            a = foo + 1;
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        println!("{:#?}", ast);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+
+        println!("{:#?}", errors);
+
+        assert_eq!(errors.len(), 3);
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 74, end: 100, line: 6, column: 13 }");
+        assert_eq!(errors[1], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 99, end: 121, line: 7, column: 13 }");
+        assert_eq!(errors[2], "[Module \"main\"]: Cannot use function \"foo\" as a variable, Position { start: 124, end: 132, line: 8, column: 20 }");
+    }
+
+    #[test]
+    fn test_assign_to_fn() {
+        let code = "
+            foo() {
+                return 1;
+            }
+
+            foo = 1;
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+
+        println!("{:#?}", errors);
+
+        assert_eq!(errors.len(), 1);
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign to constant \"foo\", Position { start: 74, end: 95, line: 6, column: 13 }");
+    }
+
+    #[test]
+    fn test_fn_assign_members() {
+        let main_code = "
+            import Module from \"./module.meph\";
+
+            let a = Module.out; // Should be ok
+            let b = Module.foo; // Should fail
+            let c = 1 + Module.foo; // Should fail
+            ".to_string();
+
+        let module_code = "
+            output out = 0;
+
+            export foo() {
+                return 42;
+            }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
+
+        let mut parser = Parser::new();
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
+
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
+        let module_data = ModuleData {
+            ast: module_ast,
+            symbol_table: module_symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+
+        assert_eq!(errors.len(), 2);
+
+        // assert_eq!(errors[0], "[Module \"main\"]: Function \"Module.getSomethingElse\" does not exist (Cannot find name \"getSomethingElse\" in module \"./module.meph\"), Position { start: 145, end: 171, line: 6, column: 43 }");
+        // assert_eq!(errors[1], "[Module \"main\"]: Cannot find name \"bar\" in module \"./module.meph\", Position { start: 224, end: 235, line: 8, column: 28 }");
+        // assert_eq!(errors[2], "[Module \"./module.meph\"]: Cannot find name \"b\", Position { start: 164, end: 166, line: 10, column: 19 }");
     }
 }
