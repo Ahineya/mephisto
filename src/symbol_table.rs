@@ -123,12 +123,36 @@ pub struct Scope {
     parent: Option<usize>,
 }
 
+impl Scope {
+    pub fn symbols(&self) -> &HashMap<String, SymbolInfo> {
+        &self.symbols
+    }
+
+    pub fn children(&self) -> &Vec<usize> {
+        &self.children
+    }
+
+    pub fn parent(&self) -> &Option<usize> {
+        &self.parent
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct SymbolTable {
     scopes: Vec<Scope>,
     current_scope_index: usize,
 
     traversed_scopes: usize,
+}
+
+impl SymbolTable {
+    pub fn current_scope_index(&self) -> usize {
+        self.current_scope_index
+    }
+
+    pub fn scopes(&self) -> &Vec<Scope> {
+        &self.scopes
+    }
 }
 
 /*
@@ -620,6 +644,39 @@ impl SymbolTable {
             Ok(())
         } else {
             Err("[COMPILER ERROR]: No active scope to insert symbol".to_string())
+        }
+    }
+
+    pub fn insert_into_global_scope(&mut self, name: String, mut info: SymbolInfo) -> Result<(), String> {
+        if let Some(global_scope) = self.scopes.get_mut(0) {
+            // Check if the symbol already exists in the global scope
+            if global_scope.symbols.contains_key(&name) {
+                return Err(format!("'{}' is already declared in the global scope, {:?}", name, info.position()));
+            }
+
+            global_scope.symbols.insert(name, info);
+
+            Ok(())
+        } else {
+            Err("[COMPILER ERROR]: No global scope to insert symbol".to_string())
+        }
+    }
+
+    pub fn move_variables_to_global_scope(&mut self, source_scope: usize) {
+        let variables_to_move: Vec<String> = self.scopes[source_scope].symbols
+            .iter()
+            .filter_map(|(name, symbol_info)| {
+                match symbol_info {
+                    SymbolInfo::Variable { .. } => Some(name.clone()),
+                    _ => None,
+                }
+            })
+            .collect();
+
+        for name in variables_to_move.iter() {
+            if let Some(symbol_info) = self.scopes[source_scope].symbols.remove(name) {
+                self.scopes[0].symbols.insert(name.clone(), symbol_info);
+            }
         }
     }
 

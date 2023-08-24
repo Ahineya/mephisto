@@ -765,9 +765,9 @@ pub enum ASTTraverseStage {
 }
 
 pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage, &mut Node, &mut Context) -> bool, context: &mut Context) {
-    let shouldSkip = f(ASTTraverseStage::Enter, node, context);
+    let should_skip = f(ASTTraverseStage::Enter, node, context);
 
-    if !shouldSkip {
+    if !should_skip {
         match node {
             Node::ProgramNode { children, position: _ } => {
                 for child in children {

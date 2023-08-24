@@ -1159,6 +1159,51 @@ buffer foo[10] = |i| {
     }
 
     #[test]
+    #[ignore]
+    fn test_no_fn_declaration_in_blocks() {
+        let code = "
+        process {
+            foo() {
+                return 12;
+            }
+        }
+
+        block {
+            foo() {
+                return 12;
+            }
+        }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
+
+        let errors = result.unwrap_err();
+
+        assert_eq!(errors.len(), 2);
+    }
+
+    #[test]
     fn test_should_work_with_imports() {
         let main_code = "
             import Module from \"./module.meph\";
