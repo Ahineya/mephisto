@@ -153,6 +153,10 @@ impl SymbolTable {
     pub fn scopes(&self) -> &Vec<Scope> {
         &self.scopes
     }
+
+    pub fn set_current_scope_index(&mut self, index: usize) {
+        self.current_scope_index = index;
+    }
 }
 
 /*
@@ -680,11 +684,59 @@ impl SymbolTable {
         }
     }
 
+    pub fn move_variable_to_global_scope(&mut self, name: &str, source_scope: usize) {
+        if let Some(symbol_info) = self.scopes[source_scope].symbols.remove(name) {
+            self.scopes[0].symbols.insert(name.to_string(), symbol_info);
+        }
+    }
+
+    pub fn rename_variable(&mut self, old_name: &str, new_name: &str, scope_index: usize) {
+        if let Some(symbol_info) = self.scopes[scope_index].symbols.remove(old_name) {
+            self.scopes[self.current_scope_index].symbols.insert(new_name.to_string(), symbol_info);
+        }
+    }
+    
+    pub fn rename_global_variable(&mut self, old_name: &str, new_name: &str) {
+        if let Some(symbol_info) = self.scopes[0].symbols.remove(old_name) {
+            self.scopes[0].symbols.insert(new_name.to_string(), symbol_info);
+        }
+    }
+
+    pub fn get_scope_symbol_names(&self, scope_index: usize) -> Vec<String> {
+        self.scopes[scope_index].symbols.keys().map(|s| s.clone()).collect()
+    }
+
+    pub fn get_global_symbol_names(&self) -> Vec<String> {
+        self.scopes[0].symbols.keys().map(|s| s.clone()).collect()
+    }
+
     pub fn lookup(&self, name: &str) -> Option<&SymbolInfo> {
         // Traverse the scope tree from the current scope to the global scope
         // and return the first symbol with the given name
 
         let mut current_scope_index = self.current_scope_index;
+        loop {
+            if let Some(current_scope) = self.scopes.get(current_scope_index) {
+                if let Some(symbol) = current_scope.symbols.get(name) {
+                    return Some(symbol);
+                } else {
+                    // No symbol with the given name in the current scope
+                    // Try the parent scope
+                    if let Some(parent_index) = current_scope.parent {
+                        current_scope_index = parent_index;
+                    } else {
+                        // No parent scope, so we're done
+                        return None;
+                    }
+                }
+            } else {
+                panic!("Error: Invalid scope index {}", current_scope_index);
+            }
+        }
+    }
+    
+    pub fn lookup_in_scope(&self, name: &str, scope_index: usize) -> Option<&SymbolInfo> {
+        let mut current_scope_index = scope_index;
         loop {
             if let Some(current_scope) = self.scopes.get(current_scope_index) {
                 if let Some(symbol) = current_scope.symbols.get(name) {

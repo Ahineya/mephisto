@@ -884,6 +884,126 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
     f(ASTTraverseStage::Exit, node, context);
 }
 
+pub fn traverse_mut_ast<Context>(node: &Node, f: &mut dyn FnMut(ASTTraverseStage, &Node, &mut Context) -> bool, context: &mut Context) {
+    let should_skip = f(ASTTraverseStage::Enter, node, context);
+
+    if !should_skip {
+        match node {
+            Node::ProgramNode { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::ProcessNode { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::BlockNode { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::ConnectNode { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::FunctionBody { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::ExpressionStmt { child, position: _ } => {
+                traverse_mut_ast(child, f, context);
+            }
+            Node::AssignmentExpr { lhs, rhs, position: _ } => {
+                traverse_mut_ast(lhs, f, context);
+                traverse_mut_ast(rhs, f, context);
+            }
+            Node::ConnectStmt { lhs, rhs, position: _ } => {
+                traverse_mut_ast(lhs, f, context);
+                traverse_mut_ast(rhs, f, context);
+            }
+            Node::ReturnStmt { child, position: _ } => {
+                traverse_mut_ast(child, f, context);
+            }
+            Node::VariableDeclarationStmt {
+                id,
+                initializer,
+                specifier: _,
+                position: _
+            } => {
+                traverse_mut_ast(id, f, context);
+                traverse_mut_ast(initializer, f, context);
+            }
+            Node::FunctionDeclarationStmt { id, params, body, position: _ } => {
+                traverse_mut_ast(id, f, context);
+                for param in params {
+                    traverse_mut_ast(param, f, context);
+                }
+                traverse_mut_ast(body, f, context);
+            }
+            Node::FunctionParameter { id, position: _ } => {
+                traverse_mut_ast(id, f, context);
+            }
+            Node::MemberExpr { object, property, position: _ } => {
+                traverse_mut_ast(object, f, context);
+                traverse_mut_ast(property, f, context);
+            }
+            Node::ExportDeclarationStmt { declaration, position: _ } => {
+                traverse_mut_ast(declaration, f, context);
+            }
+            Node::ParameterDeclarationStmt { id, fields, position: _ } => {
+                traverse_mut_ast(id, f, context);
+                for field in fields {
+                    traverse_mut_ast(field, f, context);
+                }
+            }
+            Node::ParameterDeclarationField { id, specifier: _, position: _ } => {
+                traverse_mut_ast(id, f, context);
+            }
+            Node::FnCallExpr { callee, args, position: _ } => {
+                traverse_mut_ast(callee, f, context);
+                for arg in args {
+                    traverse_mut_ast(arg, f, context);
+                }
+            }
+            Node::Number { value: _, position: _ } => {}
+            Node::UnaryExpr { op: _, child, position: _ } => {
+                traverse_mut_ast(child, f, context);
+            }
+            Node::BinaryExpr { op: _, lhs, rhs, position: _ } => {
+                traverse_mut_ast(lhs, f, context);
+                traverse_mut_ast(rhs, f, context);
+            }
+            Node::OutputsStmt { position: _ } => {}
+            Node::OutputsNumberedStmt { value: _, position: _ } => {}
+            Node::BufferDeclarationStmt {
+                id,
+                size,
+                initializer,
+                position: _
+            } => {
+                traverse_mut_ast(id, f, context);
+                traverse_mut_ast(size, f, context);
+                traverse_mut_ast(initializer, f, context);
+            }
+            Node::BufferInitializer { children, position: _ } => {
+                for child in children {
+                    traverse_mut_ast(child, f, context);
+                }
+            }
+            Node::ImportStatement { id, path: _, position: _ } => {
+                traverse_mut_ast(id, f, context);
+            }
+            Node::Identifier { name: _, position: _ } => {}
+        }
+    }
+
+    f(ASTTraverseStage::Exit, node, context);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

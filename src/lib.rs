@@ -105,7 +105,7 @@ impl<T: FileLoader> Mephisto<T> {
         self.validate_semantics(&mut modules)?;
 
 
-        let mut main_module = modules.get_mut(main_module_path).unwrap();
+        let main_module = modules.get_mut(main_module_path).unwrap();
 
         let mut code = main_module.ast.to_code_string();
 
