@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use indexmap::IndexMap;
-use crate::lexer::token::Position;
 
+use crate::lexer::token::Position;
 use crate::module_data::ModuleData;
 use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast};
 use crate::symbol_table::{SymbolInfo, SymbolTable};
@@ -52,6 +52,211 @@ impl IR {
         // Second pass should merge all modules into one
         // Third pass should inline all functions
 
+        Self::hoist(modules);
+
+        // TODO: Merge all modules into one
+
+        /*
+          How to merge modules:
+            1. Create a new module with an empty AST and symbol table
+            2. When the module is imported, it is "instantiated". Meaning that importing the same module twice will create two instances of the module
+            3. When a module is instantiated, all its symbols are renamed to be unique
+         */
+
+        // So, the main module is the one that is being executed. Then we need to recursively go through all the modules imported by the main module and merge them into the main module
+        // The main module should be the one that is being executed, so it should be the one that contains the process node
+
+        let mut processed_modules = HashSet::new();
+        let merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
+
+        // let with_replaced_module_calls = Self::replace_module_calls(&merged_module.ast.root, &merged_module.symbol_table);
+
+        // TODO: Inline all functions
+
+        let main_module_data = merged_module;
+
+        Ok(IRResult {
+            ast: main_module_data.ast.clone(),
+            symbol_table: main_module_data.symbol_table.clone(),
+            errors: vec![],
+        })
+    }
+
+    fn replace_module_calls(ast: &Node, symbol_table: &SymbolTable) -> ModuleData {
+        let mut result = ast.clone();
+        let mut context = ();
+
+        traverse_ast(&mut result, &mut |stage, node, context: &mut ()| {
+            match node {
+                Node::MemberExpr { object, property, .. } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            let object_name = match object.as_ref() {
+                                Node::Identifier { name, .. } => name,
+                                _ => panic!("Expected identifier"),
+                            };
+
+                            let property_name = match property.as_ref() {
+                                Node::Identifier { name, .. } => name,
+                                _ => panic!("Expected identifier"),
+                            };
+
+                            // Replace the module call with the module's symbol
+                            *node = Node::Identifier {
+                                name: format!("{}_{}", object_name, property_name),
+                                position: Position::new(),
+                            };
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+            false
+        }, &mut context);
+
+        ModuleData {
+            ast: AST::new(result.clone(), vec![]),
+            symbol_table: SymbolTable::from_ast(&mut AST::new(result.clone(), vec![])).unwrap(), // TODO: This is cheating, make it better
+            errors: vec![],
+        }
+    }
+
+    fn merge_modules(modules: &mut IndexMap<String, ModuleData>, module_name: &str, processed_modules: &mut HashSet<String>) -> ModuleData {
+        let mut result = ModuleData::new();
+        let mut imported_process_node: Option<Node> = None;
+
+        // If the module has already been processed, just return it
+        if processed_modules.contains(module_name) {
+            return modules.get(module_name).expect("Processed module not found").clone();
+        }
+
+        let module = modules.remove(module_name).expect("Module not found");
+        result.symbol_table = module.symbol_table.clone();
+
+        if let Node::ProgramNode { children, .. } = &module.ast.root {
+            if let Node::ProgramNode { children: result_children, .. } = &mut result.ast.root {
+                for node in children.iter() {
+                    match node {
+                        Node::ImportStatement { id, path, .. } => {
+                            // Recursively merge the imported module
+                            let mut imported_module = Self::merge_modules(modules, &path, processed_modules);
+
+                            println!("Imported module: {:#?}", imported_module.ast.root);
+
+                            let id = match id.as_ref() {
+                                Node::Identifier { name, .. } => name,
+                                _ => panic!("Expected identifier"),
+                            };
+
+                            let renamed_node = Self::rename_symbols(&imported_module.ast.root, id, &mut imported_module.symbol_table);
+
+                            if let Node::ProgramNode { children: renamed_children, .. } = &renamed_node {
+                                for renamed_node in renamed_children.iter() {
+                                    if let Node::ProcessNode { .. } = &renamed_node {
+                                        imported_process_node = Some(renamed_node.clone());
+                                    } else {
+                                        result_children.push(renamed_node.clone());
+                                    }
+                                }
+                            }
+                        }
+
+                        _ => {
+                            result_children.push(node.clone());
+                        }
+                    }
+                }
+
+                // After iterating through all children, handle the imported ProcessNode
+                if let Some(imported_node) = imported_process_node {
+                    if let Some(Node::ProcessNode { children: main_process_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ProcessNode { .. })) {
+                        if let Node::ProcessNode { children: imported_process_children, .. } = &imported_node {
+                            main_process_children.splice(0..0, imported_process_children.clone());
+                        }
+                    } else {
+                        result_children.push(imported_node);
+                    }
+                }
+            }
+        }
+
+        processed_modules.insert(module_name.to_string());
+        // Re-insert the merged module into the modules map
+        modules.insert(module_name.to_string(), result.clone());
+
+        println!("Merged module: {:#?}", result);
+
+        result.symbol_table.reset_scopes_indexes();
+
+        result
+    }
+
+
+    fn rename_symbols(node: &Node, module_id: &str, symbol_table: &mut SymbolTable) -> Node {
+        let mut renamed_node = node.clone();
+        let mut context = HoistingContext {
+            name_counts: HashMap::new(),
+            symbol_table: symbol_table.clone(),
+            process_scope_index: None,
+
+            rename_symbols: false,
+        };
+
+        let symbols_to_rename = collect_symbols_for_rename(&mut renamed_node, &mut context);
+
+        context.symbol_table.reset_scopes_indexes();
+
+        traverse_ast(&mut renamed_node, &mut |stage, node, context: &mut HoistingContext| {
+            match node {
+                Node::BlockNode { .. }
+                |
+                Node::BufferInitializer { .. }
+                |
+                Node::FunctionBody { .. }
+                |
+                Node::ProcessNode { .. }
+                => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            context.symbol_table.enter_next_scope();
+                        }
+                        ASTTraverseStage::Exit => {
+                            context.symbol_table.exit_scope();
+                        }
+                    }
+                }
+
+                Node::Identifier { name, .. } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            let symbol = context.symbol_table.lookup(name);
+
+                            if symbol.is_some() {
+                                let symbol = symbol.unwrap();
+
+                                // Check if the symbol should be renamed
+                                symbols_to_rename.iter().for_each(|(new_name, si)| {
+                                    if si.id() == symbol.id() {
+                                        // new name is the name of the module + the new name
+                                        *name = format!("{}_{}", module_id, new_name);
+                                    }
+                                });
+                            }
+                        }
+                        _ => ()
+                    }
+                }
+                _ => ()
+            }
+
+            false
+        }, &mut context);
+
+        renamed_node
+    }
+
+    fn hoist(modules: &mut IndexMap<String, ModuleData>) {
         modules.iter_mut().for_each(|(_, module)| {
             let mut context = HoistingContext {
                 name_counts: HashMap::new(),
@@ -139,14 +344,6 @@ impl IR {
                 position: Position::new(),
             };
         });
-
-        let main_module_data = modules.get_mut(&main_module).unwrap();
-
-        Ok(IRResult {
-            ast: main_module_data.ast.clone(),
-            symbol_table: main_module_data.symbol_table.clone(),
-            errors: vec![],
-        })
     }
 }
 
@@ -210,7 +407,7 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
 
             for node in children {
                 match node {
-                    Node::VariableDeclarationStmt { id,  .. } => {
+                    Node::VariableDeclarationStmt { id, .. } => {
                         let name = match id.as_ref() {
                             Node::Identifier { name, .. } => name,
                             _ => panic!("Expected identifier"),
@@ -228,6 +425,61 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
         }
         _ => vec![],
     }
+}
+
+fn collect_symbols_for_rename(ast: &mut Node, context: &mut HoistingContext) -> Vec<(String, SymbolInfo)> {
+    let mut symbols_to_rename: Vec<(String, SymbolInfo)> = Vec::new();
+
+    context.symbol_table.reset_scopes_indexes();
+
+    // We want to collect all variable declarations in all scopes here
+    traverse_ast(ast, &mut |stage, node, context: &mut HoistingContext| {
+        match node {
+            Node::BlockNode { .. }
+            |
+            Node::BufferInitializer { .. }
+            |
+            Node::FunctionBody { .. }
+            |
+            Node::ProcessNode { .. }
+            => {
+                match stage {
+                    ASTTraverseStage::Enter => {
+                        context.symbol_table.enter_next_scope();
+                    }
+                    ASTTraverseStage::Exit => {
+                        context.symbol_table.exit_scope();
+                    }
+                }
+            }
+            Node::VariableDeclarationStmt { id, .. } | Node::FunctionDeclarationStmt { id, .. } => {
+                match stage {
+                    ASTTraverseStage::Enter => {
+                        let name = match id.as_ref() {
+                            Node::Identifier { name, .. } => name,
+                            _ => panic!("Expected identifier"),
+                        };
+
+                        let symbol = context.symbol_table.lookup_in_scope(name, context.symbol_table.current_scope_index());
+
+                        if symbol.is_some() {
+                            let symbol = symbol.unwrap();
+                            symbols_to_rename.push((context.get_unique_name(name), symbol.clone()));
+                        } else {
+                            println!("Symbol {} not found", name.to_string());
+                        }
+                    }
+                    _ => ()
+                }
+            }
+
+            _ => ()
+        }
+
+        false
+    }, context);
+
+    symbols_to_rename
 }
 
 fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Node> {
@@ -494,5 +746,240 @@ mod tests {
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
         assert!(ir_result.symbol_table.lookup("#sin_2").is_some());
+    }
+
+    #[test]
+    fn test_multiple_modules() {
+        let main_code = "
+            import Mod from \"./module.meph\";
+
+            output a = 0;
+
+            process {
+                a = Mod.add(Mod.out, Mod.PI);
+            }
+
+            connect {
+                a -> OUTPUTS;
+            }
+
+            ".to_string();
+
+        let module_code = "
+            param something {
+               initial: 42;
+            };
+
+            output out = 0;
+            export const PI = 3.14;
+
+            export add(a, b) {
+                return a + b + something;
+            }
+
+            process {
+                out = 42;
+            }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
+
+        let mut parser = Parser::new();
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
+
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
+
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
+        let module_data = ModuleData {
+            ast: module_ast,
+            symbol_table: module_symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        println!("AST: {:#?}", ir_result.ast);
+        println!("{}", ir_result.ast.to_code_string());
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
+        assert!(ir_result.symbol_table.lookup("Mod_PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod_add").is_some());
+    }
+
+    #[test]
+    fn test_multiple_modules_multiple_same_module_import() {
+        let main_code = "
+            import Mod from \"./module.meph\";
+            import Mod2 from \"./module.meph\";
+
+            output a = 0;
+
+            process {
+                a = Mod.add(Mod.out, Mod.PI) + Mod2.add(Mod2.out, Mod2.PI);
+            }
+
+            connect {
+                a -> OUTPUTS;
+            }
+
+            ".to_string();
+
+        let module_code = "
+            output out = 0;
+            export const PI = 3.14;
+
+            export add(a, b) {
+                return a + b + something;
+            }
+
+            process {
+                out = 42;
+            }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
+
+        let mut parser = Parser::new();
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
+
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
+
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
+        let module_data = ModuleData {
+            ast: module_ast,
+            symbol_table: module_symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        println!("AST: {:#?}", ir_result.ast);
+        println!("{}", ir_result.ast.to_code_string());
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
+        assert!(ir_result.symbol_table.lookup("Mod_PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod_add").is_some());
+
+        assert!(ir_result.symbol_table.lookup("Mod2_PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod2_add").is_some());
+    }
+
+    #[test]
+    fn test_multiple_modules_multiple_same_module_import_with_param() {
+        let main_code = "
+            import Mod from \"./module.meph\";
+            import Mod2 from \"./module.meph\";
+
+            output a = 0;
+
+            process {
+                a = Mod.add(Mod.out, Mod.PI) + Mod2.add(Mod2.out, Mod2.PI);
+            }
+
+            connect {
+                a -> OUTPUTS;
+            }
+
+            ".to_string();
+
+        let module_code = "
+            param something {
+               initial: 42;
+            };
+
+            output out = 0;
+            export const PI = 3.14;
+
+            export add(a, b) {
+                return a + b + something;
+            }
+
+            process {
+                out = 42;
+            }
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
+
+        let mut parser = Parser::new();
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
+
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
+
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
+        let module_data = ModuleData {
+            ast: module_ast,
+            symbol_table: module_symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        println!("AST: {:#?}", ir_result.ast);
+        println!("{}", ir_result.ast.to_code_string());
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
+        assert!(ir_result.symbol_table.lookup("Mod_PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod_add").is_some());
+
+        assert!(ir_result.symbol_table.lookup("Mod2_PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod2_add").is_some());
     }
 }
