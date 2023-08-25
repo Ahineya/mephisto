@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+
 use uuid::Uuid;
 
 use crate::lexer::token::Position;
@@ -86,7 +87,7 @@ impl SymbolInfo {
             SymbolInfo::Function { .. } => true,
             SymbolInfo::ImportedModule { .. } => true,
             SymbolInfo::Parameter { .. } => true,
-                _ => false,
+            _ => false,
         }
     }
 
@@ -666,6 +667,32 @@ impl SymbolTable {
         }
     }
 
+    pub fn rename_symbol(&mut self, symbol_id: Uuid, new_name: String) {
+        let mut symbol = None;
+        let mut symbol_name = None;
+        let mut symbol_scope_index = None;
+
+        for (scope_index, scope) in self.scopes.iter().enumerate() {
+            for (name, info) in scope.symbols.iter() {
+                if info.id() == &symbol_id {
+                    symbol = Some(info.clone());
+                    symbol_name = Some(name.clone());
+                    symbol_scope_index = Some(scope_index);
+                    break;
+                }
+            }
+        }
+
+        if let Some(symbol) = symbol {
+            if let Some(symbol_name) = symbol_name {
+                if let Some(symbol_scope_index) = symbol_scope_index {
+                    self.scopes[symbol_scope_index].symbols.remove(&symbol_name);
+                    self.scopes[symbol_scope_index].symbols.insert(new_name, symbol);
+                }
+            }
+        }
+    }
+
     pub fn move_variables_to_global_scope(&mut self, source_scope: usize) {
         let variables_to_move: Vec<String> = self.scopes[source_scope].symbols
             .iter()
@@ -695,7 +722,7 @@ impl SymbolTable {
             self.scopes[self.current_scope_index].symbols.insert(new_name.to_string(), symbol_info);
         }
     }
-    
+
     pub fn rename_global_variable(&mut self, old_name: &str, new_name: &str) {
         if let Some(symbol_info) = self.scopes[0].symbols.remove(old_name) {
             self.scopes[0].symbols.insert(new_name.to_string(), symbol_info);
@@ -734,26 +761,17 @@ impl SymbolTable {
             }
         }
     }
-    
-    pub fn lookup_in_scope(&self, name: &str, scope_index: usize) -> Option<&SymbolInfo> {
-        let mut current_scope_index = scope_index;
-        loop {
-            if let Some(current_scope) = self.scopes.get(current_scope_index) {
-                if let Some(symbol) = current_scope.symbols.get(name) {
-                    return Some(symbol);
-                } else {
-                    // No symbol with the given name in the current scope
-                    // Try the parent scope
-                    if let Some(parent_index) = current_scope.parent {
-                        current_scope_index = parent_index;
-                    } else {
-                        // No parent scope, so we're done
-                        return None;
-                    }
-                }
+
+    pub fn lookup_in_scope(&mut self, name: &str, scope_index: usize) -> Option<SymbolInfo> {
+        if let Some(current_scope) = self.scopes.get(scope_index) {
+            if let Some(symbol) = current_scope.symbols.get(name) {
+                return Some(symbol.clone());
             } else {
-                panic!("Error: Invalid scope index {}", current_scope_index);
+                // No parent scope, so we're done
+                return None;
             }
+        } else {
+            panic!("Error: Invalid scope index {}", scope_index);
         }
     }
 }
