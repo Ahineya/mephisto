@@ -33,7 +33,7 @@ impl HoistingContext {
         if *count == 1 {
             base_name.to_string()
         } else {
-            format!("{}_{}", base_name, count)
+            format!("#{}_{}", base_name, count)
         }
     }
 }
@@ -66,7 +66,7 @@ impl IR {
                 return;
             }
 
-            context.symbol_table = module.symbol_table.clone(); // TODO: Clone is not needed
+            context.symbol_table = module.symbol_table.clone(); // TODO: Clone is not needed, make it better
 
             let global_symbols = module.symbol_table.get_global_symbol_names();
 
@@ -111,7 +111,6 @@ impl IR {
                                     // Check if the symbol should be hoisted
                                     symbols_to_hoist.iter().for_each(|(new_name, si)| {
                                         if si.id() == symbol.id() {
-                                            // context.symbol_table.rename_symbol(symbol.id().clone(), new_name.clone());
                                             *name = new_name.clone();
                                         }
                                     });
@@ -126,8 +125,6 @@ impl IR {
                 false
             }, &mut context);
 
-            // Rename the symbols in the symbol table
-
             let hoisted_nodes = hoist_process_block(&mut module.ast.root, &mut context);
 
             symbols_to_hoist.iter().for_each(|(new_name, si)| {
@@ -141,12 +138,6 @@ impl IR {
                 children: hoisted_nodes,
                 position: Position::new(),
             };
-
-            // println!("RENAMED AST: {:#?}", module.ast);
-
-            // todo!("Hoist the symbols in the AST and in the symbol table");
-
-            // module.symbol_table.move_variables_to_global_scope(context.process_scope_index.unwrap());
         });
 
         let main_module_data = modules.get_mut(&main_module).unwrap();
@@ -414,7 +405,7 @@ mod tests {
         ir_result.symbol_table.reset_scopes_indexes();
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
-        assert!(ir_result.symbol_table.lookup("foo_2").is_some());
+        assert!(ir_result.symbol_table.lookup("#foo_2").is_some());
     }
 
     #[test]
@@ -426,6 +417,11 @@ mod tests {
                 let foo = 11;
                 foo = 1;
                 foo = 5;
+
+                spoo(foo1) {
+                    let a = foo1 + 1;
+                    return a + foo;
+                }
             }
             ".to_string();
 
@@ -455,10 +451,48 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        println!("Code: {}", ir_result.ast.to_code_string());
-        println!("Symbol table: {:#?}", ir_result.symbol_table);
+        assert!(ir_result.symbol_table.lookup("foo").is_some());
+        assert!(ir_result.symbol_table.lookup("#foo_2").is_some());
+    }
+
+    #[test]
+    fn test_ir_hoisting_rename_builtins() {
+        let code = "
+            let foo = 42;
+
+            process {
+                let sin = 11;
+                sin = 1;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        ir_result.symbol_table.reset_scopes_indexes();
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
-        assert!(ir_result.symbol_table.lookup("foo_2").is_some());
+        assert!(ir_result.symbol_table.lookup("#sin_2").is_some());
     }
 }

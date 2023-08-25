@@ -132,6 +132,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         params_str.pop();
                     }
 
+                    context.code.push_str(&params_str);
                     context.code.push_str(")");
                 }
                 ASTTraverseStage::Exit => {
