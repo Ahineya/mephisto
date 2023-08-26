@@ -1,0 +1,210 @@
+class MephistoGenerator extends AudioWorkletProcessor {
+
+constructor() {
+super();
+
+this.port.onmessage = (e) => {
+console.log(e.data);
+
+if (e.data.command === 'addModule') {
+//this.registerModule(e.data.module);
+}
+
+if (e.data.command === 'setParameter') {
+this.scheduleSetParameter(e.data.setter);
+}
+
+if (e.data.command === 'addModulesConnection') {
+this.scheduleAddModulesConnection(e.data.connection);
+}
+
+if (e.data.command === 'addOutputConnection') {
+this.scheduleAddOutputConnection(e.data.connection);
+}
+
+if (e.data.command === 'removeModuleConnections') {
+this.scheduleRemoveModuleConnections(e.data.module);
+}
+}
+}
+
+//modules = [];
+//moduleNameToInstance = new Map();
+scheduledParameterSetters = [];
+
+scheduledModulesConnections = [];
+scheduledRemoveModuleConnection = [];
+//modulesConnections = [];
+
+scheduledOutputConnection = [];
+//outputConnections = [];
+
+/*
+registerModule(module) {
+const f = new Function(module.moduleCode);
+const moduleInstance = f();
+this.modules.push(moduleInstance);
+this.moduleNameToInstance.set(module.name, moduleInstance);
+}
+*/
+
+scheduleSetParameter(parameterSetter) {
+console.log('Scheduling set parameter:', parameterSetter);
+this.scheduledParameterSetters.push(parameterSetter);
+}
+
+scheduleAddModulesConnection(modulesConnection) {
+console.log('Scheduling module connections:', modulesConnection);
+this.scheduledModulesConnections.push(modulesConnection);
+}
+
+scheduleAddOutputConnection(modulesConnection) {
+console.log('Scheduling output connection:', modulesConnection);
+this.scheduledOutputConnection.push(modulesConnection);
+}
+
+scheduleRemoveModuleConnections(module) {
+console.log('Scheduling remove module connections', module);
+this.scheduledRemoveModuleConnection.push(module);
+}
+
+process(inputs, outputs, parameters) {
+const output = outputs[0];
+
+const leftOutput = output[0];
+const rightOutput = output[1];
+
+// Set each module params – control rate
+/*
+for (let i = 0; i < this.scheduledParameterSetters.length; i++) {
+const moduleInstance = this.moduleNameToInstance.get(this.scheduledParameterSetters[i].moduleName);
+const parameterIndex = moduleInstance.paramNames[this.scheduledParameterSetters[i].parameterName]
+moduleInstance.params[parameterIndex] = this.scheduledParameterSetters[i].value;
+if (this.scheduledParameterSetters.length) {
+// debug
+}
+}
+*/
+
+this.scheduledParameterSetters.length = 0;
+
+// Update modules connections
+/*
+for (let i = 0; i < this.scheduledModulesConnections.length; i++) {
+const fromConnectionName = this.scheduledModulesConnections[i].from.outputName;
+const fromModuleInstance = this.moduleNameToInstance.get(this.scheduledModulesConnections[i].from.moduleName);
+const fromInstanceIndex = this.modules.findIndex(m => m === fromModuleInstance);
+const fromOutputIndex = fromModuleInstance.outputNames[fromConnectionName];
+
+const toConnectionName = this.scheduledModulesConnections[i].to.outputName;
+const toModuleInstance = this.moduleNameToInstance.get(this.scheduledModulesConnections[i].to.moduleName);
+const toInstanceIndex = this.modules.findIndex(m => m === toModuleInstance);
+const toInputIndex = toModuleInstance.inputNames[toConnectionName];
+if (fromInstanceIndex === -1
+|| fromOutputIndex === -1
+|| toInstanceIndex === -1
+|| toInputIndex === -1
+) {
+return;
+}
+
+this.modulesConnections.push([fromInstanceIndex, fromOutputIndex, toInstanceIndex, toInputIndex]);
+
+if (this.scheduledModulesConnections.length) {
+// debug
+}
+}
+*/
+
+this.scheduledModulesConnections.length = 0;
+
+
+// Remove modules connection
+/*
+for (let i = 0; i < this.scheduledRemoveModuleConnection.length; i++) {
+const moduleInstance = this.moduleNameToInstance.get(this.scheduledRemoveModuleConnection[i].name);
+const moduleInstanceIndex = this.modules.findIndex(m => m === moduleInstance);
+
+// When removing module connection we need to send 0 to all inputs
+for (let j = 0; j < this.modulesConnections.length; j++) {
+if (this.modulesConnections[j][0] === moduleInstanceIndex) {
+debugger;
+this.modules[this.modulesConnections[j][2]].input[this.modulesConnections[j][3]] = 0;
+}
+}
+
+this.modulesConnections = this.modulesConnections
+.filter(([fromInstanceIndex, _, toInstanceIndex]) => fromInstanceIndex !== moduleInstanceIndex && toInstanceIndex !== moduleInstanceIndex);
+
+if (this.scheduledRemoveModuleConnection.length) {
+// debug
+}
+}
+*/
+this.scheduledRemoveModuleConnection.length = 0;
+
+/*
+for (let i = 0; i < this.scheduledOutputConnection.length; i++) {
+const fromConnectionName = this.scheduledOutputConnection[i].from.outputName;
+const fromModuleInstance = this.moduleNameToInstance.get(this.scheduledOutputConnection[i].from.moduleName);
+const fromInstanceIndex = this.modules.findIndex(m => m === fromModuleInstance);
+const fromOutputIndex = fromModuleInstance.outputNames[fromConnectionName];
+const outputConnectionChannel = this.scheduledOutputConnection[i].channel;
+
+this.outputConnections.push([fromInstanceIndex, fromOutputIndex, outputConnectionChannel]);
+
+if (this.scheduledOutputConnection.length) {
+// debug
+}
+}
+*/
+this.scheduledOutputConnection.length = 0;
+
+// Execute each module control rate callbacks
+{{BLOCK_BLOCK}}
+
+
+// for (let channel = 0; channel < output.length; ++channel) {
+
+for (let i = 0; i < leftOutput.length; ++i) {
+
+// Advance each module
+{{PROCESS_BLOCK}}
+
+
+// Put processed audio sample into proper audio channel
+
+/*for (let c = 0; c < this.outputConnections.length; c++) {
+if (this.outputConnections[c][2] === 0) {
+leftOutput[i] = this.modules[this.outputConnections[c][0]].output[this.outputConnections[c][1]];
+if (leftOutput[i] !== 0) {
+// debugger;
+}
+}
+
+if (this.outputConnections[c][2] === 1) {
+rightOutput[i] = this.modules[this.outputConnections[c][0]].output[this.outputConnections[c][1]];
+}
+}*/
+
+{{CONNECTIONS}}
+
+// Update each module input with module outputs
+/*
+for (let c = 0; c < this.modulesConnections.length; c++) {
+this.modules[this.modulesConnections[c][2]].input[this.modulesConnections[c][3]] = this.modules[this.modulesConnections[c][0]].output[this.modulesConnections[c][1]];
+if (this.modulesConnections.length) {
+// debug
+}
+}
+
+}*/
+// }
+
+return true;
+}
+}
+
+console.log('SAMPLE RATE', sampleRate);
+
+registerProcessor('mephisto-generator', MephistoGenerator);

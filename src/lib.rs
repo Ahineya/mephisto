@@ -1,5 +1,6 @@
 use std::error::Error;
 use indexmap::IndexMap;
+use crate::codegen::{CodeGenerator, StubCodeGenerator};
 use crate::ir::IR;
 
 use crate::lexer::{Lexer, token::Token};
@@ -20,9 +21,10 @@ pub mod module_data;
 pub mod module_loader;
 
 pub mod ir;
+pub mod codegen;
 
-pub struct Mephisto<T: FileLoader> {
-    loader: T,
+pub struct Mephisto<FL: FileLoader> {
+    loader: FL,
 }
 
 #[derive(Debug)]
@@ -33,34 +35,16 @@ struct Context {
 
 impl Mephisto<StubFileLoader> {
     pub fn tokenize(input: String) -> Vec<Token> {
-        // println!("Input string: {}", input);
-        // println!();
-        // println!("Mephisto is tokenizing...");
-        // println!();
-        // println!("Tokens:");
-
         let lexer = Lexer::new();
         lexer.tokenize(input)
     }
 
     pub fn parse(tokens: Vec<Token>) -> AST {
-        // println!("Input tokens: {:#?}", tokens);
-        // println!();
-        // println!("Mephisto is parsing...");
-        // println!();
-        // println!("AST:");
-
         let mut parser = Parser::new();
         parser.parse(tokens)
     }
 
     pub fn create_symbol_table(ast: &mut AST) -> Result<SymbolTable, Vec<String>> {
-        // println!("Input AST: {:#?}", ast);
-        // println!();
-        // println!("Mephisto is creating symbol table...");
-        // println!();
-        // println!("Symbol table:");
-
         SymbolTable::from_ast(ast)
     }
 
@@ -82,7 +66,7 @@ impl<T: FileLoader> Mephisto<T> {
         semantic.validate_semantics(modules)
     }
 
-    pub fn compile(&mut self, main_module_path: &str) -> Result<String, Vec<String>> {
+    pub fn compile(&mut self, main_module_path: &str, codegen: Box<dyn CodeGenerator>) -> Result<String, Vec<String>> {
         let modules: IndexMap<String, ModuleData> = IndexMap::new();
 
         let mut context = Context {
@@ -117,7 +101,13 @@ impl<T: FileLoader> Mephisto<T> {
 
         println!("IR: {:#?}", ir_result);
 
-        todo!("Compiling")
+        let module_data = ModuleData {
+            ast: ir_result.ast,
+            symbol_table: ir_result.symbol_table,
+            errors: Vec::new(),
+        };
+
+        self.generate_code(module_data, codegen)
     }
 
     fn process_module(&mut self, path: &str, context: &mut Context) -> Result<(), Vec<String>> {
@@ -166,5 +156,9 @@ impl<T: FileLoader> Mephisto<T> {
     fn load_module(&self, path: &str) -> Result<String, Box<dyn Error>> {
         let result: Result<String, Box<dyn Error>> = self.loader.load(path);
         result
+    }
+
+    pub fn generate_code(&self, module: ModuleData, code_generator: Box<dyn CodeGenerator>) -> Result<String, Vec<String>> {
+        code_generator.generate(module)
     }
 }

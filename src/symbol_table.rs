@@ -292,6 +292,12 @@ impl SymbolTable {
         symbol_table.define_stdlib_fn("ceil", vec!["x"]);
         symbol_table.define_stdlib_fn("round", vec!["x"]);
 
+        symbol_table.define_stdlib_const("PI");
+        symbol_table.define_stdlib_const("E");
+        symbol_table.define_stdlib_const("SR");
+
+        symbol_table.define_stdlib_const("OUTPUTS");
+
         symbol_table
     }
 
@@ -325,6 +331,24 @@ impl SymbolTable {
             // Do nothing
         } else {
             panic!("Failed to insert \"{}\" function into symbol table", name);
+        }
+    }
+
+    fn define_stdlib_const(&mut self, name: &str) {
+        if let Ok(()) = self.insert(
+            name.to_string(),
+            SymbolInfo::Variable {
+                id: Uuid::new_v4(),
+                visibility: SymbolVisibility::Private,
+                origin: SymbolOrigin::StandardLibrary,
+                position: Position::new(),
+                specifier: VariableSpecifier::Const,
+                constant: true,
+            },
+        ) {
+            // Do nothing
+        } else {
+            panic!("Failed to insert \"{}\" constant into symbol table", name);
         }
     }
 
@@ -923,7 +947,7 @@ mod tests {
             symbol_table.enter_next_scope();
 
             let symbol = symbol_table.lookup("PI");
-            assert!(symbol.is_none());
+            assert!(symbol.is_some());
 
             let symbol = symbol_table.lookup("function_argument_a");
             assert!(symbol.is_some());

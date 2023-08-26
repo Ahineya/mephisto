@@ -82,10 +82,12 @@ impl IR {
 
     fn replace_stdlib_calls(ast: &Node, symbol_table: &mut SymbolTable) -> ModuleData {
         let mut result = ast.clone();
-        let mut context = ();
+        let mut skip_renaming_identifiers = false;
 
         let symbols_to_rename = Self::collect_stdlib_symbols(&result, symbol_table);
         symbol_table.reset_scopes_indexes();
+
+        let mut context = ();
 
         traverse_ast(&mut result, &mut |stage, node, context: &mut ()| {
             match node {
@@ -107,7 +109,24 @@ impl IR {
                     }
                 }
 
+                Node::ParameterDeclarationField {
+                    ..
+                } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            skip_renaming_identifiers = true;
+                        }
+                        ASTTraverseStage::Exit => {
+                            skip_renaming_identifiers = false;
+                        }
+                    }
+                }
+
                 Node::Identifier { name, .. } => {
+                    if skip_renaming_identifiers {
+                        return false;
+                    }
+
                     match stage {
                         ASTTraverseStage::Enter => {
                             let symbol = symbol_table.lookup(name);
@@ -373,6 +392,8 @@ impl IR {
                 Third pass: hoist the symbols both in the symbol table and in the AST
              */
 
+            // println!("Symbol table before hoisting: {:#?}", context.symbol_table);
+
             let symbols_to_hoist = collect_symbols_for_hoisting(&mut module.ast.root, &mut context);
 
             traverse_ast(&mut module.ast.root, &mut |stage, node, context: &mut HoistingContext| {
@@ -438,39 +459,49 @@ impl IR {
 fn find_process_scope(ast: &Node, symbol_table: &mut SymbolTable) -> Option<usize> {
     symbol_table.reset_scopes_indexes();
 
-    match ast {
-        Node::ProgramNode { children, .. } => {
-            for node in children {
-                match node {
-                    Node::FunctionDeclarationStmt { .. } => {
-                        symbol_table.enter_next_scope();
-                        symbol_table.exit_scope();
-                    }
+    let mut context: (&mut SymbolTable, Option<usize>) = (
+        symbol_table,
+        None
+    );
 
-                    Node::BlockNode { .. } => {
-                        symbol_table.enter_next_scope();
-                        symbol_table.exit_scope();
-                    }
+    let mut ast = ast.clone();
 
-                    Node::BufferInitializer {
-                        ..
-                    } => {
-                        symbol_table.enter_next_scope();
-                        symbol_table.exit_scope();
+    traverse_ast(&mut ast, &mut |stage, node, context: &mut (&mut SymbolTable, Option<usize>)| {
+        match node {
+            Node::BlockNode { .. }
+            |
+            Node::BufferInitializer { .. }
+            |
+            Node::FunctionBody { .. }
+            => {
+                match stage {
+                    ASTTraverseStage::Enter => {
+                        context.0.enter_next_scope();
                     }
-
-                    Node::ProcessNode { .. } => {
-                        symbol_table.enter_next_scope();
-                        return Some(symbol_table.current_scope_index());
+                    ASTTraverseStage::Exit => {
+                        context.0.exit_scope();
                     }
-                    _ => (),
                 }
             }
 
-            None
+            Node::ProcessNode { .. } => {
+                match stage {
+                    ASTTraverseStage::Enter => {
+                        context.0.enter_next_scope();
+                        context.1 = Some(context.0.current_scope_index());
+                    }
+                    ASTTraverseStage::Exit => {
+                        context.0.exit_scope();
+                    }
+                }
+            }
+            _ => ()
         }
-        _ => None,
-    }
+
+        false
+    }, &mut context);
+
+    context.1
 }
 
 fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -> Vec<(String, SymbolInfo)> {
@@ -502,6 +533,10 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
                         };
 
                         let process_scope_index = context.process_scope_index.unwrap();
+
+                        // println!("Looking up {} in scope {}", name, process_scope_index);
+                        // println!("Symbol table: {:#?}", context.symbol_table);
+
                         let symbol = context.symbol_table.lookup_in_scope(name, process_scope_index).unwrap();
                         symbols_to_hoist.push((context.get_unique_name(name), symbol.clone()));
                     }
@@ -711,6 +746,8 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
+        println!("code: {}", ir_result.ast.to_code_string());
+
         assert!(ir_result.symbol_table.lookup("foo").is_some());
         assert!(ir_result.symbol_table.lookup("bar").is_some());
     }
@@ -758,6 +795,45 @@ mod tests {
     }
 
     #[test]
+    fn test_hoisting_no_rename_shadowed() {
+        let code = "
+            process {
+                const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
+        println!("CODE: {}", ir_result.ast.to_code_string());
+
+        assert!(ir_result.symbol_table.lookup("PI").is_some());
+    }
+
+    #[test]
     fn test_ir_hoisting_rename_2() {
         let code = "
             let foo = 42;
@@ -802,6 +878,111 @@ mod tests {
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
         assert!(ir_result.symbol_table.lookup("#foo_2").is_some());
+    }
+
+    #[test]
+    fn test_ir_hoisting_full() {
+        let code = "
+param frequency {
+    min: 40; // Shouldn't be renamed!!!
+    max: 22000;
+    step: 1;
+    initial: 220;
+};
+
+let a = 1;
+
+buffer b[1024];
+
+buffer moo[10] = |i| {
+    return i * 2;
+};
+
+output out = 0;
+
+let phase = 0;
+let increment = 0;
+
+//const SR = 44100;
+
+input gain = 1 + 0.5 * getSin(0.5);
+input kick = 0;
+
+block {
+    increment = frequency / SR;
+    return 123;
+}
+
+getSaw(phase) {
+    return phase * 2 - 1;
+}
+
+//export const PI = 3.14;
+
+export getSin(phase) {
+    let b = 1;
+    return sin(phase * 2 * PI);
+}
+
+process {
+    const PI = 3.1415926535897932384626433832795028841971693993751058209749445923078164062;
+    phase = increment + (phase - floor(increment + phase));
+    out = (phase > -0.5) * 2 - 1;
+    out = out * gain;
+
+    let a = 0;
+
+    const test = floor(2.5);
+
+    getPoo() {
+        return 1;
+    }
+
+    a = 123;
+
+    //let a = 0;
+
+    return a + 1.1;
+}
+
+connect {
+    //out -> OUTPUTS[0];
+    out -> OUTPUTS;
+
+    //phase -> Kick.phase;
+    //gain -> Kick.gain;
+
+    //Kick.out -> kick;
+}
+
+".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
     }
 
     #[test]
@@ -868,7 +1049,7 @@ mod tests {
             };
 
             output out = 0;
-            export const PI = 3.14;
+            export const M_PI = 3.14;
 
             export add(a, b) {
                 return a + b + something;
@@ -918,7 +1099,7 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        assert!(ir_result.symbol_table.lookup("Mod#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod#add").is_some());
     }
 
@@ -931,7 +1112,7 @@ mod tests {
             output a = 0;
 
             process {
-                a = Mod.add(Mod.out, Mod.PI) + Mod2.add(Mod2.out, Mod2.PI);
+                a = Mod.add(Mod.out, Mod.M_PI) + Mod2.add(Mod2.out, Mod2.M_PI);
             }
 
             connect {
@@ -942,7 +1123,7 @@ mod tests {
 
         let module_code = "
             output out = 0;
-            export const PI = 3.14;
+            export const M_PI = 3.14;
 
             export add(a, b) {
                 return a + b + something;
@@ -992,10 +1173,10 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        assert!(ir_result.symbol_table.lookup("Mod#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod#add").is_some());
 
-        assert!(ir_result.symbol_table.lookup("Mod2#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod2#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod2#add").is_some());
     }
 
@@ -1008,7 +1189,7 @@ mod tests {
             output a = 0;
 
             process {
-                a = Mod.add(Mod.out, Mod.PI) + Mod2.add(Mod2.out, Mod2.PI);
+                a = Mod.add(Mod.out, Mod.M_PI) + Mod2.add(Mod2.out, Mod2.M_PI);
             }
 
             connect {
@@ -1031,7 +1212,7 @@ mod tests {
                 return i + 1;
             };
 
-            export const PI = 3.14 + sin(25);
+            export const M_PI = 3.14 + sin(25);
 
             export add(a, b) {
                 return a + b + something;
@@ -1084,10 +1265,10 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        assert!(ir_result.symbol_table.lookup("Mod#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod#add").is_some());
 
-        assert!(ir_result.symbol_table.lookup("Mod2#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod2#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod2#add").is_some());
     }
 
@@ -1099,7 +1280,7 @@ mod tests {
             output a = 0;
 
             process {
-                a = Mod.add(Mod.out, Mod.PI) + Mod2.add(Mod2.out, Mod2.PI);
+                a = Mod.add(Mod.out, Mod.M_PI) + Mod2.add(Mod2.out, Mod2.PI);
             }
 
             connect {
@@ -1124,7 +1305,7 @@ mod tests {
                 return i + 1;
             };
 
-            export const PI = 3.14 + sin(25);
+            export const M_PI = 3.14 + sin(25);
 
             export add(a, b) {
                 return a + b + something;
@@ -1140,10 +1321,10 @@ mod tests {
         ".to_string();
 
         let module2_code = "
-            export const E = 2.71828;
+            export const M_E = 2.71828;
 
             process {
-                out = 42 + E;
+                out = 42 + M_E;
             }
         ".to_string();
 
@@ -1194,9 +1375,9 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        assert!(ir_result.symbol_table.lookup("Mod#PI").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod#M_PI").is_some());
         assert!(ir_result.symbol_table.lookup("Mod#add").is_some());
 
-        assert!(ir_result.symbol_table.lookup("Mod#Mod2#E").is_some());
+        assert!(ir_result.symbol_table.lookup("Mod#Mod2#M_E").is_some());
     }
 }
