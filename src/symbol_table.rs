@@ -295,6 +295,22 @@ impl SymbolTable {
         symbol_table
     }
 
+    pub fn get_stdlib_symbols(&self) -> Vec<(String, SymbolInfo)> {
+        let mut symbols = Vec::new();
+
+        for scope in self.scopes.iter() {
+            for (name, symbol_info) in scope.symbols.iter() {
+                if let SymbolInfo::Function { origin, .. } = symbol_info {
+                    if let SymbolOrigin::StandardLibrary = origin {
+                        symbols.push((name.clone(), symbol_info.clone()));
+                    }
+                }
+            }
+        }
+
+        symbols
+    }
+
     fn define_stdlib_fn(&mut self, name: &str, parameters: Vec<&str>) {
         if let Ok(()) = self.insert(
             name.to_string(),
