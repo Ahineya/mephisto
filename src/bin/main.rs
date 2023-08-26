@@ -1,8 +1,7 @@
 extern crate mephisto;
 
 use clap::Parser;
-use mephisto::codegen::js::JSCodeGenerator;
-use mephisto::codegen::StubCodeGenerator;
+use mephisto::codegen::codegen_js::JSCodeGenerator;
 use mephisto::module_loader::NativeFileLoader;
 use crate::mephisto::Mephisto;
 
@@ -24,7 +23,7 @@ fn main() {
     println!("Input file: {}", args.input);
 
     let loader = NativeFileLoader;
-    let codegen = JSCodeGenerator;
+    let codegen = JSCodeGenerator::new();
     let mut mephisto = Mephisto::new(loader);
     let compilation_result = mephisto.compile(&args.input, Box::new(codegen));
 

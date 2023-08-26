@@ -1,0 +1,38 @@
+param frequency {
+    initial: 110;
+};
+
+param gain {
+    initial: 0.2;
+};
+
+param wave {
+    initial: 0;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+};
+
+let phase = 0;
+let increment = 0;
+
+output out = 0;
+
+block {
+    increment = frequency / SR;
+}
+
+process {
+    phase = increment + (phase - floor(increment + phase));
+
+    let sine = (wave == 0) * sin(phase * 2 * PI);
+    let square = (wave == 1) * ((phase < 0.5) * 2 - 1);
+    let saw = (wave == 2) * (phase * 2 - 1);
+
+    out = (sine + square + saw) * gain;
+}
+
+connect {
+    out -> OUTPUTS;
+}

@@ -870,7 +870,7 @@ impl Parser {
         loop {
             let token = self.peek();
             match token.token_type {
-                TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
+                TokenType::EQ | TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
                     let op = self.parse_operator()?;
                     let rhs = self.parse_add_sub()?;
                     lhs = Node::BinaryExpr {

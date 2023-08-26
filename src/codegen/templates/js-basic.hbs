@@ -1,0 +1,83 @@
+{{GLOB}}
+
+class MephistoGenerator extends AudioWorkletProcessor {
+
+    constructor() {
+        super();
+
+        this.port.onmessage = (e) => {
+            console.log(e.data);
+
+            if (e.data.command === 'init') {
+                this.port.postMessage({
+                    command: 'init',
+                    parameters: this.parameterDescriptors()
+                });
+            }
+
+            if (e.data.command === 'addModule') {
+                //this.registerModule(e.data.module);
+            }
+
+            if (e.data.command === 'setParameter') {
+                this.scheduleSetParameter(e.data.setter);
+            }
+
+            if (e.data.command === 'addModulesConnection') {
+                //this.scheduleAddModulesConnection(e.data.connection);
+            }
+
+            if (e.data.command === 'addOutputConnection') {
+                //this.scheduleAddOutputConnection(e.data.connection);
+            }
+
+            if (e.data.command === 'removeModuleConnections') {
+                //this.scheduleRemoveModuleConnections(e.data.module);
+            }
+        }
+    }
+
+    scheduledParameterSetters = [];
+
+    /**
+    * @param {function} setter
+    */
+    scheduleSetParameter(setter) {
+        this.scheduledParameterSetters.push(setter);
+    }
+
+    parameterDescriptors() {
+        return [
+            {{PARAMETERS}}
+        ];
+    }
+
+    process(inputs, outputs, parameters) {
+        const output = outputs[0];
+
+        const leftOutput = output[0];
+        const rightOutput = output[1];
+
+        for (let i = 0; i < this.scheduledParameterSetters.length; i++) {
+            switch (this.scheduledParameterSetters[i].name) {
+                {{PARAMETER_SETTERS}}
+            }
+        }
+
+        this.scheduledParameterSetters = [];
+
+        {{BLOCK}}
+
+        for (let i = 0; i < leftOutput.length; ++i) {
+            // Advance each module
+            {{PROCESS}}
+            {{CONNECTIONS}}
+        }
+
+        return true;
+    }
+}
+
+console.log('SAMPLE RATE', sampleRate);
+
+registerProcessor('mephisto-generator', MephistoGenerator);

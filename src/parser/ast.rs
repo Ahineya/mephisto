@@ -617,6 +617,12 @@ pub enum Node {
     },
 }
 
+impl Node {
+    pub fn to_json(&self) -> String {
+        serde_json::to_string_pretty(&self).unwrap()
+    }
+}
+
 // Oooook, I definitely need to rethink data structures here. It's what you get when learn the language on the go.
 impl Node {
     pub fn position(&self) -> &Position {

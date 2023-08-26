@@ -306,7 +306,7 @@ impl SymbolTable {
 
         for scope in self.scopes.iter() {
             for (name, symbol_info) in scope.symbols.iter() {
-                if let SymbolInfo::Function { origin, .. } = symbol_info {
+                if let SymbolInfo::Function { origin, .. } | SymbolInfo::Variable {origin, ..} = symbol_info {
                     if let SymbolOrigin::StandardLibrary = origin {
                         symbols.push((name.clone(), symbol_info.clone()));
                     }
