@@ -1,17 +1,29 @@
 import Lib from "./lib.mephisto";
 import Phaser from "./phaser.mephisto";
-import AR from "./ar.mephisto";
 
 param frequency {
     initial: 110;
+    type: C_SLIDER;
+    min: 55;
+    max: 880;
+    step: 0.01;
 };
 
 param gain {
     initial: 0.7;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
 };
 
 param wave {
     initial: 0;
+
+    type: C_SLIDER;
+    min: 0;
+    max: 3;
+    step: 1;
 
     sine: 0;
     square: 1;
@@ -19,25 +31,16 @@ param wave {
     triangle: 3;
 };
 
-param envelope_trigger {
-    initial: 0;
-};
-
 output out = 0;
+input phase = 0;
 
 output freq = 0;
-output trigger = 0;
-
-input phase = 0;
-input ar_curve = 0;
 
 block {
-    freq = frequency; // * ar_curve;
-    trigger = envelope_trigger;
+    freq = frequency;
 }
 
 process {
-
     let sine = Lib.sinewave(phase);
     let square = Lib.squarewave(phase);
     let saw = Lib.sawwave(phase);
@@ -45,13 +48,10 @@ process {
 
     let outwave = Lib.switch4(wave, sine, square, saw, triangle);
 
-    out = outwave * gain * ar_curve;
+    out = outwave * gain;
 }
 
 connect {
-    out -> OUTPUTS;
     freq -> Phaser.frequency;
-    trigger -> AR.trigger;
     Phaser.phase -> phase;
-    AR.curve -> ar_curve;
 }

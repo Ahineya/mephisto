@@ -1,0 +1,5 @@
+import Osc from "./osc.mephisto";
+
+connect {
+    Osc.out -> OUTPUTS;
+}

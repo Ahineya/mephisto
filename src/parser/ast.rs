@@ -305,7 +305,17 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                     context.code.push_str(": ");
 
-                    context.code.push_str(&specifier.to_string());
+                    let specifier = match specifier.as_ref() {
+                        Node::Identifier { name, .. } => {
+                            name.to_string()
+                        }
+                        Node::Number { value, .. } => {
+                            value.to_string()
+                        }
+                        _ => panic!("Invalid specifier")
+                    };
+
+                    context.code.push_str(&specifier);
 
                     context.code.push_str(";\n");
                 }
@@ -568,7 +578,7 @@ pub enum Node {
 
     ParameterDeclarationField {
         id: Box<Node>,
-        specifier: f64,
+        specifier: Box<Node>,
         position: Position,
     },
 
@@ -847,8 +857,9 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
                     traverse_ast(field, f, context);
                 }
             }
-            Node::ParameterDeclarationField { id, specifier: _, position: _ } => {
+            Node::ParameterDeclarationField { id, specifier, position: _ } => {
                 traverse_ast(id, f, context);
+                traverse_ast(specifier, f, context);
             }
             Node::FnCallExpr { callee, args, position: _ } => {
                 traverse_ast(callee, f, context);

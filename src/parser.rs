@@ -351,12 +351,18 @@ impl Parser {
         };
 
         self.skip(TokenType::COLON)?;
-        let specifier = self.parse_number()?;
 
-        let specifier = match specifier {
-            Node::Number { value, position: _ } => value,
+        let next_token = self.peek();
+
+        let specifier = match next_token.token_type {
+            TokenType::ID => {
+                self.parse_id()?
+            }
+            TokenType::NUMBER => {
+                self.parse_number()?
+            }
             _ => {
-                return Err(self.generic_error(&self.tokens[self.position - 1], "Expected number"));
+                return Err(self.generic_error(&next_token, "specifier or number"))
             }
         };
 
@@ -364,7 +370,7 @@ impl Parser {
 
         let mut node = Node::ParameterDeclarationField {
             id: Box::new(id),
-            specifier,
+            specifier: Box::new(specifier),
             position,
         };
 

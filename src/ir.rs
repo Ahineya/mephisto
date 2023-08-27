@@ -67,7 +67,12 @@ impl IR {
         // The main module should be the one that is being executed, so it should be the one that contains the process node
 
         let mut processed_modules = HashSet::new();
-        let merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
+        let mut merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
+
+        println!("==========================================");
+        println!("{}", merged_module.ast.to_code_string());
+        println!("==========================================");
+
         let mut with_replaced_module_calls = Self::replace_module_calls(&merged_module.ast.root, &merged_module.symbol_table);
         let with_replaced_stdlib_calls = Self::replace_stdlib_calls(&with_replaced_module_calls.ast.root, &mut with_replaced_module_calls.symbol_table);
 
@@ -83,6 +88,7 @@ impl IR {
     fn replace_stdlib_calls(ast: &Node, symbol_table: &mut SymbolTable) -> ModuleData {
         let mut result = ast.clone();
         let mut skip_renaming_identifiers = false;
+        let mut skip_renaming_once = false;
 
         let symbols_to_rename = Self::collect_stdlib_symbols(&result, symbol_table);
         symbol_table.reset_scopes_indexes();
@@ -114,22 +120,32 @@ impl IR {
                 } => {
                     match stage {
                         ASTTraverseStage::Enter => {
-                            skip_renaming_identifiers = true;
+                            skip_renaming_once = true;
                         }
                         ASTTraverseStage::Exit => {
-                            skip_renaming_identifiers = false;
+                            skip_renaming_once = false;
                         }
                     }
                 }
 
                 Node::Identifier { name, .. } => {
+
+                    println!("RENAMING STD LIB IDENTIFIER {}", name);
+
                     if skip_renaming_identifiers {
+                        return false;
+                    }
+
+                    if skip_renaming_once {
+                        skip_renaming_once = false;
                         return false;
                     }
 
                     match stage {
                         ASTTraverseStage::Enter => {
                             let symbol = symbol_table.lookup(name);
+
+                            println!("Renaming symbol {}", name);
 
                             if symbol.is_some() {
                                 let symbol = symbol.unwrap();
@@ -301,7 +317,9 @@ impl IR {
 
         result.symbol_table = SymbolTable::from_ast(&mut result.ast).unwrap(); // TODO: This is cheating, make it better
 
-        result
+        let module = Self::replace_module_calls(&result.ast.root, &result.symbol_table);
+
+        module
     }
 
     fn rename_symbols(node: &Node, module_id: &str, symbol_table: &mut SymbolTable) -> Node {
@@ -316,7 +334,12 @@ impl IR {
 
         let symbols_to_rename = collect_symbols_for_rename(&mut renamed_node, &mut context);
 
+        println!("Symbols to rename: {:#?}", symbols_to_rename);
+        println!("AST before renaming: {:#?}", renamed_node);
+
         context.symbol_table.reset_scopes_indexes();
+
+        context.rename_symbols = true;
 
         traverse_ast(&mut renamed_node, &mut |stage, node, context: &mut HoistingContext| {
             match node {
@@ -338,12 +361,53 @@ impl IR {
                     }
                 }
 
+                Node::ParameterDeclarationField {
+                    ..
+                } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            context.rename_symbols = false;
+                        }
+                        ASTTraverseStage::Exit => {
+                            context.rename_symbols = true;
+                        }
+                    }
+                }
+
+                Node::FunctionParameter {
+                    ..
+                } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            context.rename_symbols = false;
+                        }
+                        ASTTraverseStage::Exit => {
+                            context.rename_symbols = true;
+                        }
+                    }
+                }
+
                 Node::Identifier { name, .. } => {
                     match stage {
                         ASTTraverseStage::Enter => {
+
+                            if !context.rename_symbols {
+                                return false;
+                            }
+
+                            println!("Renaming symbol {}", name);
+
+
                             let symbol = context.symbol_table.lookup(name);
 
+                            if symbol.is_none() {
+                                println!("Symbol not found");
+                                println!("Symbol table: {:#?}", context.symbol_table);
+                            }
+
                             if symbol.is_some() {
+                                println!("Symbol found");
+
                                 let symbol = symbol.unwrap();
 
                                 // Check if the symbol should be renamed
@@ -1383,5 +1447,85 @@ connect {
         assert!(ir_result.symbol_table.lookup("Mod#add").is_some());
 
         assert!(ir_result.symbol_table.lookup("Mod#Mod2#M_E").is_some());
+    }
+
+    #[test]
+    fn test_multiple_modules_renaming() {
+        let main_code = "
+            import Mod from \"./module.meph\";
+
+            param poo {
+                initial: 42;
+                type: C_SLIDER;
+            };
+
+            connect {
+                Mod.out -> OUTPUTS;
+            }
+
+            ".to_string();
+
+        let module_code = "
+            import Lib from \"./module2.meph\";
+
+            output out = 0;
+
+process {
+    out = Lib.M_E;
+}
+        ".to_string();
+
+        let module2_code = "
+            export const M_E = 2.71828;
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let main_tokens = lexer.tokenize(main_code);
+        let module_tokens = lexer.tokenize(module_code);
+
+        let mut parser = Parser::new();
+        let mut main_ast = parser.parse(main_tokens);
+        let mut module_ast = parser.parse(module_tokens);
+        let mut module2_ast = parser.parse(lexer.tokenize(module2_code));
+
+        let main_symbol_table = SymbolTable::from_ast(&mut main_ast).unwrap();
+        let module_symbol_table = SymbolTable::from_ast(&mut module_ast).unwrap();
+        let module2_symbol_table = SymbolTable::from_ast(&mut module2_ast).unwrap();
+
+        let main_data = ModuleData {
+            ast: main_ast,
+            symbol_table: main_symbol_table,
+            errors: vec![],
+        };
+
+        let module_data = ModuleData {
+            ast: module_ast,
+            symbol_table: module_symbol_table,
+            errors: vec![],
+        };
+
+        let module2_data = ModuleData {
+            ast: module2_ast,
+            symbol_table: module2_symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), main_data);
+        modules.insert("./module.meph".to_string(), module_data);
+        modules.insert("./module2.meph".to_string(), module2_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        assert!(result.is_ok());
+
+        let mut ir_result = result.unwrap();
+
+        println!("{}", ir_result.ast.to_code_string());
+
+        ir_result.symbol_table.reset_scopes_indexes();
+
+        assert!(ir_result.symbol_table.lookup("Mod#Lib#M_E").is_some());
     }
 }

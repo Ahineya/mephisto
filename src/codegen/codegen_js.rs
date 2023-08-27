@@ -89,6 +89,9 @@ impl JSCodeGenerator {
         stdlib.insert("E".to_string(), "Math.E".to_string());
         stdlib.insert("SR".to_string(), "sampleRate".to_string());
 
+        // Controls
+        stdlib.insert("C_SLIDER".to_string(), "0".to_string());
+
         JSCodeGenerator {
             handlebars,
             stdlib
@@ -521,6 +524,19 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                     if let Some(initial_value) = initial_value {
                         match initial_value {
                             Node::ParameterDeclarationField { specifier, .. } => {
+                                let specifier = match specifier.as_ref() {
+                                    Node::Number { value, .. } => {
+                                        value.to_string()
+                                    }
+                                    Node::Identifier {name, .. } => {
+                                        name.to_string()
+                                    }
+                                    _ => {
+                                        context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
+                                        return true;
+                                    }
+                                };
+
                                 context.push_code(&specifier.to_string());
                             }
                             _ => {}
@@ -534,6 +550,24 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                             Node::ParameterDeclarationField { id, specifier, .. } => {
                                 match id.as_ref() {
                                     Node::Identifier { name, .. } => {
+
+                                        let specifier = match specifier.as_ref() {
+                                            Node::Number { value, .. } => {
+                                                value.to_string()
+                                            }
+                                            Node::Identifier {name, .. } => {
+                                                if name.starts_with("##STD_") {
+                                                    let stdlib_name = name.trim_start_matches("##STD_");
+                                                    context.get_stdlib_symbol(stdlib_name)
+                                                } else {
+                                                    name.to_string()
+                                                }
+                                            }
+                                            _ => {
+                                                panic!("ParameterDeclarationField not expected in the IR")
+                                            }
+                                        };
+
                                         parameter_declaration.push_str(&format!(",{}:{}", name, specifier));
                                     }
                                     _ => {}

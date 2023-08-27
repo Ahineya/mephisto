@@ -298,6 +298,9 @@ impl SymbolTable {
 
         symbol_table.define_stdlib_const("OUTPUTS");
 
+        // Controls
+        symbol_table.define_stdlib_const("C_SLIDER");
+
         symbol_table
     }
 

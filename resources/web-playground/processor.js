@@ -1,56 +1,41 @@
-function __Lib__sinewave(phase) {
+function __Osc__Lib__sinewave(phase) {
 return Math.sin(((phase * 2) * Math.PI));
 }
 
-function __Lib__trianglewave(phase) {
+function __Osc__Lib__trianglewave(phase) {
 return (1 - (4 * Math.abs((Math.round((phase - 0.25)) - (phase - 0.25)))));
 }
 
-function __Lib__sawwave(phase) {
+function __Osc__Lib__sawwave(phase) {
 return (2 * (phase - Math.round(phase)));
 }
 
-function __Lib__squarewave(phase) {
+function __Osc__Lib__squarewave(phase) {
 return (((phase < 0.5 ? 1 : 0) * 2) - 1);
 }
 
-function __Lib__if(cond, a, b) {
+function __Osc__Lib__if(cond, a, b) {
 return ((cond * a) + ((1 - cond) * b));
 }
 
-function __Lib__switch4(n, a, b, c, d) {
-return __Lib__if((n == 0 ? 1 : 0), a, __Lib__if((n == 1 ? 1 : 0), b, __Lib__if((n == 2 ? 1 : 0), c, __Lib__if((n == 3 ? 1 : 0), d, 0))));
+function __Osc__Lib__switch4(n, a, b, c, d) {
+return __Osc__Lib__if((n == 0 ? 1 : 0), a, __Osc__Lib__if((n == 1 ? 1 : 0), b, __Osc__Lib__if((n == 2 ? 1 : 0), c, __Osc__Lib__if((n == 3 ? 1 : 0), d, 0))));
 }
 
-let __Phaser__frequency = 110;
-let __Phaser__phase = 0;
-let __Phaser__increment = 0;
-let __AR__attackTime = 0.01;
-let __AR__releaseTime = 0.1;
-let __AR__trigger = 0;
-let __AR__curve = 0;
-let __AR__currentVal = 0;
-let __AR__prevTrigger = 0;
-let __AR__envelopeState = 0;
-let __AR__attackInc = 0;
-let __AR__releaseDec = 0;
-let __AR__risingEdge = 0;
-let __AR__increase = 0;
-let __AR__decrease = 0;
-let frequency = 110;
-let gain = 0.7;
-let wave = 0;
-let envelope_trigger = 0;
-let out = 0;
-let freq = 0;
-let trigger = 0;
-let phase = 0;
-let ar_curve = 0;
-let sine = 0;
-let square = 0;
-let saw = 0;
-let triangle = 0;
-let outwave = 0;
+let __Osc__Phaser__frequency = 110;
+let __Osc__Phaser__phase = 0;
+let __Osc__Phaser__increment = 0;
+let __Osc__frequency = 110;
+let __Osc__gain = 0.7;
+let __Osc__wave = 0;
+let __Osc__out = 0;
+let __Osc__phase = 0;
+let __Osc__freq = 0;
+let __Osc__sine = 0;
+let __Osc__square = 0;
+let __Osc__saw = 0;
+let __Osc__triangle = 0;
+let __Osc__outwave = 0;
 
 
 class MephistoGenerator extends AudioWorkletProcessor {
@@ -101,7 +86,7 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
     parameterDescriptors() {
         return [
-            {name:'__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'frequency',initial:110}, {name:'gain',initial:0.7}, {name:'wave',initial:0,sine:0,square:1,saw:2,triangle:3}, {name:'envelope_trigger',initial:0}
+            {name:'__Osc__frequency',initial:110,type:0,min:55,max:880,step:0.01}, {name:'__Osc__gain',initial:0.7,type:0,min:0,max:1,step:0.01}, {name:'__Osc__wave',initial:0,type:0,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}
         ];
     }
 
@@ -113,53 +98,35 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
         for (let i = 0; i < this.scheduledParameterSetters.length; i++) {
             switch (this.scheduledParameterSetters[i].name) {
-                case '__AR__attackTime': __AR__attackTime = this.scheduledParameterSetters[i].value; break;
-case '__AR__releaseTime': __AR__releaseTime = this.scheduledParameterSetters[i].value; break;
-case 'frequency': frequency = this.scheduledParameterSetters[i].value; break;
-case 'gain': gain = this.scheduledParameterSetters[i].value; break;
-case 'wave': wave = this.scheduledParameterSetters[i].value; break;
-case 'envelope_trigger': envelope_trigger = this.scheduledParameterSetters[i].value; break;
+                case '__Osc__frequency': __Osc__frequency = this.scheduledParameterSetters[i].value; break;
+case '__Osc__gain': __Osc__gain = this.scheduledParameterSetters[i].value; break;
+case '__Osc__wave': __Osc__wave = this.scheduledParameterSetters[i].value; break;
             }
         }
 
         this.scheduledParameterSetters = [];
 
         /*console.trace('FIX ME, block');*/ {
-__AR__attackInc = (1 / (sampleRate * __AR__attackTime));
-__AR__releaseDec = (1 / (sampleRate * __AR__releaseTime));
-__Phaser__increment = (__Phaser__frequency / sampleRate);
-trigger = envelope_trigger;
+__Osc__Phaser__increment = (__Osc__Phaser__frequency / sampleRate);
+__Osc__freq = __Osc__frequency;
 }
 
 
 
         for (let i = 0; i < leftOutput.length; ++i) {
             // Advance each module
-            __AR__risingEdge = (__AR__trigger * (1 - __AR__prevTrigger));
-__AR__envelopeState = (__AR__envelopeState + (__AR__risingEdge * (1 - __AR__envelopeState)));
-__AR__increase = (__AR__attackInc * (__AR__envelopeState == 1 ? 1 : 0));
-__AR__decrease = (__AR__releaseDec * (__AR__envelopeState == 2 ? 1 : 0));
-__AR__currentVal = ((__AR__currentVal + __AR__increase) - __AR__decrease);
-__AR__envelopeState = (__AR__envelopeState + ((__AR__currentVal >= 1 ? 1 : 0) * (__AR__envelopeState == 1 ? 1 : 0)));
-__AR__currentVal = (__AR__currentVal * (__AR__currentVal > 0 ? 1 : 0));
-__AR__envelopeState = (__AR__envelopeState * (__AR__currentVal > 0 ? 1 : 0));
-__AR__curve = __AR__currentVal;
-__AR__prevTrigger = __AR__trigger;
-__Phaser__phase = (__Phaser__increment + (__Phaser__phase - Math.floor((__Phaser__increment + __Phaser__phase))));
-freq = (frequency * ar_curve);
-sine = __Lib__sinewave(phase);
-square = __Lib__squarewave(phase);
-saw = __Lib__sawwave(phase);
-triangle = __Lib__trianglewave(phase);
-outwave = __Lib__switch4(wave, sine, square, saw, triangle);
-out = ((outwave * gain) * ar_curve);
+            __Osc__Phaser__phase = (__Osc__Phaser__increment + (__Osc__Phaser__phase - Math.floor((__Osc__Phaser__increment + __Osc__Phaser__phase))));
+__Osc__sine = __Osc__Lib__sinewave(__Osc__phase);
+__Osc__square = __Osc__Lib__squarewave(__Osc__phase);
+__Osc__saw = __Osc__Lib__sawwave(__Osc__phase);
+__Osc__triangle = __Osc__Lib__trianglewave(__Osc__phase);
+__Osc__outwave = __Osc__Lib__switch4(__Osc__wave, __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
+__Osc__out = (__Osc__outwave * __Osc__gain);
 
-            leftOutput[i] = out;
-rightOutput && (rightOutput[i] = out);
-__Phaser__frequency = freq;
-__AR__trigger = trigger;
-phase = __Phaser__phase;
-ar_curve = __AR__curve;
+            __Osc__Phaser__frequency = __Osc__freq;
+__Osc__phase = __Osc__Phaser__phase;
+leftOutput[i] = __Osc__out;
+rightOutput && (rightOutput[i] = __Osc__out);
 
 
 

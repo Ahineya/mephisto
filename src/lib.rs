@@ -155,7 +155,7 @@ impl<T: FileLoader> Mephisto<T> {
 
         let import_paths: Vec<_> = ast.imports();
 
-        let current_dir = Path::new(path).parent().unwrap();
+        let current_dir = Path::new(path).parent().unwrap_or(Path::new("."));
 
         for path in import_paths {
             self.process_module(&path, context, Some(&current_dir))?;

@@ -1,0 +1,26 @@
+export sinewave(phase) {
+    return sin(phase * 2 * PI);
+}
+
+export trianglewave(phase) {
+    return 1 - 4 * abs(round(phase - 0.25) - (phase - 0.25));
+}
+
+export sawwave(phase) {
+    return 2 * (phase - round(phase));
+}
+
+export squarewave(phase) {
+    return ((phase < 0.5) * 2 - 1);
+}
+
+export if(cond, a, b) {
+    return cond * a + (1 - cond) * b;
+}
+
+export switch4(n, a, b, c, d) {
+    return if(n == 0, a,
+              if(n == 1, b,
+              if(n == 2, c,
+              if(n == 3, d, 0))));
+}
