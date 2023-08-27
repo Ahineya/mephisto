@@ -1,5 +1,40 @@
 import Osc from "./osc.mephisto";
+import Osc2 from "./osc.mephisto";
+import Osc3 from "./osc.mephisto";
+import Drum from "./drum.mephisto";
+
+param osc2enabled {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 1;
+};
+
+param osc3enabled {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 1;
+};
+
+output out = 0;
+
+input osc1 = 0;
+input osc2 = 0;
+input osc3 = 0;
+
+input drum = 0;
+
+process {
+    out = osc1 + drum + (osc2 * osc2enabled) + (osc3 * osc3enabled);
+}
 
 connect {
-    Osc.out -> OUTPUTS;
+    Osc.out -> osc1;
+    Osc2.out -> osc2;
+    Osc3.out -> osc3;
+    Drum.out -> drum;
+    out -> OUTPUTS;
 }

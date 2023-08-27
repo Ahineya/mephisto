@@ -299,6 +299,7 @@ impl SymbolTable {
         symbol_table.define_stdlib_const("OUTPUTS");
 
         // Controls
+        symbol_table.define_stdlib_const("C_TRIGGER");
         symbol_table.define_stdlib_const("C_SLIDER");
 
         symbol_table
@@ -665,6 +666,10 @@ impl SymbolTable {
     }
 
     pub fn enter_next_scope(&mut self) {
+        if self.traversed_scopes >= self.scopes.len() - 1 {
+            panic!("Attempted to enter a scope that doesn't exist! {}", self.traversed_scopes + 1);
+        }
+
         self.traversed_scopes += 1;
         let new_scope_index = self.traversed_scopes;
 

@@ -23,8 +23,8 @@ let attackInc = 0;
 let releaseDec = 0;
 
 block {
-    attackInc = 1 / (SR * attackTime);  // assuming `sampleRate` is a predefined constant.
-    releaseDec = 1 / (SR * releaseTime); // similar assumption.
+    attackInc = 1 / (SR * attackTime);
+    releaseDec = 1 / (SR * releaseTime);
 }
 
 process {
@@ -45,7 +45,7 @@ process {
     currentVal = currentVal * (currentVal > 0);
     envelopeState = envelopeState * (currentVal > 0);
 
-    curve = currentVal;
-
     prevTrigger = trigger; // Update previous trigger value for next iteration
+
+    curve = currentVal;
 }

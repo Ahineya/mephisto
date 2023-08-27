@@ -241,14 +241,17 @@ impl IR {
                     match node {
                         Node::ImportStatement { id, path, .. } => {
                             // Recursively merge the imported module
-                            let mut imported_module = Self::merge_modules(modules, &path, processed_modules);
+                            let mut imported_module = Self::merge_modules(modules, &path, processed_modules); // TODO: need to merge fucking symbol tables here as well
+                            let mut module = Self::replace_module_calls(&imported_module.ast.root, &imported_module.symbol_table);
+
+                            println!("{}", module.ast.to_code_string());
 
                             let id = match id.as_ref() {
                                 Node::Identifier { name, .. } => name,
                                 _ => panic!("Expected identifier"),
                             };
 
-                            let renamed_node = Self::rename_symbols(&imported_module.ast.root, id, &mut imported_module.symbol_table);
+                            let renamed_node = Self::rename_symbols(&module.ast.root, id, &mut module.symbol_table);
 
                             if let Node::ProgramNode { children: renamed_children, .. } = &renamed_node {
 
@@ -317,9 +320,12 @@ impl IR {
 
         result.symbol_table = SymbolTable::from_ast(&mut result.ast).unwrap(); // TODO: This is cheating, make it better
 
-        let module = Self::replace_module_calls(&result.ast.root, &result.symbol_table);
+        result
 
-        module
+        // let mut module = Self::replace_module_calls(&result.ast.root, &result.symbol_table);
+        // module.symbol_table = SymbolTable::from_ast(&mut module.ast).unwrap(); // TODO: This is cheating, make it better
+        //
+        // module
     }
 
     fn rename_symbols(node: &Node, module_id: &str, symbol_table: &mut SymbolTable) -> Node {
@@ -1453,6 +1459,7 @@ connect {
     fn test_multiple_modules_renaming() {
         let main_code = "
             import Mod from \"./module.meph\";
+            import Mod2 from \"./module.meph\";
 
             param poo {
                 initial: 42;

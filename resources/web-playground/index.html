@@ -5,17 +5,22 @@
     <title>Title</title>
 </head>
 <body>
-<button id="init">LET IT BE SOUND</button>
+<button id="init">LET THERE BE SOUND</button>
 
-<input type="range" min="55" max="4000" step="0.01" value="110" id="frequency">
-<input type="range" min="0" max="3" step="1" value="0" id="wave">
+<div id="controls" style="display: flex; flex-direction: column;">
+</div>
 
-<button id="trig">Trig</button>
+<!--<input type="range" min="55" max="4000" step="0.01" value="110" id="frequency">-->
+<!--<input type="range" min="0" max="3" step="1" value="0" id="wave">-->
+
+<!--<button id="trig">Trig</button>-->
 
 <script>
     let started = false;
 
     let port = null;
+
+    const controls = document.querySelector('#controls');
 
     document.querySelector('#init').addEventListener('click', async () => {
         if (started) {
@@ -29,6 +34,75 @@
 
         modularNode.port.onmessage = (event) => {
             console.log(event.data);
+
+            if (event.data.command === 'init') {
+                //then event.data.parameters is an array of parameters
+                // if parameter.type === 0, then we want to create a button and add it to the dom
+                // if parameter.type === 1, then we want to create a slider and add it to the dom
+
+                event.data.parameters.forEach((parameter) => {
+                    if (parameter.type === 0) {
+                        const button = document.createElement('button');
+                        button.innerText = parameter.name;
+                        button.addEventListener('mousedown', () => {
+                            if (!port) {
+                                return;
+                            }
+
+                            port.postMessage({
+                                command: 'setParameter',
+                                setter: {
+                                    name: parameter.name,
+                                    value: 1
+                                }
+                            })
+                        });
+
+                        button.addEventListener('mouseup', () => {
+                            if (!port) {
+                                return;
+                            }
+
+                            port.postMessage({
+                                command: 'setParameter',
+                                setter: {
+                                    name: parameter.name,
+                                    value: 0
+                                }
+                            })
+                        });
+
+                        controls.appendChild(button);
+                    } else if (parameter.type === 1) {
+                        const sliderLabel = document.createElement('label');
+                        const slider = document.createElement('input');
+                        slider.type = 'range';
+                        slider.min = parameter.min;
+                        slider.max = parameter.max;
+                        slider.step = parameter.step;
+                        slider.value = parameter.initial;
+                        slider.id = parameter.name;
+
+                        slider.addEventListener('input', (event) => {
+                            if (!port) {
+                                return;
+                            }
+
+                            port.postMessage({
+                                command: 'setParameter',
+                                setter: {
+                                    name: parameter.name,
+                                    value: +event.target.value
+                                }
+                            })
+                        });
+
+                        sliderLabel.innerText = parameter.name;
+                        sliderLabel.appendChild(slider);
+                        controls.appendChild(sliderLabel);
+                    }
+                })
+            }
         }
 
         modularNode.port.postMessage({
@@ -40,61 +114,61 @@
         modularNode.connect(audioContext.destination);
     })
 
-    document.querySelector('#frequency').addEventListener('input', (event) => {
-        if (!port) {
-            return;
-        }
-
-        port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name: 'frequency',
-                value: +event.target.value
-            }
-        })
-    });
-
-    document.querySelector('#wave').addEventListener('input', (event) => {
-        if (!port) {
-            return;
-        }
-
-        port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name: 'wave',
-                value: +event.target.value
-            }
-        })
-    });
-
-    document.querySelector('#trig').addEventListener('mousedown', () => {
-        if (!port) {
-            return;
-        }
-
-        port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name: 'envelope_trigger',
-                value: 1
-            }
-        })
-    })
-
-    document.querySelector('#trig').addEventListener('mouseup', () => {
-        if (!port) {
-            return;
-        }
-
-        port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name: 'envelope_trigger',
-                value: 0
-            }
-        })
-    })
+    // document.querySelector('#frequency').addEventListener('input', (event) => {
+    //     if (!port) {
+    //         return;
+    //     }
+    //
+    //     port.postMessage({
+    //         command: 'setParameter',
+    //         setter: {
+    //             name: 'frequency',
+    //             value: +event.target.value
+    //         }
+    //     })
+    // });
+    //
+    // document.querySelector('#wave').addEventListener('input', (event) => {
+    //     if (!port) {
+    //         return;
+    //     }
+    //
+    //     port.postMessage({
+    //         command: 'setParameter',
+    //         setter: {
+    //             name: 'wave',
+    //             value: +event.target.value
+    //         }
+    //     })
+    // });
+    //
+    // document.querySelector('#trig').addEventListener('mousedown', () => {
+    //     if (!port) {
+    //         return;
+    //     }
+    //
+    //     port.postMessage({
+    //         command: 'setParameter',
+    //         setter: {
+    //             name: 'envelope_trigger',
+    //             value: 1
+    //         }
+    //     })
+    // })
+    //
+    // document.querySelector('#trig').addEventListener('mouseup', () => {
+    //     if (!port) {
+    //         return;
+    //     }
+    //
+    //     port.postMessage({
+    //         command: 'setParameter',
+    //         setter: {
+    //             name: 'envelope_trigger',
+    //             value: 0
+    //         }
+    //     })
+    // })
 </script>
 </body>
 </html>
