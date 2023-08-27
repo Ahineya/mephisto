@@ -204,7 +204,15 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                             Node::ConnectStmt { lhs, rhs, .. } => {
                                 // lhs is guaranteed to be Node::Identifier, so we can unwrap
                                 let output_name =  match lhs.as_ref() {
-                                    Node::Identifier { name, .. } => name,
+                                    Node::Identifier { name, .. } => {
+                                        if name.contains("#") {
+                                            // replace # with __, and prepend with __
+                                            let name = name.replace("#", "__");
+                                            format!("__{}", name)
+                                        } else {
+                                            name.to_string()
+                                        }
+                                    },
                                     _ => {
                                         context.errors.push("ConnectNode child not expected in the IR".to_string());
                                         return true;
@@ -212,7 +220,15 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                 };
 
                                 let input_name = match rhs.as_ref() {
-                                    Node::Identifier { name, .. } => name.to_string(),
+                                    Node::Identifier { name, .. } => {
+                                        if name.contains("#") {
+                                            // replace # with __, and prepend with __
+                                            let name = name.replace("#", "__");
+                                            format!("__{}", name)
+                                        } else {
+                                            name.to_string()
+                                        }
+                                    },
                                     Node::OutputsStmt { .. } => "#OUTPUTS".to_string(),
                                     Node::OutputsNumberedStmt { value, .. } => {
                                         format!("output[{}][i]", value)
@@ -254,7 +270,13 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                     match id.as_ref() {
                         Node::Identifier { name, .. } => {
-                            context.push_code(name);
+                            if name.contains("#") {
+                                // replace # with __, and prepend with __
+                                let name = name.replace("#", "__");
+                                context.push_code(&format!("__{}", name));
+                            } else {
+                                context.push_code(name);
+                            }
                         }
                         _ => {}
                     }
@@ -267,7 +289,14 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                             Node::FunctionParameter { id, .. } => {
                                 match id.as_ref() {
                                     Node::Identifier { name, .. } => {
-                                        params_str.push_str(&name);
+                                        if name.contains("#") {
+                                            // replace # with __, and prepend with __
+                                            let name = name.replace("#", "__");
+                                            params_str.push_str(&format!("__{}", name));
+                                        } else {
+                                            params_str.push_str(&name);
+                                        }
+
                                         params_str.push_str(", ");
                                     }
                                     _ => {}
@@ -325,6 +354,10 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                     if name.starts_with("##STD_") {
                         let stdlib_name = name.trim_start_matches("##STD_");
                         context.push_code(&format!("{}", context.get_stdlib_symbol(stdlib_name)));
+                    } else if name.contains("#") {
+                        // replace # with __, and prepend with __
+                        let name = name.replace("#", "__");
+                        context.push_code(&format!("__{}", name));
                     } else {
                         context.push_code(name);
                     }
@@ -394,7 +427,13 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                     match id.as_ref() {
                         Node::Identifier { name, .. } => {
-                            context.push_code(name);
+                            if name.contains("#") {
+                                // replace # with __, and prepend with __
+                                let name = name.replace("#", "__");
+                                context.push_code(&format!("__{}", name));
+                            } else {
+                                context.push_code(name);
+                            }
                         }
                         _ => {}
                     }
@@ -447,7 +486,16 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                     match id.as_ref() {
                         Node::Identifier { name, .. } => {
-                            context.push_code(name);
+
+                            let name = if name.contains("#") {
+                                // replace # with __, and prepend with __
+                                let name = name.replace("#", "__");
+                                format!("__{}", name)
+                            } else {
+                                name.to_string()
+                            };
+
+                            context.push_code(&name);
                             parameter_declaration.push_str(&format!("'{}'", name));
                             parameter_setter.push_str(&format!("'{}': {} = this.scheduledParameterSetters[i].value; break;", name, name));
                         }

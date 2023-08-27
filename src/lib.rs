@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::path::Path;
 use indexmap::IndexMap;
 use crate::codegen::{CodeGenerator, StubCodeGenerator};
 use crate::ir::IR;
@@ -74,9 +75,21 @@ impl<T: FileLoader> Mephisto<T> {
             modules: Box::new(modules),
         };
 
-        self.process_module(main_module_path, &mut context)?; // Recursively process all modules
+        self.process_module(main_module_path, &mut context, None)?; // Recursively process all modules
 
-        println!("Modules: {:#?}", context);
+        // println!("Modules: {:#?}", context);
+
+        // For each module, check for errors
+        let mut errors = Vec::new();
+        for (path, module) in context.modules.iter() {
+            if module.errors.len() > 0 {
+                errors.extend(module.errors.iter().map(|e| format!("{}: {}", path, e)));
+            }
+        }
+
+        if errors.len() > 0 {
+            return Err(errors);
+        }
 
         let mut modules = context.modules;
 
@@ -88,6 +101,11 @@ impl<T: FileLoader> Mephisto<T> {
 
         self.validate_semantics(&mut modules)?;
 
+        for (path, module) in modules.iter() {
+            if module.errors.len() > 0 {
+                errors.extend(module.errors.iter().map(|e| format!("{}: {}", path, e)));
+            }
+        }
 
         let main_module = modules.get_mut(main_module_path).unwrap();
 
@@ -95,11 +113,13 @@ impl<T: FileLoader> Mephisto<T> {
 
         code.push_str("\n\n");
 
-        println!("Code: {}", code);
+        // println!("Code: {}", code);
         let mut ir = IR::new();
-        let ir_result = ir.create(&mut modules, main_module_path.to_string())?;
+        let mut ir_result = ir.create(&mut modules, main_module_path.to_string())?;
 
-        println!("IR: {:#?}", ir_result);
+        // println!("IR: {:#?}", ir_result);
+
+        println!("Code: {}", ir_result.ast.to_code_string());
 
         let module_data = ModuleData {
             ast: ir_result.ast,
@@ -110,14 +130,14 @@ impl<T: FileLoader> Mephisto<T> {
         self.generate_code(module_data, codegen)
     }
 
-    fn process_module(&mut self, path: &str, context: &mut Context) -> Result<(), Vec<String>> {
+    fn process_module(&mut self, path: &str, context: &mut Context, base_path: Option<&Path>) -> Result<(), Vec<String>> {
         if context.loaded_modules.contains(&path.to_string()) {
             return Ok(());
         }
 
         let mut module = ModuleData::new();
 
-        let input = self.load_module(path);
+        let input = self.load_module(path, base_path);
 
         if input.is_err() {
             module.errors.push(input.err().unwrap().to_string());
@@ -135,8 +155,10 @@ impl<T: FileLoader> Mephisto<T> {
 
         let import_paths: Vec<_> = ast.imports();
 
+        let current_dir = Path::new(path).parent().unwrap();
+
         for path in import_paths {
-            self.process_module(&path, context)?;
+            self.process_module(&path, context, Some(&current_dir))?;
         }
 
         let symbol_table = Mephisto::create_symbol_table(&mut ast)?;
@@ -153,8 +175,8 @@ impl<T: FileLoader> Mephisto<T> {
         Ok(())
     }
 
-    fn load_module(&self, path: &str) -> Result<String, Box<dyn Error>> {
-        let result: Result<String, Box<dyn Error>> = self.loader.load(path);
+    fn load_module(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>> {
+        let result: Result<String, Box<dyn Error>> = self.loader.load(path, base_path);
         result
     }
 

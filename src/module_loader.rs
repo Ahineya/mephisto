@@ -2,20 +2,26 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::fs::File;
 use std::io::Read;
+use std::path::Path;
 
 pub trait FileLoader {
-    fn load(&self, path: &str) -> Result<String, Box<dyn Error>>;
+    fn load(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>>;
 }
 
 pub struct NativeFileLoader;
 
 impl FileLoader for NativeFileLoader {
-    fn load(&self, path: &str) -> Result<String, Box<dyn Error>> {
-        let current_dir = std::env::current_dir()?;
+    fn load(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>> {
 
-        println!("Current dir: {:?}", current_dir);
+        let resolved_path = if let Some(base) = base_path {
+            base.join(path)
+        } else {
+            Path::new(path).to_path_buf()
+        };
 
-        let mut file = File::open(path)?;
+        // println!("Resolved path: {:?}", resolved_path);
+
+        let mut file = File::open(&resolved_path)?;
         let mut contents = String::new();
         file.read_to_string(&mut contents)?;
         Ok(contents)
@@ -34,7 +40,7 @@ impl StubFileLoader {
     }
 }
 impl FileLoader for StubFileLoader {
-    fn load(&self, path: &str) -> Result<String, Box<dyn Error>> {
+    fn load(&self, path: &str, base_path_: Option<&Path>) -> Result<String, Box<dyn Error>> {
         let contents = self.files.get(path);
 
         if contents.is_none() {

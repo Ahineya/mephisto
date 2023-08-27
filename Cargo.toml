@@ -23,3 +23,7 @@ features = [
 
 [build-dependencies]
 copy_to_output = "2.1.0"
+
+[[bin]]
+name = "mephisto"
+path = "src/bin/main.rs"

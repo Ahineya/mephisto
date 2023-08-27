@@ -202,9 +202,14 @@ impl IR {
 
     fn merge_modules(modules: &mut IndexMap<String, ModuleData>, module_name: &str, processed_modules: &mut HashSet<String>) -> ModuleData {
         let mut result = ModuleData::new();
-        let mut imported_process_node: Option<Node> = None;
-        let mut imported_block_node: Option<Node> = None;
-        let mut imported_connect_node: Option<Node> = None;
+
+        // let mut imported_process_node: Option<Node> = None;
+        // let mut imported_block_node: Option<Node> = None;
+        // let mut imported_connect_node: Option<Node> = None;
+
+        let mut imported_process_nodes: Vec<Node> = Vec::new();
+        let mut imported_block_nodes: Vec<Node> = Vec::new();
+        let mut imported_connect_nodes: Vec<Node> = Vec::new();
 
         // If the module has already been processed, just return it
         if processed_modules.contains(module_name) {
@@ -235,13 +240,13 @@ impl IR {
 
                                     match renamed_node {
                                         Node::ProcessNode { .. } => {
-                                            imported_process_node = Some(renamed_node.clone());
+                                            imported_process_nodes.push(renamed_node.clone());
                                         }
                                         Node::BlockNode { .. } => {
-                                            imported_block_node = Some(renamed_node.clone());
+                                            imported_block_nodes.push(renamed_node.clone());
                                         }
                                         Node::ConnectNode { .. } => {
-                                            imported_connect_node = Some(renamed_node.clone());
+                                            imported_connect_nodes.push(renamed_node.clone());
                                         }
                                         _ => {
                                             result_children.push(renamed_node.clone());
@@ -258,7 +263,7 @@ impl IR {
                 }
 
                 // After iterating through all children, handle the imported nodes
-                if let Some(imported_node) = imported_block_node {
+                for imported_node in imported_block_nodes {
                     if let Some(Node::BlockNode { children: main_block_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::BlockNode { .. })) {
                         if let Node::BlockNode { children: imported_block_children, .. } = &imported_node {
                             main_block_children.splice(0..0, imported_block_children.clone());
@@ -268,7 +273,7 @@ impl IR {
                     }
                 }
 
-                if let Some(imported_node) = imported_process_node {
+                for imported_node in imported_process_nodes {
                     if let Some(Node::ProcessNode { children: main_process_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ProcessNode { .. })) {
                         if let Node::ProcessNode { children: imported_process_children, .. } = &imported_node {
                             main_process_children.splice(0..0, imported_process_children.clone());
@@ -278,7 +283,7 @@ impl IR {
                     }
                 }
 
-                if let Some(imported_node) = imported_connect_node {
+                for imported_node in imported_connect_nodes {
                     if let Some(Node::ConnectNode { children: main_connect_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ConnectNode { .. })) {
                         if let Node::ConnectNode { children: imported_connect_children, .. } = &imported_node {
                             main_connect_children.splice(0..0, imported_connect_children.clone());
@@ -298,7 +303,6 @@ impl IR {
 
         result
     }
-
 
     fn rename_symbols(node: &Node, module_id: &str, symbol_table: &mut SymbolTable) -> Node {
         let mut renamed_node = node.clone();

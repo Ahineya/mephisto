@@ -5,17 +5,19 @@
     <title>Title</title>
 </head>
 <body>
-<button>LET IT BE SOUND</button>
+<button id="init">LET IT BE SOUND</button>
 
 <input type="range" min="55" max="4000" step="0.01" value="110" id="frequency">
-<input type="range" min="0" max="2" step="1" value="0" id="wave">
+<input type="range" min="0" max="3" step="1" value="0" id="wave">
+
+<button id="trig">Trig</button>
 
 <script>
     let started = false;
 
     let port = null;
 
-    document.querySelector('button').addEventListener('click', async () => {
+    document.querySelector('#init').addEventListener('click', async () => {
         if (started) {
             return;
         }
@@ -65,6 +67,34 @@
             }
         })
     });
+
+    document.querySelector('#trig').addEventListener('mousedown', () => {
+        if (!port) {
+            return;
+        }
+
+        port.postMessage({
+            command: 'setParameter',
+            setter: {
+                name: 'envelope_trigger',
+                value: 1
+            }
+        })
+    })
+
+    document.querySelector('#trig').addEventListener('mouseup', () => {
+        if (!port) {
+            return;
+        }
+
+        port.postMessage({
+            command: 'setParameter',
+            setter: {
+                name: 'envelope_trigger',
+                value: 0
+            }
+        })
+    })
 </script>
 </body>
 </html>

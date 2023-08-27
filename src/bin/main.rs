@@ -15,12 +15,14 @@ struct Args {
     /// Output file, stdout if not present
     #[arg(short, long)]
     output: Option<String>,
+
+    /// Output target, default is js
+    #[arg(short, long, default_value = "js")]
+    target: String,
 }
 
 fn main() {
     let args = Args::parse();
-
-    println!("Input file: {}", args.input);
 
     let loader = NativeFileLoader;
     let codegen = JSCodeGenerator::new();
@@ -29,8 +31,11 @@ fn main() {
 
     match compilation_result {
         Ok(res) => {
-            println!("Compilation successful!");
-            println!("Result: {}", res);
+            if let Some(output) = args.output {
+                std::fs::write(output, res).expect("Unable to write file");
+            } else {
+                println!("{}", res);
+            }
         },
         Err(e) => println!("Compilation failed: {:#?}", e),
     }

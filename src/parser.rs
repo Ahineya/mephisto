@@ -194,7 +194,7 @@ impl Parser {
 
         let end = self.position();
 
-        println!("End: {:?}", end);
+        // println!("End: {:?}", end);
 
         self.set_end(&mut ast);
 
@@ -745,8 +745,6 @@ impl Parser {
         self.skip(TokenType::DEF)?;
 
         let expr = self.parse_expression()?;
-
-        println!("id: {:?}, expr: {:?}", id, expr);
 
         self.skip(TokenType::SEMI)?;
 

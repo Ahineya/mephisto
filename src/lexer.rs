@@ -97,6 +97,14 @@ impl Lexer {
 
             if !tokenized {
                 let mut t = Token::new(TokenType::UNKNOWN, "".to_string(), position.clone());
+
+                let char = input.chars().nth(position.start as usize);
+
+                if char.is_none() {
+                    println!("{:#?}", position);
+                    panic!("Unexpected who knows what happened")
+                }
+
                 t.literal = input.chars().nth(position.start as usize).unwrap().to_string();
                 t.position.start = position.start;
                 t.position.end = position.start + 1;
