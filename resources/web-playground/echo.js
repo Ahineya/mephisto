@@ -8,6 +8,55 @@ stdlib.insert("buf_clear".to_string(), "Ringbuffer.clear".to_string());
 stdlib.insert("buf_put".to_string(), "Ringbuffer.put".to_string());
 */
 
+class Ringbuffer {
+constructor(size) {
+this.elements = new Float64Array(size);
+console.log(this.elements);
+}
+
+push(element) {
+for (let i = 0; i < this.elements.length - 1; i++) {
+this.elements[i] = this.elements[i + 1];
+}
+
+this.elements[this.elements.length - 1] = element;
+}
+
+pop() {
+const element = this.elements[0];
+
+for (let i = 0; i < this.elements.length - 1; i++) {
+this.elements[i] = this.elements[i + 1];
+}
+
+this.elements[this.elements.length - 1] = 0;
+
+return element;
+}
+
+peek() {
+return this.elements[this.elements.length - 1];
+}
+
+get(index) {
+return this.elements[index] || 0;
+}
+
+set(index, value) {
+this.elements[index] = value;
+}
+
+clear() {
+for (let i = 0; i < this.elements.length; i++) {
+this.elements[i] = 0;
+}
+}
+
+get length() {
+return this.elements.length;
+}
+}
+
 const Rb = {
 read: function (rb, index) {
 return rb.get(index);
@@ -31,136 +80,24 @@ rb.clear();
 
 put: function (rb, index, value) {
 rb.set(index, value);
-},
-
-setAll: function (rb, fn) {
-rb.setAll(fn);
-},
-
-resize: function (rb, size) {
-rb.resize(size);
 }
 }
 
 
-class Ringbuffer {
-constructor(size) {
-this.elements = new Float64Array(size);
-this.readIndex = 0;
-this.writeIndex = 0;
-console.log(this.elements);
-}
 
-push(element) {
+let delayTime = 0.5;
+let feedback = 0.5;
+let dryWet = 0.5;
+let audioIn = 0;
+let audioOut = 0;
+let delayBuffer = new Ringbuffer(48000);
+let delaySamples = 0;
+let bufLen = 0;
+let readIndex = 0;
+let delayedSignal = 0;
+let toPush = 0;
+let tmp = 0;
 
-// This is super slow. It should be ran in the realtime audio thread.
-// for (let i = 0; i < this.elements.length - 1; i++) {
-//     this.elements[i] = this.elements[i + 1];
-// }
-//
-// this.elements[this.elements.length - 1] = element;
-
-// This is faster, but it's not a ringbuffer.
-// this.elements.push(element);
-
-// This is the fastest
-this.elements[this.writeIndex] = element;
-this.writeIndex++;
-
-if (this.writeIndex >= this.elements.length) {
-this.writeIndex = 0;
-}
-
-if (this.writeIndex === this.readIndex) {
-this.readIndex++;
-
-if (this.readIndex >= this.elements.length) {
-this.readIndex = 0;
-}
-}
-}
-
-pop() {
-// This is super slow. It should be ran in the realtime audio thread.
-// const element = this.elements[0];
-//
-// for (let i = 0; i < this.elements.length - 1; i++) {
-//     this.elements[i] = this.elements[i + 1];
-// }
-//
-// this.elements[this.elements.length - 1] = 0;
-//
-// return element;
-
-// And here goes the proper implementation
-const element = this.elements[this.readIndex];
-this.readIndex++;
-
-if (this.readIndex >= this.elements.length) {
-this.readIndex = 0;
-}
-
-return element;
-}
-
-peek() {
-// Peek into the current element
-return this.elements[this.readIndex];
-}
-
-get(index) {
-// Get the element at the given index, starting from the read index
-return this.elements[(this.readIndex + index) % this.elements.length];
-}
-
-set(index, value) {
-// Set the element at the given index, starting from the read index
-this.elements[(this.readIndex + index) % this.elements.length] = value;
-}
-
-setAll(fn) {
-for (let i = 0; i < this.elements.length; i++) {
-Rb.push(this, fn(i));
-}
-}
-
-resize(size) {
-this.elements = new Float64Array(size);
-this.readIndex = 0;
-this.writeIndex = 0;
-}
-
-clear() {
-for (let i = 0; i < this.elements.length; i++) {
-this.elements[i] = 0;
-}
-}
-
-get length() {
-return this.elements.length;
-}
-}
-
-const Std = {
-if: function (condition, then) {
-if (condition) {
-return then();
-} else {
-return 0;
-}
-},
-
-ifElse: function (condition, then, otherwise) {
-if (condition) {
-return then();
-} else {
-return otherwise();
-}
-}
-}
-
-
-{{GLOB}}
 
 class MephistoGenerator extends AudioWorkletProcessor {
 
@@ -210,7 +147,7 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
     parameterDescriptors() {
         return [
-            {{PARAMETERS}}
+            {name:'delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'dryWet',initial:0.5,min:0,max:1,step:0.01,type:1}
         ];
     }
 
@@ -222,18 +159,28 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
         for (let i = 0; i < this.scheduledParameterSetters.length; i++) {
             switch (this.scheduledParameterSetters[i].name) {
-                {{PARAMETER_SETTERS}}
+                case 'delayTime': delayTime = this.scheduledParameterSetters[i].value; break;
+case 'feedback': feedback = this.scheduledParameterSetters[i].value; break;
+case 'dryWet': dryWet = this.scheduledParameterSetters[i].value; break;
             }
         }
 
         this.scheduledParameterSetters = [];
 
-        {{BLOCK}}
+        
 
-        for (let i = 0; i < leftOutput.length; i++) {
+        for (let i = 0; i < leftOutput.length; ++i) {
             // Advance each module
-            {{PROCESS}}
-            {{CONNECTIONS}}
+            delaySamples = (delayTime * 48000);
+bufLen = Rb.length(delayBuffer);
+readIndex = (bufLen - delaySamples);
+readIndex = Math.max(0, Math.min(readIndex, (bufLen - 1)));
+delayedSignal = Rb.read(delayBuffer, readIndex);
+toPush = (audioIn + (delayedSignal * feedback));
+tmp = Rb.push(delayBuffer, toPush);
+audioOut = ((audioIn * (1 - dryWet)) + (delayedSignal * dryWet));
+
+            
         }
 
         return true;

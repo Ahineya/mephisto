@@ -14,17 +14,19 @@ export squarewave(phase) {
     return ((phase < 0.5) * 2 - 1);
 }
 
+/*
 export noise(phase) {
     return rand(phase);
-}
+}*/
 
-export if(cond, a, b) {
+export if_math(cond, a, b) {
     return cond * a + (1 - cond) * b;
 }
 
 export switch4(n, a, b, c, d) {
-    return if(n == 0, a,
-              if(n == 1, b,
-              if(n == 2, c,
-              if(n == 3, d, 0))));
+    return if_math(n == 0, a,
+              if_math(n == 1, b,
+              if_math(n == 2, c,
+              if_math(n == 3, d, 0))));
 }
+

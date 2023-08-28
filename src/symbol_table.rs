@@ -302,6 +302,19 @@ impl SymbolTable {
         symbol_table.define_stdlib_const("C_TRIGGER");
         symbol_table.define_stdlib_const("C_SLIDER");
 
+        // Buffer functions
+        symbol_table.define_stdlib_fn("buf_new", vec!["length"]);
+        symbol_table.define_stdlib_fn("buf_read", vec!["buffer", "index"]);
+        symbol_table.define_stdlib_fn("buf_push", vec!["buffer", "value"]);
+        symbol_table.define_stdlib_fn("buf_pop", vec!["buffer"]);
+        symbol_table.define_stdlib_fn("buf_length", vec!["buffer"]);
+        symbol_table.define_stdlib_fn("buf_clear", vec!["buffer"]);
+        symbol_table.define_stdlib_fn("buf_put", vec!["buffer", "index", "value"]);
+        symbol_table.define_stdlib_fn("buf_resize", vec!["buffer", "size"]);
+
+        symbol_table.define_stdlib_fn("if", vec!["condition", "a"]);
+        symbol_table.define_stdlib_fn("if_else", vec!["condition", "a", "b"]);
+
         symbol_table
     }
 

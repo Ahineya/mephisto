@@ -93,6 +93,20 @@ impl JSCodeGenerator {
         stdlib.insert("C_TRIGGER".to_string(), "0".to_string());
         stdlib.insert("C_SLIDER".to_string(), "1".to_string());
 
+        // buffer functions
+
+        stdlib.insert("buf_new".to_string(), "new Ringbuffer".to_string());
+        stdlib.insert("buf_read".to_string(), "Rb.read".to_string());
+        stdlib.insert("buf_push".to_string(), "Rb.push".to_string());
+        stdlib.insert("buf_pop".to_string(), "Rb.pop".to_string());
+        stdlib.insert("buf_length".to_string(), "Rb.length".to_string());
+        stdlib.insert("buf_clear".to_string(), "Rb.clear".to_string());
+        stdlib.insert("buf_put".to_string(), "Rb.put".to_string());
+        stdlib.insert("buf_resize".to_string(), "Rb.resize".to_string());
+
+        stdlib.insert("if".to_string(), "Std.if".to_string());
+        stdlib.insert("if_else".to_string(), "Std.ifElse".to_string());
+
         JSCodeGenerator {
             handlebars,
             stdlib
@@ -425,7 +439,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                             context.push_code("let ");
                         }
                         VariableSpecifier::Buffer => {
-                            context.push_code("console.log('FIXME: buffer declaration'); let ");
+                            context.push_code("let ");
                         }
                     }
 
@@ -605,14 +619,18 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                     traverse_ast(callee, &mut ast_to_code, context);
                     context.push_code("(");
 
+                    let mut len = 0;
+
                     for arg in args {
                         traverse_ast(arg, &mut ast_to_code, context);
                         context.push_code(", ");
+                        len += 1;
                     }
 
-                    // Remove last comma and space
-                    context.remove_last_char();
-                    context.remove_last_char();
+                    if len > 0 {
+                        context.remove_last_char();
+                        context.remove_last_char();
+                    }
 
                     context.push_code(")");
                 }
@@ -720,14 +738,53 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
         Node::BufferDeclarationStmt {id, size, initializer, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    context.push_code("console.trace('FIX ME: buffer declaration');");
-                    context.push_code("/*buffer ");
+                    // context.push_code("");
+                    context.push_code("let ");
                     traverse_ast(id, &mut ast_to_code, context);
-                    context.push_code("[");
+
+                    let id = match id.as_ref() {
+                        Node::Identifier { name, .. } => {
+                            if name.contains("#") {
+                                // replace # with __, and prepend with __
+                                let name = name.replace("#", "__");
+                                format!("__{}", name)
+                            } else {
+                                name.to_string()
+                            }
+                        }
+                        _ => {
+                            context.errors.push("BufferDeclarationStmt not expected in the IR".to_string());
+                            return true;
+                        }
+                    };
+
+                    // context.push_code("[");
+                    // traverse_ast(size, &mut ast_to_code, context);
+                    // context.push_code("] = ");
+                    context.push_code(" = ");
+                    context.push_code("new Ringbuffer(");
                     traverse_ast(size, &mut ast_to_code, context);
-                    context.push_code("] = ");
-                    traverse_ast(initializer, &mut ast_to_code, context);
-                    context.push_code(";*/\n");
+                    context.push_code(");\n");
+
+
+                    // If initializer is Node::Number, we can unwrap
+                    let init = match initializer.as_ref() {
+                        Node::Number { value, .. } => {
+                            value
+                        }
+                        _ => {
+                            &(-1f64)
+                        }
+                    };
+
+                    if *init != -1f64 {
+                        // context.push_code("");
+                    } else {
+                        context.push_code(format!("{}.setAll((i) => {{", id).as_str());
+                        traverse_ast(initializer, &mut ast_to_code, context);
+                        context.push_code("\n});\n");
+                    }
+
                 }
                 ASTTraverseStage::Exit => {}
             }
@@ -737,10 +794,10 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
         Node::BufferInitializer { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    context.push_code("|i| {\n");
+                    context.push_code("");
                 }
                 ASTTraverseStage::Exit => {
-                    context.push_code("}");
+                    context.push_code("");
                 }
             }
         }

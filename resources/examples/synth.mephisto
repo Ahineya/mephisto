@@ -3,6 +3,9 @@ import Osc2 from "./osc.mephisto";
 import Osc3 from "./osc.mephisto";
 import Drum from "./drum.mephisto";
 
+import LowPass from "./lowpass.mephisto";
+import Echo from "./echo.mephisto";
+
 param osc2enabled {
     initial: 0;
     type: C_SLIDER;
@@ -27,6 +30,8 @@ input osc3 = 0;
 
 input drum = 0;
 
+input echo = 0;
+
 process {
     out = osc1 + drum + (osc2 * osc2enabled) + (osc3 * osc3enabled);
 }
@@ -36,5 +41,7 @@ connect {
     Osc2.out -> osc2;
     Osc3.out -> osc3;
     Drum.out -> drum;
-    out -> OUTPUTS;
+    out -> LowPass.audioIn;
+    LowPass.audioOut -> Echo.audioIn;
+    Echo.audioOut -> OUTPUTS;
 }
