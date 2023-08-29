@@ -1,0 +1,71 @@
+param attackTime {
+    min: 0.01;
+    max: 10;
+    step: 0.01;
+    initial: 0.01;
+    type: C_SLIDER;
+};
+
+param decayTime {
+    min: 0.01;
+    max: 10;
+    step: 0.01;
+    initial: 0.1;
+    type: C_SLIDER;
+};
+
+param sustainLevel {
+    min: 0;
+    max: 1;
+    step: 0.01;
+    initial: 0.7;
+    type: C_SLIDER;
+};
+
+param releaseTime {
+    min: 0.01;
+    max: 10;
+    step: 0.01;
+    initial: 0.1;
+    type: C_SLIDER;
+};
+input gate = 0;
+output curve = 0;
+
+let currentVal = 0;
+let prevGate = 0;
+let envelopeState = 0;  // 0: Idle, 1: Attack, 2: Decay, 3: Sustain, 4: Release
+
+let attackInc = 0;
+let decayDec = 0;
+let releaseDec = 0;
+
+block {
+    attackInc = 1 / (SR * attackTime);
+    decayDec = (1 - sustainLevel) / (SR * decayTime);
+    releaseDec = sustainLevel / (SR * releaseTime);
+}
+
+process {
+    let risingEdge = gate * (1 - prevGate);
+    let fallingEdge = prevGate * (1 - gate);
+
+    // Transition logic
+    envelopeState = envelopeState * (1 - risingEdge) + 1 * risingEdge; // Start Attack phase on rising edge
+    envelopeState = envelopeState * (1 - (currentVal >= 1) * (envelopeState == 1)) + 2 * (currentVal >= 1) * (envelopeState == 1); // Transition to Decay phase
+    envelopeState = envelopeState * (1 - (currentVal <= sustainLevel) * (envelopeState == 2)) + 3 * (currentVal <= sustainLevel) * (envelopeState == 2); // Transition to Sustain phase
+
+    // If fallingEdge and envelope is in Attack, Decay, or Sustain, transition to Release phase
+    envelopeState = envelopeState * (1 - fallingEdge * ((envelopeState == 1) + (envelopeState == 2) + (envelopeState == 3))) + 4 * fallingEdge * ((envelopeState == 1) + (envelopeState == 2) + (envelopeState == 3));
+
+    // Envelope calculations based on state
+    currentVal = currentVal + attackInc * (envelopeState == 1) - decayDec * (envelopeState == 2) - releaseDec * (envelopeState == 4);
+
+    // Ensure the envelope value doesn't go out of bounds
+    currentVal = currentVal * (currentVal >= 0) + 0 * (currentVal < 0);
+    currentVal = currentVal * (currentVal <= 1) + 1 * (currentVal > 1);
+
+    prevGate = gate;
+    curve = currentVal;
+
+}

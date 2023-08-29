@@ -30,3 +30,12 @@ export switch4(n, a, b, c, d) {
               if_math(n == 3, d, 0))));
 }
 
+export clamp(x, a, b) {
+    return min(max(x, a), b);
+}
+
+export lerp(a, b, t) {
+    return a + (b - a) * t;
+}
+
+//export lowpass

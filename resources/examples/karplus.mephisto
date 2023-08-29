@@ -16,7 +16,7 @@ param frequency {
 output out = 0;
 
 // Initialize the buffer with silence
-buffer ksBuffer[110];
+buffer $ksBuffer[110];
 
 let justPlucked = 0;  // A flag to indicate if a pluck was just triggered.
 let lastSample = 0;  // Store the last sample of the buffer
@@ -27,7 +27,7 @@ let decayFactor = 0.995;  // The decay factor of the string
 let oldFrequency = 440;
 
 resize_buf() {
-  let tmp = buf_resize(ksBuffer, SR / frequency);
+  let tmp = buf_resize($ksBuffer, SR / frequency);
   return 0;
 }
 
@@ -42,7 +42,7 @@ block {
 }
 
 process {
-    let firstSample = buf_read(ksBuffer, 0);
+    let firstSample = buf_read($ksBuffer, 0);
 
     // Calculate the Karplus-Strong sample.
     let ksSample = (firstSample + lastSample) * 0.5;
@@ -57,7 +57,7 @@ process {
     newSample = newSample * decayFactor;
 
     // Push the new sample into the buffer
-    let tmp = buf_push(ksBuffer, newSample);
+    let tmp = buf_push($ksBuffer, newSample);
 
     // Save this as the last sample
     lastSample = newSample;

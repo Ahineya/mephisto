@@ -1,0 +1,10 @@
+import Karplus from "./karplus.mephisto";
+import Freeverb from "./freeverb.mephisto";
+import Distortion from "./distortion.mephisto";
+import Fuzz from "./fuzz.mephisto";
+
+connect {
+Karplus.out -> Fuzz.audioIn;
+Fuzz.audioOut -> Freeverb.audioIn;
+Freeverb.audioOut -> OUTPUTS;
+}
