@@ -11,6 +11,8 @@ import Echo from "./echo.mephisto";
 import Lib from "./lib.mephisto";
 import Phaser from "./phaser.mephisto";
 
+import Karplus from "./karplus.mephisto";
+
 param osc2enabled {
     initial: 0;
     type: C_SLIDER;
@@ -50,13 +52,14 @@ input phase = 0;
 
 output phaserFreq = 2;
 
+input karplus = 0;
+
 process {
-    out = (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * oscgain + drum; //osc1 + drum + (osc2 * osc2enabled) + (osc3 * osc3enabled);
+    out = (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * oscgain + drum + karplus; //osc1 + drum + (osc2 * osc2enabled) + (osc3 * osc3enabled);
 
     trigwave = Lib.squarewave(phase);
 
     trig = (trigwave + 1) / 2;
-
 }
 
 connect {
@@ -64,6 +67,8 @@ connect {
     Osc2.out -> osc2;
     Osc3.out -> osc3;
     Drum.out -> drum;
+
+    Karplus.out -> karplus;
 
     phaserFreq -> Phaser.frequency;
     Phaser.phase -> phase;

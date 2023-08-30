@@ -390,7 +390,7 @@ let __LowPass__buffer3 = 0;
 let __LowPass__buffer4 = 0;
 let __Echo__delayTime = 0.5;
 let __Echo__feedback = 0.5;
-let __Echo__dryWet = 0.5;
+let __Echo__dryWet = 0;
 let __Echo__audioIn = 0;
 let __Echo__audioOut = 0;
 const __Echo__$delayBuffer = new Ringbuffer(sampleRate);
@@ -435,6 +435,57 @@ return (a + ((b - a) * t));
 let __Phaser__frequency = 110;
 let __Phaser__phase = 0;
 let __Phaser__increment = 0;
+function __Karplus__Lib__sinewave(phase) {
+return Math.sin(((phase * 2) * Math.PI));
+}
+
+function __Karplus__Lib__trianglewave(phase) {
+return (1 - (4 * Math.abs((Math.round((phase - 0.25)) - (phase - 0.25)))));
+}
+
+function __Karplus__Lib__sawwave(phase) {
+return (2 * (phase - Math.round(phase)));
+}
+
+function __Karplus__Lib__squarewave(phase) {
+return (((phase < 0.5 ? 1 : 0) * 2) - 1);
+}
+
+function __Karplus__Lib__if_math(cond, a, b) {
+return ((cond * a) + ((1 - cond) * b));
+}
+
+function __Karplus__Lib__switch4(n, a, b, c, d) {
+return __Karplus__Lib__if_math((n == 0 ? 1 : 0), a, __Karplus__Lib__if_math((n == 1 ? 1 : 0), b, __Karplus__Lib__if_math((n == 2 ? 1 : 0), c, __Karplus__Lib__if_math((n == 3 ? 1 : 0), d, 0))));
+}
+
+function __Karplus__Lib__clamp(x, a, b) {
+return Math.min(Math.max(x, a), b);
+}
+
+function __Karplus__Lib__lerp(a, b, t) {
+return (a + ((b - a) * t));
+}
+
+let __Karplus__pluckTrigger = 0;
+let __Karplus__frequency = 440;
+let __Karplus__out = 0;
+let __Karplus__$ksBuffer = new Ringbuffer(110);
+let __Karplus__justPlucked = 0;
+let __Karplus__lastSample = 0;
+let __Karplus__lastPluckState = 0;
+let __Karplus__decayFactor = 0.995;
+let __Karplus__oldFrequency = 440;
+function __Karplus__resize_buf() {
+let __Karplus__tmp = Rb.resize(__Karplus__$ksBuffer, (sampleRate / __Karplus__frequency));
+return 0;
+}
+
+let __Karplus__firstSample = 0;
+let __Karplus__ksSample = 0;
+let __Karplus__impulse = 0;
+let __Karplus__newSample = 0;
+let __Karplus____tmp_3 = 0;
 let osc2enabled = 0;
 let osc3enabled = 0;
 let trigger = 0;
@@ -449,6 +500,7 @@ let trig = 0;
 let trigwave = 0;
 let phase = 0;
 let phaserFreq = 2;
+let karplus = 0;
 
 
 class MephistoGenerator extends AudioWorkletProcessor {
@@ -499,7 +551,7 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
     parameterDescriptors() {
         return [
-            {name:'__Osc__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc2__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc2__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc2__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.7,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}
+            {name:'__Osc__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc2__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc2__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc2__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.7,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0,min:0,max:1,step:0.01,type:1}, {name:'__Karplus__pluckTrigger',initial:0,type:0}, {name:'__Karplus__frequency',initial:440,type:1,min:20,max:2000,step:1}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}
         ];
     }
 
@@ -535,6 +587,8 @@ case '__LowPass__resonance': __LowPass__resonance = this.scheduledParameterSette
 case '__Echo__delayTime': __Echo__delayTime = this.scheduledParameterSetters[i].value; break;
 case '__Echo__feedback': __Echo__feedback = this.scheduledParameterSetters[i].value; break;
 case '__Echo__dryWet': __Echo__dryWet = this.scheduledParameterSetters[i].value; break;
+case '__Karplus__pluckTrigger': __Karplus__pluckTrigger = this.scheduledParameterSetters[i].value; break;
+case '__Karplus__frequency': __Karplus__frequency = this.scheduledParameterSetters[i].value; break;
 case 'osc2enabled': osc2enabled = this.scheduledParameterSetters[i].value; break;
 case 'osc3enabled': osc3enabled = this.scheduledParameterSetters[i].value; break;
 case 'trigger': trigger = this.scheduledParameterSetters[i].value; break;
@@ -544,6 +598,10 @@ case 'trigger': trigger = this.scheduledParameterSetters[i].value; break;
         this.scheduledParameterSetters = [];
 
         /*console.trace('FIX ME, block');*/ {
+__Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __Karplus__pluckTrigger);
+__Karplus__lastPluckState = __Karplus__pluckTrigger;
+let __Karplus____tmp_2 = Std.if((1 - (__Karplus__frequency == __Karplus__oldFrequency ? 1 : 0)), __Karplus__resize_buf);
+__Karplus__oldFrequency = __Karplus__frequency;
 __Phaser__increment = (__Phaser__frequency / sampleRate);
 __LowPass__RC = (1 / ((2 * Math.PI) * __LowPass__cutoffFrequency));
 __ADSR__attackInc = (1 / (sampleRate * __ADSR__attackTime));
@@ -565,7 +623,16 @@ __Osc__freq = __Osc__frequency;
 
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
-            __Phaser__phase = (__Phaser__increment + (__Phaser__phase - Math.floor((__Phaser__increment + __Phaser__phase))));
+            __Karplus__firstSample = Rb.read(__Karplus__$ksBuffer, 0);
+__Karplus__ksSample = ((__Karplus__firstSample + __Karplus__lastSample) * 0.5);
+__Karplus__impulse = ((__Karplus__justPlucked * 0.5) + ((__Karplus__justPlucked * Math.random()) * 0.5));
+__Karplus__newSample = ((__Karplus__justPlucked * __Karplus__impulse) + ((1 - __Karplus__justPlucked) * __Karplus__ksSample));
+__Karplus__newSample = (__Karplus__newSample * __Karplus__decayFactor);
+__Karplus____tmp_3 = Rb.push(__Karplus__$ksBuffer, __Karplus__newSample);
+__Karplus__lastSample = __Karplus__newSample;
+__Karplus__justPlucked = 0;
+__Karplus__out = __Karplus__newSample;
+__Phaser__phase = (__Phaser__increment + (__Phaser__phase - Math.floor((__Phaser__increment + __Phaser__phase))));
 __Echo__delaySamples = (__Echo__delayTime * sampleRate);
 __Echo__bufLen = Rb.length(__Echo__$delayBuffer);
 __Echo__readIndex = (__Echo__bufLen - __Echo__delaySamples);
@@ -634,11 +701,13 @@ __Osc__saw = __Osc__Lib__sawwave(__Osc__phase);
 __Osc__triangle = __Osc__Lib__trianglewave(__Osc__phase);
 __Osc__outwave = __Osc__Lib__switch4(__Osc__wave, __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
 __Osc__out = (__Osc__outwave * __Osc__gain);
-out = ((((osc1 + (osc2 * osc2enabled)) + (osc3 * osc3enabled)) * oscgain) + drum);
+out = (((((osc1 + (osc2 * osc2enabled)) + (osc3 * osc3enabled)) * oscgain) + drum) + karplus);
 trigwave = __Lib__squarewave(phase);
 trig = ((trigwave + 1) / 2);
 
-            leftOutput[i] = __Drum__out;
+            leftOutput[i] = __Karplus__out;
+rightOutput && (rightOutput[i] = __Karplus__out);
+leftOutput[i] = __Drum__out;
 rightOutput && (rightOutput[i] = __Drum__out);
 __Drum__Phaser__frequency = __Drum__freq;
 __Drum__phase = __Drum__Phaser__phase;
@@ -654,6 +723,7 @@ osc1 = __Osc__out;
 osc2 = __Osc2__out;
 osc3 = __Osc3__out;
 drum = __Drum__out;
+karplus = __Karplus__out;
 __Phaser__frequency = phaserFreq;
 phase = __Phaser__phase;
 oscgain = __ADSR__curve;
