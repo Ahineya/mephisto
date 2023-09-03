@@ -1,6 +1,6 @@
 import Lib from "./lib.mephisto";
 import Phaser from "./phaser.mephisto";
-import AR from "./ar.mephisto";
+import AR from "./arretrig.mephisto";
 
 param frequency {
     initial: 110;
@@ -45,11 +45,11 @@ output trigger = 0;
 input phase = 0;
 input ar_curve = 0;
 
-block {
-    trigger = drum_trigger;
-}
+input trigger_in = 0;
 
 process {
+    trigger = (drum_trigger + trigger_in) > 0;
+
     freq = frequency * ar_curve;
 
     let sine = Lib.sinewave(phase);

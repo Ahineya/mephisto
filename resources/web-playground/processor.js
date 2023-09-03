@@ -343,6 +343,7 @@ let __Drum__AR__envelopeState = 0;
 let __Drum__AR__attackInc = 0;
 let __Drum__AR__releaseDec = 0;
 let __Drum__AR__risingEdge = 0;
+let __Drum__AR__fallingEdge = 0;
 let __Drum__AR__increase = 0;
 let __Drum__AR__decrease = 0;
 let __Drum__frequency = 110;
@@ -354,6 +355,7 @@ let __Drum__freq = 0;
 let __Drum__trigger = 0;
 let __Drum__phase = 0;
 let __Drum__ar_curve = 0;
+let __Drum__trigger_in = 0;
 let __Drum__sine = 0;
 let __Drum__square = 0;
 let __Drum__saw = 0;
@@ -361,8 +363,8 @@ let __Drum__triangle = 0;
 let __Drum__outwave = 0;
 let __ADSR__attackTime = 0.01;
 let __ADSR__decayTime = 0.1;
-let __ADSR__sustainLevel = 0.7;
-let __ADSR__releaseTime = 0.1;
+let __ADSR__sustainLevel = 0.0001;
+let __ADSR__releaseTime = 0.00001;
 let __ADSR__gate = 0;
 let __ADSR__curve = 0;
 let __ADSR__currentVal = 0;
@@ -545,6 +547,22 @@ let __Freeverb__combSum = 0;
 let __Freeverb__allpassOut1 = 0;
 let __Freeverb__allpassOut2 = 0;
 let __Freeverb__wetSignal = 0;
+let __Sequencer__bpm = 120;
+let __Sequencer__seq_1 = 1;
+let __Sequencer__seq_2 = 0;
+let __Sequencer__seq_3 = 0;
+let __Sequencer__seq_4 = 0;
+let __Sequencer__seq_5 = 1;
+let __Sequencer__seq_6 = 0;
+let __Sequencer__seq_7 = 0;
+let __Sequencer__seq_8 = 0;
+let __Sequencer__sequence = new Ringbuffer(8);
+let __Sequencer__out = 0;
+let __Sequencer__clockRate = ((sampleRate * 60) / __Sequencer__bpm);
+let __Sequencer__previousBPM = __Sequencer__bpm;
+let __Sequencer__currentStep = 0;
+let __Sequencer__frameCounter = 0;
+let __Sequencer__isLastFrame = 0;
 let osc2enabled = 0;
 let osc3enabled = 0;
 let trigger = 0;
@@ -610,7 +628,7 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
     parameterDescriptors() {
         return [
-            {name:'__Osc__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc2__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc2__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc2__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.7,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0,min:0,max:1,step:0.01,type:1}, {name:'__Karplus__pluckTrigger',initial:0,type:0}, {name:'__Karplus__frequency',initial:440,type:1,min:20,max:2000,step:1}, {name:'__Limiter__threshold',min:0,max:1,step:0.01,initial:0.8,type:1}, {name:'__Limiter__recoveryRate',min:0.01,max:1,step:0.01,initial:0.0001,type:1}, {name:'__Freeverb__dryWet',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__roomSize',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__damp',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}
+            {name:'__Osc__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc2__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc2__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc2__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.0001,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.00001,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0,min:0,max:1,step:0.01,type:1}, {name:'__Karplus__pluckTrigger',initial:0,type:0}, {name:'__Karplus__frequency',initial:440,type:1,min:20,max:2000,step:1}, {name:'__Limiter__threshold',min:0,max:1,step:0.01,initial:0.8,type:1}, {name:'__Limiter__recoveryRate',min:0.01,max:1,step:0.01,initial:0.0001,type:1}, {name:'__Freeverb__dryWet',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__roomSize',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__damp',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Sequencer__bpm',initial:120,min:60,max:240,step:1,type:1}, {name:'__Sequencer__seq_1',initial:1,type:2}, {name:'__Sequencer__seq_2',initial:0,type:2}, {name:'__Sequencer__seq_3',initial:0,type:2}, {name:'__Sequencer__seq_4',initial:0,type:2}, {name:'__Sequencer__seq_5',initial:1,type:2}, {name:'__Sequencer__seq_6',initial:0,type:2}, {name:'__Sequencer__seq_7',initial:0,type:2}, {name:'__Sequencer__seq_8',initial:0,type:2}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}
         ];
     }
 
@@ -653,6 +671,15 @@ case '__Limiter__recoveryRate': __Limiter__recoveryRate = this.scheduledParamete
 case '__Freeverb__dryWet': __Freeverb__dryWet = this.scheduledParameterSetters[i].value; break;
 case '__Freeverb__roomSize': __Freeverb__roomSize = this.scheduledParameterSetters[i].value; break;
 case '__Freeverb__damp': __Freeverb__damp = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__bpm': __Sequencer__bpm = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_1': __Sequencer__seq_1 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_2': __Sequencer__seq_2 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_3': __Sequencer__seq_3 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_4': __Sequencer__seq_4 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_5': __Sequencer__seq_5 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_6': __Sequencer__seq_6 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_7': __Sequencer__seq_7 = this.scheduledParameterSetters[i].value; break;
+case '__Sequencer__seq_8': __Sequencer__seq_8 = this.scheduledParameterSetters[i].value; break;
 case 'osc2enabled': osc2enabled = this.scheduledParameterSetters[i].value; break;
 case 'osc3enabled': osc3enabled = this.scheduledParameterSetters[i].value; break;
 case 'trigger': trigger = this.scheduledParameterSetters[i].value; break;
@@ -662,6 +689,19 @@ case 'trigger': trigger = this.scheduledParameterSetters[i].value; break;
         this.scheduledParameterSetters = [];
 
         /*console.trace('FIX ME, block');*/ {
+let __Sequencer__tmp = 0;
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 0, __Sequencer__seq_1);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 1, __Sequencer__seq_2);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 2, __Sequencer__seq_3);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 3, __Sequencer__seq_4);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 4, __Sequencer__seq_5);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 5, __Sequencer__seq_6);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 6, __Sequencer__seq_7);
+__Sequencer__tmp = Rb.put(__Sequencer__sequence, 7, __Sequencer__seq_8);
+let __Sequencer__progression = (__Sequencer__frameCounter / (8 * __Sequencer__clockRate));
+__Sequencer__clockRate = ((sampleRate * 60) / __Sequencer__bpm);
+__Sequencer__frameCounter = ((__Sequencer__progression * 8) * __Sequencer__clockRate);
+__Sequencer__previousBPM = __Sequencer__bpm;
 __Limiter__signalMagnitude = Math.abs(__Limiter__audioIn);
 __Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __Karplus__pluckTrigger);
 __Karplus__lastPluckState = __Karplus__pluckTrigger;
@@ -675,7 +715,6 @@ __ADSR__releaseDec = (__ADSR__sustainLevel / (sampleRate * __ADSR__releaseTime))
 __Drum__AR__attackInc = (1 / (sampleRate * __Drum__AR__attackTime));
 __Drum__AR__releaseDec = (1 / (sampleRate * __Drum__AR__releaseTime));
 __Drum__Phaser__increment = (__Drum__Phaser__frequency / sampleRate);
-__Drum__trigger = __Drum__drum_trigger;
 __Osc3__Phaser__increment = (__Osc3__Phaser__frequency / sampleRate);
 __Osc3__freq = __Osc3__frequency;
 __Osc2__Phaser__increment = (__Osc2__Phaser__frequency / sampleRate);
@@ -688,7 +727,12 @@ __Osc__freq = __Osc__frequency;
 
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
-            __Freeverb__inputSample = __Freeverb__audioIn;
+            __Sequencer__isLastFrame = (__Sequencer__frameCounter == __Sequencer__clockRate ? 1 : 0);
+__Sequencer__out = (Rb.read(__Sequencer__sequence, __Sequencer__currentStep) * (1 - __Sequencer__isLastFrame));
+__Sequencer__frameCounter = (__Sequencer__frameCounter + 1);
+__Sequencer__frameCounter = (__Sequencer__frameCounter * (1 - __Sequencer__isLastFrame));
+__Sequencer__currentStep = ((a, b) => a % b)((__Sequencer__currentStep + __Sequencer__isLastFrame), 8);
+__Freeverb__inputSample = __Freeverb__audioIn;
 __Freeverb__combOut1 = ((Rb.read(__Freeverb__$combBuffer1, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut2 = ((Rb.read(__Freeverb__$combBuffer2, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut3 = ((Rb.read(__Freeverb__$combBuffer3, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
@@ -746,16 +790,18 @@ __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal <= 1 ? 1 : 0)) +
 __ADSR__prevGate = __ADSR__gate;
 __ADSR__curve = __ADSR__currentVal;
 __Drum__AR__risingEdge = (__Drum__AR__trigger * (1 - __Drum__AR__prevTrigger));
-__Drum__AR__envelopeState = (__Drum__AR__envelopeState + (__Drum__AR__risingEdge * (1 - __Drum__AR__envelopeState)));
+__Drum__AR__envelopeState = ((1 * __Drum__AR__risingEdge) + (__Drum__AR__envelopeState * (1 - __Drum__AR__risingEdge)));
+__Drum__AR__fallingEdge = (__Drum__AR__prevTrigger * (1 - __Drum__AR__trigger));
+__Drum__AR__envelopeState = ((__Drum__AR__envelopeState * (1 - (__Drum__AR__fallingEdge * (__Drum__AR__envelopeState == 1 ? 1 : 0)))) + ((2 * __Drum__AR__fallingEdge) * (__Drum__AR__envelopeState == 1 ? 1 : 0)));
 __Drum__AR__increase = (__Drum__AR__attackInc * (__Drum__AR__envelopeState == 1 ? 1 : 0));
 __Drum__AR__decrease = (__Drum__AR__releaseDec * (__Drum__AR__envelopeState == 2 ? 1 : 0));
 __Drum__AR__currentVal = ((__Drum__AR__currentVal + __Drum__AR__increase) - __Drum__AR__decrease);
-__Drum__AR__envelopeState = (__Drum__AR__envelopeState + ((__Drum__AR__currentVal >= 1 ? 1 : 0) * (__Drum__AR__envelopeState == 1 ? 1 : 0)));
+__Drum__AR__envelopeState = ((__Drum__AR__envelopeState * (1 - ((__Drum__AR__currentVal >= 1 ? 1 : 0) * (__Drum__AR__envelopeState == 1 ? 1 : 0)))) + ((2 * (__Drum__AR__currentVal >= 1 ? 1 : 0)) * (__Drum__AR__envelopeState == 1 ? 1 : 0)));
 __Drum__AR__currentVal = (__Drum__AR__currentVal * (__Drum__AR__currentVal > 0 ? 1 : 0));
-__Drum__AR__envelopeState = (__Drum__AR__envelopeState * (__Drum__AR__currentVal > 0 ? 1 : 0));
 __Drum__AR__prevTrigger = __Drum__AR__trigger;
 __Drum__AR__curve = __Drum__AR__currentVal;
 __Drum__Phaser__phase = (__Drum__Phaser__increment + (__Drum__Phaser__phase - Math.floor((__Drum__Phaser__increment + __Drum__Phaser__phase))));
+__Drum__trigger = ((__Drum__drum_trigger + __Drum__trigger_in) > 0 ? 1 : 0);
 __Drum__freq = (__Drum__frequency * __Drum__ar_curve);
 __Drum__sine = __Drum__Lib__sinewave(__Drum__phase);
 __Drum__square = __Drum__Lib__squarewave(__Drum__phase);
@@ -812,8 +858,9 @@ karplus = __Karplus__out;
 __Phaser__frequency = phaserFreq;
 phase = __Phaser__phase;
 oscgain = __ADSR__curve;
-__ADSR__gate = trig;
+__Drum__trigger_in = __Sequencer__out;
 __LowPass__audioIn = out;
+__Echo__audioIn = __LowPass__audioOut;
 __Freeverb__audioIn = __Echo__audioOut;
 __Limiter__audioIn = __Freeverb__audioOut;
 leftOutput[i] = __Limiter__audioOut;

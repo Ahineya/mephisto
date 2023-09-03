@@ -92,6 +92,7 @@ impl JSCodeGenerator {
         // Controls
         stdlib.insert("C_TRIGGER".to_string(), "0".to_string());
         stdlib.insert("C_SLIDER".to_string(), "1".to_string());
+        stdlib.insert("C_TOGGLE".to_string(), "2".to_string());
 
         // buffer functions
 

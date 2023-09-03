@@ -16,6 +16,8 @@ import Karplus from "./karplus.mephisto";
 import Limiter from "./limiter.mephisto";
 import Freeverb from "./freeverb.mephisto";
 
+import Sequencer from "./gate-sequencer.mephisto";
+
 param osc2enabled {
     initial: 0;
     type: C_SLIDER;
@@ -78,7 +80,9 @@ connect {
 
     ADSR.curve -> oscgain;
 
-    trig -> ADSR.gate;
+    //trig -> ADSR.gate;
+
+    Sequencer.out -> Drum.trigger_in;
 
     out -> LowPass.audioIn;
     LowPass.audioOut -> Echo.audioIn;

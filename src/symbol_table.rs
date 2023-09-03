@@ -301,6 +301,7 @@ impl SymbolTable {
         // Controls
         symbol_table.define_stdlib_const("C_TRIGGER");
         symbol_table.define_stdlib_const("C_SLIDER");
+        symbol_table.define_stdlib_const("C_TOGGLE");
 
         // Buffer functions
         symbol_table.define_stdlib_fn("buf_new", vec!["length"]);

@@ -1,0 +1,83 @@
+// Simple gate sequencer
+
+param bpm {
+  initial: 120;
+  min: 60;
+  max: 240;
+  step: 1;
+  type: C_SLIDER;
+};
+
+param seq_1 {
+  initial: 1;
+  type: C_TOGGLE;
+};
+
+param seq_2 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+param seq_3 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+param seq_4 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+param seq_5 {
+  initial: 1;
+  type: C_TOGGLE;
+};
+
+param seq_6 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+param seq_7 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+param seq_8 {
+  initial: 0;
+  type: C_TOGGLE;
+};
+
+buffer sequence[8];
+
+output out = 0;
+
+let clockRate = SR * 60 / bpm;
+let currentStep = 0;
+let frameCounter = 0;
+
+block {
+    let tmp = 0;
+
+    tmp = buf_put(sequence, 0, seq_1);
+    tmp = buf_put(sequence, 1, seq_2);
+    tmp = buf_put(sequence, 2, seq_3);
+    tmp = buf_put(sequence, 3, seq_4);
+    tmp = buf_put(sequence, 4, seq_5);
+    tmp = buf_put(sequence, 5, seq_6);
+    tmp = buf_put(sequence, 6, seq_7);
+    tmp = buf_put(sequence, 7, seq_8);
+
+    clockRate = SR * 60 / bpm;
+}
+
+process {
+    let isLastFrame = (frameCounter == clockRate);
+    out = buf_read(sequence, currentStep) * (1 - isLastFrame);
+
+    frameCounter = frameCounter + 1;
+
+    // Resetting counter and advancing step on last frame
+    frameCounter = frameCounter * (1 - isLastFrame);
+    currentStep = mod(currentStep + isLastFrame, 8);
+}

@@ -18,6 +18,7 @@ Run `cargo test` in the directory of the project.
 
 ## Planned Features and TODOs
 
+* [ ] Fix the AR envelope, or create a new retriggerable one
 * [ ] Create The Instrument
 * [ ] Rewrite the code generation to create a proper modular system with an ability to create and reconnect modules
 * [ ] Fix parsing of function calls (now you can't just call a function without assigning the result to a variable)
@@ -28,4 +29,5 @@ Run `cargo test` in the directory of the project.
 * [ ] Create a WebAssembly backend
 * [ ] Create Rust backend
 * [ ] Create optimizing passes (at least constant folding and friends)
+* [ ] Create AU and VST backends
 * [x] Fix tokenizing comments — now at least in imports and in connect block comments are broken. Technically, can be fixed with the next item

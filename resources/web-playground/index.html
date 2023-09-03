@@ -131,6 +131,31 @@
 
                         sliderLabel.appendChild(numberInput);
                         controls.appendChild(sliderLabel);
+                    } else if (parameter.type === 2) {
+                        // Type 2 is toggle
+                        const toggleLabel = document.createElement('label');
+                        const toggle = document.createElement('input');
+                        toggle.type = 'checkbox';
+                        toggle.checked = parameter.initial;
+                        toggle.id = parameter.name;
+
+                        toggle.addEventListener('change', (event) => {
+                            if (!port) {
+                                return;
+                            }
+
+                            port.postMessage({
+                                command: 'setParameter',
+                                setter: {
+                                    name: parameter.name,
+                                    value: +event.target.checked
+                                }
+                            })
+                        });
+
+                        toggleLabel.innerText = parameter.name;
+                        toggleLabel.appendChild(toggle);
+                        controls.appendChild(toggleLabel);
                     }
                 })
             }
