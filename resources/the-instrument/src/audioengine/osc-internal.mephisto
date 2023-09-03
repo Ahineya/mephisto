@@ -1,0 +1,31 @@
+import Lib from "./lib.mephisto";
+import Phaser from "./phaser.mephisto";
+
+input frequency = 110;
+input gain = 0.7;
+input wave = 0;
+
+output out = 0;
+input phase = 0;
+
+output freq = 0;
+
+block {
+    freq = frequency;
+}
+
+process {
+    let sine = Lib.sinewave(phase);
+    let square = Lib.squarewave(phase);
+    let saw = Lib.sawwave(phase);
+    let triangle = Lib.trianglewave(phase);
+
+    let outwave = Lib.switch4(wave, sine, square, saw, triangle);
+
+    out = outwave * gain;
+}
+
+connect {
+    freq -> Phaser.frequency;
+    Phaser.phase -> phase;
+}

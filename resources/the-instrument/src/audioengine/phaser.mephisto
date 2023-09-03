@@ -1,0 +1,12 @@
+input frequency = 110;
+output phase = 0;
+
+let increment = 0;
+
+block {
+    increment = frequency / SR;
+}
+
+process {
+    phase = increment + (phase - floor(increment + phase));
+}

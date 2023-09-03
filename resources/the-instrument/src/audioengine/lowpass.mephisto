@@ -1,0 +1,54 @@
+param cutoffFrequency {
+    initial: 1000;
+    min: 20;
+    max: 20000;
+    step: 10;
+    type: C_SLIDER;
+};
+
+param resonance {
+    initial: 0.5;
+    min: 0.0;
+    max: 4.0;
+    step: 0.01;
+    type: C_SLIDER;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+let dt = 1.0 / SR;
+
+// Separate previous outputs for each stage
+let previousOutput1 = 0;
+let previousOutput2 = 0;
+let previousOutput3 = 0;
+let previousOutput4 = 0;
+
+let RC = 1.0 / (2 * PI * cutoffFrequency);
+
+block {
+    RC = 1.0 / (2 * PI * cutoffFrequency);
+}
+
+process {
+    let alpha = dt / (RC + dt);
+
+    // First stage
+    let buffer1 = alpha * (audioIn - resonance * previousOutput4) + (1 - alpha) * previousOutput1;
+    previousOutput1 = buffer1;
+
+    // Second stage
+    let buffer2 = alpha * buffer1 + (1 - alpha) * previousOutput2;
+    previousOutput2 = buffer2;
+
+    // Third stage
+    let buffer3 = alpha * buffer2 + (1 - alpha) * previousOutput3;
+    previousOutput3 = buffer3;
+
+    // Fourth stage
+    let buffer4 = alpha * buffer3 + (1 - alpha) * previousOutput4;
+    previousOutput4 = buffer4;
+
+    audioOut = buffer4;
+}

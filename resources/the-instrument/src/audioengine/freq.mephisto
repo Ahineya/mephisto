@@ -1,0 +1,5 @@
+export const SEMI = pow(2, 1/12);
+
+export semiOffset(freq, semi) {
+    return freq * pow(SEMI, semi);
+}

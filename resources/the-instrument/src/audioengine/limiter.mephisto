@@ -1,0 +1,37 @@
+param threshold {
+    min: 0;
+    max: 1;
+    step: 0.01;
+    initial: 0.8;
+    type: C_SLIDER;
+};
+
+param recoveryRate {
+    min: 0.01;
+    max: 1;
+    step: 0.01;
+    initial: 0.0001; // Let's start with a very slow recovery rate. I am dumb.
+    type: C_SLIDER;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+let gain = 1;
+let signalMagnitude = 0;
+
+block {
+    signalMagnitude = abs(audioIn);
+}
+
+process {
+    let exceed = signalMagnitude - threshold;
+
+    // We'll use the exponential function here to give a soft knee response to gain reduction.
+    let reductionFactor = exp(-exceed * recoveryRate);
+
+    // We're assuming the range of the exponential function to be between 0 and 1 for this usage.
+    gain = reductionFactor;
+
+    audioOut = audioIn * gain;
+}

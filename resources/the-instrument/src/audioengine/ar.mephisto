@@ -1,0 +1,51 @@
+param attackTime {
+    min: 0.01;
+    max: 10;
+    step: 0.01;
+    initial: 0.01;
+};
+
+param releaseTime {
+    min: 0.01;
+    max: 10;
+    step: 0.01;
+    initial: 0.1;
+};
+
+input trigger = 0;
+output curve = 0;
+
+let currentVal = 0;
+let prevTrigger = 0;
+let envelopeState = 0;
+
+let attackInc = 0;
+let releaseDec = 0;
+
+block {
+    attackInc = 1 / (SR * attackTime);
+    releaseDec = 1 / (SR * releaseTime);
+}
+
+process {
+    // Detect rising edge
+    let risingEdge = trigger * (1 - prevTrigger);
+
+    envelopeState = envelopeState + risingEdge * (1 - envelopeState); // If there's a rising edge and envelope isn't active, start the attack phase.
+
+    let increase = attackInc * (envelopeState == 1);
+    let decrease = releaseDec * (envelopeState == 2);
+
+    currentVal = currentVal + increase - decrease;
+
+    // Transition from attack to release phase if currentVal reaches or exceeds 1
+    envelopeState = envelopeState + (currentVal >= 1) * (envelopeState == 1);
+
+    // Reset everything if envelope completes release phase
+    currentVal = currentVal * (currentVal > 0);
+    envelopeState = envelopeState * (currentVal > 0);
+
+    prevTrigger = trigger; // Update previous trigger value for next iteration
+
+    curve = currentVal;
+}

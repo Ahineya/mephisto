@@ -112,6 +112,7 @@ impl SymbolInfo {
     pub fn is_output(&self) -> bool {
         match self {
             SymbolInfo::Variable { specifier, .. } => *specifier == VariableSpecifier::Output,
+            SymbolInfo::Parameter {..} => true,
             _ => false,
         }
     }

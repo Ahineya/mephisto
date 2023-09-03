@@ -1,0 +1,62 @@
+import Lib from "./lib.mephisto";
+
+input audio = 0;
+
+param threshold {
+    initial: 20;
+    type: C_SLIDER;
+    min: 0;
+    max: 60;
+    step: 1;
+};
+
+param ratio {
+    initial: 4;
+    type: C_SLIDER;
+    min: 1;
+    max: 20;
+    step: 0.1;
+};
+
+param attack {
+    initial: 0.01;
+    type: C_SLIDER;
+    min: 0.001;
+    max: 1;
+    step: 0.001;
+};
+
+param release {
+    initial: 0.1;
+    type: C_SLIDER;
+    min: 0.01;
+    max: 2;
+    step: 0.01;
+};
+
+output audioOut = 0;
+
+let gain = 1;
+let envelope = 0;
+let alphaAttack = exp(-1 / (SR * attack));
+let alphaRelease = exp(-1 / (SR * release));
+
+block {
+    alphaAttack = exp(-1 / (SR * attack));
+    alphaRelease = exp(-1 / (SR * release));
+}
+
+process {
+    // RMS Level Detection
+    envelope = ((1 - alphaRelease) * abs(audio)) + (alphaRelease * envelope);
+
+    // Compression Amount
+    let compressionAmount = max(0, 1.0 - ((0 - threshold) / envelope));
+    compressionAmount = pow(compressionAmount, ratio - 1);
+
+    // Apply compression
+    gain = (1 - compressionAmount) + 1;
+
+    audioOut = audio * gain;
+}
+

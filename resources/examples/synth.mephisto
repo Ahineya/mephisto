@@ -64,7 +64,7 @@ process {
 
     trigwave = Lib.squarewave(phase);
 
-    trig = (trigwave + 1) / 2;
+    trig = trigger; //(trigwave + 1) / 2; a
 }
 
 connect {
@@ -80,9 +80,9 @@ connect {
 
     ADSR.curve -> oscgain;
 
-    //trig -> ADSR.gate;
+    trig -> ADSR.gate;
 
-    Sequencer.out -> Drum.trigger_in;
+    //Sequencer.out -> Drum.trigger_in;
 
     out -> LowPass.audioIn;
     LowPass.audioOut -> Echo.audioIn;

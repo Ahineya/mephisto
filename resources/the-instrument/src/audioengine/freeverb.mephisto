@@ -1,0 +1,71 @@
+import Lib from "./lib.mephisto";
+
+param dryWet {
+    initial: 0.5;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+param roomSize {
+    initial: 0.5;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+param damp {
+    initial: 0.5;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+// These would be the delay lengths for the comb filters.
+// Only defining three for simplicity. Freeverb typically uses eight.
+buffer $combBuffer1[1557];
+buffer $combBuffer2[1617];
+buffer $combBuffer3[1491];
+
+// These would be the delay lengths for the all-pass filters.
+buffer $allpassBuffer1[225];
+buffer $allpassBuffer2[556];
+
+process {
+    let inputSample = audioIn;
+
+    // Comb filter processing (simplified for three combs)
+    let combOut1 = buf_read($combBuffer1, 0) * roomSize + inputSample;
+    let combOut2 = buf_read($combBuffer2, 0) * roomSize + inputSample;
+    let combOut3 = buf_read($combBuffer3, 0) * roomSize + inputSample;
+
+    let tmp = buf_push($combBuffer1, combOut1 * (1 - damp) + buf_read($combBuffer1, 1) * damp);
+    tmp = buf_push($combBuffer2, combOut2 * (1 - damp) + buf_read($combBuffer2, 1) * damp);
+    tmp = buf_push($combBuffer3, combOut3 * (1 - damp) + buf_read($combBuffer3, 1) * damp);
+
+    // Sum comb filter outputs
+    let combSum = (combOut1 + combOut2 + combOut3) / 3.0;
+
+    // All-pass filter processing (simplified for two all-pass filters)
+    let allpassOut1 = -combSum + buf_read($allpassBuffer1, 0);
+    tmp = buf_push($allpassBuffer1, combSum);
+
+    let allpassOut2 = -allpassOut1 + buf_read($allpassBuffer2, 0);
+    tmp = buf_push($allpassBuffer2, allpassOut1);
+
+    // Wet signal is the output of the all-pass filters
+    let wetSignal = allpassOut2;
+
+    // Mix dry and wet signals
+    audioOut = (inputSample * (1.0 - dryWet)) + (wetSignal * dryWet);
+}
+
+connect {
+    audioOut -> OUTPUTS;
+}

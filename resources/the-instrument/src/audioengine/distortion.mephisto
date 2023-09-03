@@ -1,0 +1,37 @@
+import Lib from "./lib.mephisto";
+
+param drive {
+    initial: 1.0;
+    type: C_SLIDER;
+    min: 1.0;
+    max: 50.0;
+    step: 0.1;
+};
+
+param tone {
+    initial: 0.5;
+    type: C_SLIDER;
+    min: 0.0;
+    max: 1.0;
+    step: 0.01;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+process {
+    // Amplify the input signal
+    let amplified = audioIn * drive * 2;
+
+    // Hard-clip the amplified signal
+    let clipped = Lib.clamp(amplified, -1.0, 1.0);
+
+    // Basic tone control (low-pass filtering the distorted signal)
+    //let filtered = Lib.lerp(clipped, Lib.lowpass(clipped, tone), tone);
+
+    audioOut = clipped;
+}
+
+connect {
+    audioOut -> OUTPUTS;
+}

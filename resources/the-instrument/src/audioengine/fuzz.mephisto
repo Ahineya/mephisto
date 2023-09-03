@@ -1,0 +1,35 @@
+import Lib from "./lib.mephisto";
+
+param gain {
+    initial: 10.0;
+    type: C_SLIDER;
+    min: 1.0;
+    max: 50.0;
+    step: 0.1;
+};
+
+param level {
+    initial: 0.5;
+    type: C_SLIDER;
+    min: 0.0;
+    max: 1.0;
+    step: 0.01;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+process {
+    // 1. Boost the signal
+    let boosted = audioIn * gain;
+
+    // 2. Clip the signal using polynomial waveshaping
+    let fuzzed = boosted - (boosted * boosted * boosted);
+
+    // 3. Control the output level
+    audioOut = fuzzed * level;
+}
+
+connect {
+    audioOut -> OUTPUTS;
+}

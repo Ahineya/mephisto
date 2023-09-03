@@ -1,0 +1,50 @@
+param delayTime {
+    initial: 0.5;
+    min: 0.0;
+    max: 1.0;
+    step: 0.01;
+    type: C_SLIDER;
+};
+
+param feedback {
+    initial: 0.5;
+    min: 0.0;
+    max: 1.0;
+    step: 0.01;
+    type: C_SLIDER;
+};
+
+param dryWet {
+    initial: 0.0;
+    min: 0.0;
+    max: 1.0;
+    step: 0.01;
+    type: C_SLIDER;
+};
+
+input audioIn = 0;
+output audioOut = 0;
+
+const $delayBuffer = buf_new(SR);
+
+// In ideal world it should look like this:
+// buffer $delayBuffer[SR];
+
+process {
+    let delaySamples = delayTime * SR;
+    let bufLen = buf_length($delayBuffer);
+
+    let readIndex = bufLen - delaySamples;
+
+    // Clip readIndex within valid bounds
+    readIndex = max(0, min(readIndex, bufLen - 1));
+
+    let delayedSignal = buf_read($delayBuffer, readIndex);
+
+    let toPush = audioIn + (delayedSignal * feedback);
+
+    // Since the buffer is a ring buffer, this will automatically overwrite oldest value if buffer is full
+    let tmp = buf_push($delayBuffer, toPush); // TODO: This should be a void function, but compiler doesn't support it yet because I'm dumb
+
+    audioOut = (audioIn * (1 - dryWet)) + (delayedSignal * dryWet);
+}

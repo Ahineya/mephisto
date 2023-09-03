@@ -1,0 +1,143 @@
+import Osc from "./osc-internal.mephisto";
+import Osc2 from "./osc-internal.mephisto";
+import Osc3 from "./osc.mephisto";
+import Drum from "./drum.mephisto";
+
+import ADSR from "./adsr.mephisto";
+
+import LowPass from "./lowpass.mephisto";
+import Echo from "./echo.mephisto";
+
+import Karplus from "./karplus.mephisto";
+
+import Limiter from "./limiter.mephisto";
+import Freeverb from "./freeverb.mephisto";
+
+import Lib from "./lib.mephisto";
+import Freq from "./freq.mephisto";
+
+param osc1waveform {
+    initial: 0;
+
+    type: C_SLIDER;
+    min: 0;
+    max: 3;
+    step: 1;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+    triangle: 3;
+};
+
+param osc2enabled {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 1;
+};
+
+param osc2octaveoffset {
+    initial: 2;
+    type: C_SLIDER;
+    min: 0;
+    max: 4;
+    step: 1;
+};
+
+param osc3enabled {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 1;
+};
+
+param trigger {
+    initial: 0;
+    type: C_TRIGGER;
+};
+
+param frequency {
+    initial: 440;
+};
+
+param instrument {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 2;
+    step: 1;
+
+    osc: 0;
+    karplus: 1;
+    mix: 2;
+};
+
+output out = 0;
+
+input osc1 = 0;
+input osc2 = 0;
+input osc3 = 0;
+
+input drum = 0;
+
+input echo = 0;
+input adsr = 0;
+
+input karplus = 0;
+
+output osc1gain = 0.5;
+
+output osc2freq = 440;
+output osc2gain = 0.5;
+output osc2wave = 2;
+
+param globalgate {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 1;
+};
+
+block {
+    osc2freq = Freq.semiOffset(frequency * osc2octaveoffset, 0);
+}
+
+process {
+    out = Lib.switch3(instrument,
+        (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr,
+        karplus,
+        (karplus + (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr) * 0.5)
+    * globalgate;
+}
+
+connect {
+    Osc.out -> osc1;
+    Osc2.out -> osc2;
+    Osc3.out -> osc3;
+    
+    frequency -> Osc.frequency;
+    osc1gain -> Osc.gain;
+    osc1waveform -> Osc.wave;
+
+    osc2freq -> Osc2.frequency;
+    osc2gain -> Osc2.gain;
+    osc2wave -> Osc2.wave;
+
+    Karplus.out -> karplus;
+    frequency -> Karplus.frequency;
+    trigger -> Karplus.pluckTrigger;
+
+    ADSR.curve -> adsr;
+
+    trigger -> ADSR.gate;
+
+    out -> LowPass.audioIn;
+    LowPass.audioOut -> Echo.audioIn;
+    Echo.audioOut -> Freeverb.audioIn;
+    Freeverb.audioOut -> Limiter.audioIn;
+    Limiter.audioOut -> OUTPUTS;
+}

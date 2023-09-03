@@ -629,7 +629,9 @@ fn lookup_module_symbol<'a>(object_name: &str, property_name: &str, symbol_table
 
     let module_path = match module_symbol {
         SymbolInfo::ImportedModule { path: module, .. } => module,
-        _ => panic!("Expected module")
+        _ => {
+            return Err(format!("Cannot find module \"{}\"", object_name))
+        }
     };
 
     let module_data = modules.get(module_path);

@@ -1,0 +1,57 @@
+import Lib from "./lib.mephisto";
+import Phaser from "./phaser.mephisto";
+
+param frequency {
+    initial: 110;
+    type: C_SLIDER;
+    min: 55;
+    max: 880;
+    step: 0.01;
+};
+
+param gain {
+    initial: 0.7;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+param wave {
+    initial: 0;
+
+    type: C_SLIDER;
+    min: 0;
+    max: 3;
+    step: 1;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+    triangle: 3;
+};
+
+output out = 0;
+input phase = 0;
+
+output freq = 0;
+
+block {
+    freq = frequency;
+}
+
+process {
+    let sine = Lib.sinewave(phase);
+    let square = Lib.squarewave(phase);
+    let saw = Lib.sawwave(phase);
+    let triangle = Lib.trianglewave(phase);
+
+    let outwave = Lib.switch4(wave, sine, square, saw, triangle);
+
+    out = outwave * gain;
+}
+
+connect {
+    freq -> Phaser.frequency;
+    Phaser.phase -> phase;
+}
