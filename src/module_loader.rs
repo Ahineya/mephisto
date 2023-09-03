@@ -40,7 +40,7 @@ impl StubFileLoader {
     }
 }
 impl FileLoader for StubFileLoader {
-    fn load(&self, path: &str, base_path_: Option<&Path>) -> Result<String, Box<dyn Error>> {
+    fn load(&self, path: &str, _base_path_: Option<&Path>) -> Result<String, Box<dyn Error>> {
         let contents = self.files.get(path);
 
         if contents.is_none() {

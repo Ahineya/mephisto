@@ -13,6 +13,9 @@ import Phaser from "./phaser.mephisto";
 
 import Karplus from "./karplus.mephisto";
 
+import Limiter from "./limiter.mephisto";
+import Freeverb from "./freeverb.mephisto";
+
 param osc2enabled {
     initial: 0;
     type: C_SLIDER;
@@ -79,5 +82,7 @@ connect {
 
     out -> LowPass.audioIn;
     LowPass.audioOut -> Echo.audioIn;
-    Echo.audioOut -> OUTPUTS;
+    Echo.audioOut -> Freeverb.audioIn;
+    Freeverb.audioOut -> Limiter.audioIn;
+    Limiter.audioOut -> OUTPUTS;
 }

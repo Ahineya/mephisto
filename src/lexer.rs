@@ -129,3 +129,31 @@ impl Lexer {
         tokens
     }
 }
+
+#[cfg(test)]
+mod tests {
+
+    #[test]
+    fn test_comments() {
+        let lexer = super::Lexer::new();
+        let tokens = lexer.tokenize("// This is a comment".to_string());
+
+        assert_eq!(tokens.len(), 1);
+        assert_eq!(tokens[0].token_type, super::token_type::TokenType::EOF);
+    }
+
+    #[test]
+    fn test_import_comment() {
+        let lexer = super::Lexer::new();
+        let tokens = lexer.tokenize("import Limiter from \"./limiter.mephisto\";
+        //import Freeverb from \"./freeverb.mephisto\";".to_string());
+
+        assert_eq!(tokens.len(), 6);
+        assert_eq!(tokens[0].token_type, super::token_type::TokenType::IMPORT);
+        assert_eq!(tokens[1].token_type, super::token_type::TokenType::ID);
+        assert_eq!(tokens[2].token_type, super::token_type::TokenType::FROM);
+        assert_eq!(tokens[3].token_type, super::token_type::TokenType::STRING);
+        assert_eq!(tokens[4].token_type, super::token_type::TokenType::SEMI);
+        assert_eq!(tokens[5].token_type, super::token_type::TokenType::EOF);
+    }
+}

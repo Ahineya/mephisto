@@ -87,7 +87,7 @@ impl IR {
 
     fn replace_stdlib_calls(ast: &Node, symbol_table: &mut SymbolTable) -> ModuleData {
         let mut result = ast.clone();
-        let mut skip_renaming_identifiers = false;
+        let skip_renaming_identifiers = false;
         let mut skip_renaming_once = false;
 
         let symbols_to_rename = Self::collect_stdlib_symbols(&result, symbol_table);
@@ -95,7 +95,7 @@ impl IR {
 
         let mut context = ();
 
-        traverse_ast(&mut result, &mut |stage, node, context: &mut ()| {
+        traverse_ast(&mut result, &mut |stage, node, _context: &mut ()| {
             match node {
                 Node::BlockNode { .. }
                 |
@@ -129,9 +129,6 @@ impl IR {
                 }
 
                 Node::Identifier { name, .. } => {
-
-                    println!("RENAMING STD LIB IDENTIFIER {}", name);
-
                     if skip_renaming_identifiers {
                         return false;
                     }
@@ -172,15 +169,15 @@ impl IR {
         }
     }
 
-    fn collect_stdlib_symbols(ast: &Node, symbol_table: &SymbolTable) -> Vec<(String, SymbolInfo)> {
+    fn collect_stdlib_symbols(_ast: &Node, symbol_table: &SymbolTable) -> Vec<(String, SymbolInfo)> {
         symbol_table.get_stdlib_symbols()
     }
 
-    fn replace_module_calls(ast: &Node, symbol_table: &SymbolTable) -> ModuleData {
+    fn replace_module_calls(ast: &Node, _symbol_table: &SymbolTable) -> ModuleData {
         let mut result = ast.clone();
         let mut context = ();
 
-        traverse_ast(&mut result, &mut |stage, node, context: &mut ()| {
+        traverse_ast(&mut result, &mut |stage, node, _| {
             match node {
                 Node::MemberExpr { object, property, .. } => {
                     match stage {
@@ -241,7 +238,7 @@ impl IR {
                     match node {
                         Node::ImportStatement { id, path, .. } => {
                             // Recursively merge the imported module
-                            let mut imported_module = Self::merge_modules(modules, &path, processed_modules); // TODO: need to merge fucking symbol tables here as well
+                            let imported_module = Self::merge_modules(modules, &path, processed_modules);
                             let mut module = Self::replace_module_calls(&imported_module.ast.root, &imported_module.symbol_table);
 
                             println!("{}", module.ast.to_code_string());

@@ -1,7 +1,7 @@
 use std::error::Error;
 use std::path::Path;
 use indexmap::IndexMap;
-use crate::codegen::{CodeGenerator, StubCodeGenerator};
+use crate::codegen::{CodeGenerator};
 use crate::ir::IR;
 
 use crate::lexer::{Lexer, token::Token};
