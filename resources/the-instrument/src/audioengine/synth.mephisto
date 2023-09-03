@@ -16,10 +16,6 @@ import Freeverb from "./freeverb.mephisto";
 import Lib from "./lib.mephisto";
 import Freq from "./freq.mephisto";
 
-param testicle {
-    initial: -1;
-};
-
 param osc1waveform {
     initial: 0;
 

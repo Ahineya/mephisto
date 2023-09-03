@@ -37,7 +37,7 @@ block {
     lastPluckState = pluckTrigger;
 
     // If the frequency has changed, resize the buffer. But there are no if statements in Mephisto, so we have to do this:
-    let tmp = if((1 - (frequency == oldFrequency)), resize_buf);
+    let tmp = if((frequency != oldFrequency), resize_buf);
     oldFrequency = frequency;
 }
 

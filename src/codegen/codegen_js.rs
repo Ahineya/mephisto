@@ -766,11 +766,14 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         Operator::Le => {
                             context.push_code(" <= ");
                         }
+                        Operator::Ne => {
+                            context.push_code(" != ");
+                        }
                     }
                     traverse_ast(rhs, &mut ast_to_code, context);
 
                     match op {
-                        Operator::Eq | Operator::Gt | Operator::Lt | Operator::Ge | Operator::Le => {
+                        Operator::Eq | Operator::Gt | Operator::Lt | Operator::Ge | Operator::Le | Operator::Ne => {
                             context.push_code(" ? 1 : 0");
                         }
                         _ => {}

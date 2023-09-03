@@ -419,6 +419,9 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         Operator::Le => {
                             context.code.push_str(" <= ");
                         }
+                        Operator::Ne => {
+                            context.code.push_str(" != ");
+                        }
                     }
                     traverse_ast(rhs, &mut ast_to_code, context);
                     context.code.push_str(")");
@@ -505,6 +508,7 @@ pub enum Operator {
     Lt,
     Ge,
     Le,
+    Ne,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize)]

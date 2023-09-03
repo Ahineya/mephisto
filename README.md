@@ -18,6 +18,7 @@ Run `cargo test` in the directory of the project.
 
 ## Planned Features and TODOs
 
+* [ ] Add unary ! operator
 * [ ] Fix sequencer BPM control
 * [ ] Create The Instrument
 * [ ] Rewrite the code generation to create a proper modular system with an ability to create and reconnect modules

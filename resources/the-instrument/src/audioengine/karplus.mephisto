@@ -32,12 +32,12 @@ block {
     lastPluckState = pluckTrigger;
 
     // If the frequency has changed, resize the buffer. But there are no if statements in Mephisto, so we have to do this:
-    if((1 - (frequency == oldFrequency)), resize_buf);
+    if(frequency != oldFrequency, resize_buf);
 
     oldFrequency = frequency;
 
         // Detect a frequency change and start the fade-out:
-        fadeRate = (1 - (frequency == oldFrequency)) * -0.1; // -0.01 for fade-out.
+        fadeRate = (frequency != oldFrequency) * -0.1; // -0.01 for fade-out.
         // Once fully faded out, start the fade-in:
         fadeRate = (fadeInOut == 0) * 0.1; // 0.01 for fade-in.
 }

@@ -947,7 +947,7 @@ impl Parser {
         loop {
             let token = self.peek();
             match token.token_type {
-                TokenType::EQ | TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE => {
+                TokenType::EQ | TokenType::GT | TokenType::LT | TokenType::GE | TokenType::LE | TokenType::NE => {
                     let op = self.parse_operator()?;
                     let rhs = self.parse_add_sub()?;
                     lhs = Node::BinaryExpr {
@@ -1124,6 +1124,7 @@ impl Parser {
             TokenType::LT => Operator::Lt,
             TokenType::GE => Operator::Ge,
             TokenType::LE => Operator::Le,
+            TokenType::NE => Operator::Ne,
             _ => {
                 return Err(self.generic_error(&tok, "operator"));
             }
@@ -1399,6 +1400,31 @@ mod tests {
             param something {
                 initial: -1;
             };
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let ast = parser.parse(tokens);
+
+        println!("AST: {:#?}", ast);
+
+        assert_eq!(ast.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_binary_in_fn_call() {
+        let code = "
+            fn test(a) {
+                return a + 42;
+            }
+
+            block {
+                let a = 0;
+                let b = 1;
+                test(a != b);
+            }
             ".to_string();
 
         let lexer = Lexer::new();
