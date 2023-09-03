@@ -1,16 +1,16 @@
-export sinewave(phase) {
+export fn sinewave(phase) {
     return sin(phase * 2 * PI);
 }
 
-export trianglewave(phase) {
+export fn trianglewave(phase) {
     return 1 - 4 * abs(round(phase - 0.25) - (phase - 0.25));
 }
 
-export sawwave(phase) {
+export fn sawwave(phase) {
     return 2 * (phase - round(phase));
 }
 
-export squarewave(phase) {
+export fn squarewave(phase) {
     return ((phase < 0.5) * 2 - 1);
 }
 
@@ -19,28 +19,28 @@ export noise(phase) {
     return rand(phase);
 }*/
 
-export if_math(cond, a, b) {
+export fn if_math(cond, a, b) {
     return cond * a + (1 - cond) * b;
 }
 
-export switch4(n, a, b, c, d) {
+export fn switch4(n, a, b, c, d) {
     return if_math(n == 0, a,
               if_math(n == 1, b,
               if_math(n == 2, c,
               if_math(n == 3, d, 0))));
 }
 
-export switch3(n, a, b, c) {
+export fn switch3(n, a, b, c) {
     return if_math(n == 0, a,
               if_math(n == 1, b,
               if_math(n == 2, c, 0)));
 }
 
-export clamp(x, a, b) {
+export fn clamp(x, a, b) {
     return min(max(x, a), b);
 }
 
-export lerp(a, b, t) {
+export fn lerp(a, b, t) {
     return a + (b - a) * t;
 }
 

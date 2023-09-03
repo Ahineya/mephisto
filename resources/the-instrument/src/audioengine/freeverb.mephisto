@@ -45,19 +45,19 @@ process {
     let combOut2 = buf_read($combBuffer2, 0) * roomSize + inputSample;
     let combOut3 = buf_read($combBuffer3, 0) * roomSize + inputSample;
 
-    let tmp = buf_push($combBuffer1, combOut1 * (1 - damp) + buf_read($combBuffer1, 1) * damp);
-    tmp = buf_push($combBuffer2, combOut2 * (1 - damp) + buf_read($combBuffer2, 1) * damp);
-    tmp = buf_push($combBuffer3, combOut3 * (1 - damp) + buf_read($combBuffer3, 1) * damp);
+    buf_push($combBuffer1, combOut1 * (1 - damp) + buf_read($combBuffer1, 1) * damp);
+    buf_push($combBuffer2, combOut2 * (1 - damp) + buf_read($combBuffer2, 1) * damp);
+    buf_push($combBuffer3, combOut3 * (1 - damp) + buf_read($combBuffer3, 1) * damp);
 
     // Sum comb filter outputs
     let combSum = (combOut1 + combOut2 + combOut3) / 3.0;
 
     // All-pass filter processing (simplified for two all-pass filters)
     let allpassOut1 = -combSum + buf_read($allpassBuffer1, 0);
-    tmp = buf_push($allpassBuffer1, combSum);
+    buf_push($allpassBuffer1, combSum);
 
     let allpassOut2 = -allpassOut1 + buf_read($allpassBuffer2, 0);
-    tmp = buf_push($allpassBuffer2, allpassOut1);
+    buf_push($allpassBuffer2, allpassOut1);
 
     // Wet signal is the output of the all-pass filters
     let wetSignal = allpassOut2;

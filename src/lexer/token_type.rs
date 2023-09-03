@@ -35,6 +35,8 @@ pub enum TokenType {
     CONST,
     BUFFER,
 
+    FN,
+
     IMPORT,
     EXPORT,
     FROM,

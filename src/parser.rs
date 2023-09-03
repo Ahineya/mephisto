@@ -116,8 +116,22 @@ impl Parser {
 
                         children.push(buffer_statement);
                     }
+                    TokenType::FN => {
+                        let function_declaration_stmt = match self.parse_function_declaration_stmt() {
+                            Ok(function_declaration_stmt) => function_declaration_stmt,
+                            Err(e) => {
+                                self.errors.push(e);
+
+                                return AST {
+                                    root: ast.clone(),
+                                    errors: self.errors.clone(),
+                                };
+                            }
+                        };
+                        children.push(function_declaration_stmt);
+                    }
                     TokenType::ID => {
-                        let statement = match self.parse_statement() {
+                        let statement = match self.parse_expression_statement() {
                             Ok(statement) => statement,
                             Err(e) => {
                                 self.errors.push(e);
@@ -500,18 +514,21 @@ impl Parser {
             TokenType::INPUT | TokenType::OUTPUT | TokenType::LET | TokenType::CONST => {
                 self.parse_variable_declaration_stmt()?
             }
-            TokenType::ID => {
-                let next_token = self.tokens[self.position + 1].clone();
-
-                match next_token.token_type {
-                    TokenType::LPAREN => {
-                        self.parse_function_declaration_stmt()?
-                    }
-                    _ => {
-                        Err(self.generic_error(&next_token, "function declaration"))?
-                    }
-                }
+            TokenType::FN => {
+                self.parse_function_declaration_stmt()?
             }
+            // TokenType::ID => {
+            //     let next_token = self.tokens[self.position + 1].clone();
+            //
+            //     match next_token.token_type {
+            //         TokenType::LPAREN => {
+            //             self.parse_function_declaration_stmt()?
+            //         }
+            //         _ => {
+            //             Err(self.generic_error(&next_token, "function declaration"))?
+            //         }
+            //     }
+            // }
             _ => {
                 Err(self.generic_error(&token, "variable declaration or function declaration"))?
             }
@@ -527,6 +544,25 @@ impl Parser {
         Ok(export_declaration_stmt)
     }
 
+    fn parse_expression_statement(&mut self) -> Result<Node, String> {
+        let position = self.position();
+        let expr = self.parse_statement()?;
+
+        let t = self.peek();
+        if t.token_type == TokenType::SEMI {
+            self.skip(TokenType::SEMI)?;
+        }
+
+        let mut node = Node::ExpressionStmt {
+            child: Box::new(expr),
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
+    }
+
     fn parse_statement(&mut self) -> Result<Node, String> {
         let token = self.peek();
 
@@ -536,7 +572,11 @@ impl Parser {
 
                 let node = match next_token.token_type {
                     TokenType::LPAREN => {
-                        self.parse_function_declaration_stmt()
+                        let n = self.parse_fn_call();
+
+                        // self.skip(TokenType::SEMI)?;
+
+                        n
                     }
                     TokenType::DEF => {
                         self.parse_assignment_expression()
@@ -547,6 +587,9 @@ impl Parser {
                 };
 
                 node
+            }
+            TokenType::FN => {
+                self.parse_function_declaration_stmt()
             }
             TokenType::LET | TokenType::CONST => {
                 self.parse_variable_declaration_stmt()
@@ -578,6 +621,7 @@ impl Parser {
     fn parse_function_declaration_stmt(&mut self) -> Result<Node, String> {
         let position = self.position();
 
+        self.skip(TokenType::FN)?;
         let id = self.parse_id()?;
         self.skip(TokenType::LPAREN)?;
         let params = self.parse_params()?;
@@ -635,7 +679,7 @@ impl Parser {
 
         while self.peek().token_type != TokenType::RCURLY {
             if let Node::ProcessNode { children, .. } = &mut process {
-                let child = self.parse_statement()?;
+                let child = self.parse_expression_statement()?;
                 children.push(child);
             }
         }
@@ -658,7 +702,7 @@ impl Parser {
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
             if let Node::BlockNode { children, .. } = &mut block {
-                children.push(self.parse_statement()?);
+                children.push(self.parse_expression_statement()?);
             }
         }
 
@@ -687,7 +731,7 @@ impl Parser {
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
             if let Node::FunctionBody { children, .. } = &mut process {
-                let child = self.parse_statement()?;
+                let child = self.parse_expression_statement()?;
                 children.push(child);
             }
         }
@@ -1284,6 +1328,29 @@ mod tests {
 
             let a = sin(42);
             let b = Kick.phoo();
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let ast = parser.parse(tokens);
+
+        println!("AST: {:#?}", ast);
+
+        assert_eq!(ast.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_fn_call() {
+        let code = "
+            fn test() {
+                return 42;
+            }
+
+            process {
+                test();
+            }
             ".to_string();
 
         let lexer = Lexer::new();

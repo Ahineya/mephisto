@@ -204,7 +204,6 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.set_current_block("block");
-                    context.push_code("/*console.trace('FIX ME, block');*/ {\n");
                 }
                 ASTTraverseStage::Exit => {
                     context.push_code("}\n\n");
@@ -384,7 +383,29 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 ASTTraverseStage::Exit => {}
             }
         }
-        Node::ExpressionStmt { .. } => {}
+        Node::ExpressionStmt { child, .. } => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    traverse_ast(child, &mut ast_to_code, context);
+                }
+                ASTTraverseStage::Exit => {
+
+                    // If two last characters are ";\n", remove them
+                    let code = context.code_map.get_mut(&context.current_block).unwrap();
+                    let len = code.len();
+                    if len > 2 {
+                        if &code[len - 2..] == ";\n" {
+                            code.pop();
+                            code.pop();
+                        }
+                    }
+
+                    context.push_code(";\n");
+                }
+            }
+
+            return true;
+        }
         Node::AssignmentExpr { lhs, rhs, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {

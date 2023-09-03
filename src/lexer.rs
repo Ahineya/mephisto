@@ -19,6 +19,7 @@ impl Lexer {
                 |chars: &str, current: u32| full_pattern_t(TokenType::COMMENT, Regex::new(r"^//.*").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::COMMENT, Regex::new(r"^/\*[^*]*\*+(?:[^/*][^*]*\*+)*/").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::PROCESS, Regex::new(r"^process\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::FN, Regex::new(r"^fn\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::BLOCK, Regex::new(r"^block\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::RETURN, Regex::new(r"^return\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::INPUT, Regex::new(r"^input\b").unwrap(), chars, current),

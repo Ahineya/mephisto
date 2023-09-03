@@ -8,9 +8,9 @@ export default defineConfig({
     plugins: [
         basicSsl(),
         react(),
-        watch({
-            pattern: "src/audioengine/**/*.mephisto",
-            command: "cd src/audioengine && mephisto -i synth.mephisto -o ../../public/processor.js",
-        }),
+        // watch({
+        //     pattern: "src/audioengine/**/*.mephisto",
+        //     command: "cd src/audioengine && mephisto -i synth.mephisto -o ../../public/processor.js",
+        // }),
     ],
 })

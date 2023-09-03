@@ -931,7 +931,7 @@ mod tests {
         let code = "
             let foo = 42;
 
-            bar(function_argument_a, b) {
+            fn bar(function_argument_a, b) {
                 return function_argument_a + b;
             }
 
@@ -1007,7 +1007,7 @@ mod tests {
         let code = "
             let foo = 42;
 
-            foo(a, b) {
+            fn foo(a, b) {
                 return a + b;
             }
             ".to_string();
@@ -1092,7 +1092,7 @@ output out = 42;
 let var = 42;
 const constant = 42;
 
-someFn() {
+fn someFn() {
     return 42;
 }
         ".to_string();

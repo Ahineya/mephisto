@@ -41,6 +41,8 @@ impl SemanticAnalyzer {
             let symbol_table = module_data.symbol_table.to_owned();
             let mut ast = module_data.ast.to_owned();
 
+            println!("{:#?}", ast);
+
             let mut context = Context {
                 symbol_table, // TODO: Clone is expensive, / Lifetimes are hard, / Today I'm not ready, / To pull the right card.
                 errors: Vec::new(),
@@ -671,7 +673,7 @@ mod tests {
         let code = "
             let foo = 42;
 
-            bar(a, b) {
+            fn bar(a, b) {
                 return a + b;
             }
             ".to_string();
@@ -705,7 +707,7 @@ mod tests {
         let code = "
             let foo = 42;
 
-            baz(a, b) {
+            fn baz(a, b) {
                 return a + b;
             }
 
@@ -741,9 +743,9 @@ mod tests {
         println!("{:#?}", errors);
 
         assert_eq!(errors.len(), 3);
-        assert_eq!(errors[0], "[Module \"main\"]: Function \"bar\" does not exist, Position { start: 117, end: 123, line: 8, column: 23 }");
-        assert_eq!(errors[1], "[Module \"main\"]: \"foo\" is not a function, Position { start: 144, end: 150, line: 9, column: 23 }");
-        assert_eq!(errors[2], "[Module \"main\"]: Function \"baz\" expects 2 arguments, but 1 were provided, Position { start: 172, end: 179, line: 11, column: 24 }");
+        assert_eq!(errors[0], "[Module \"main\"]: Function \"bar\" does not exist, Position { start: 120, end: 126, line: 8, column: 23 }");
+        assert_eq!(errors[1], "[Module \"main\"]: \"foo\" is not a function, Position { start: 147, end: 153, line: 9, column: 23 }");
+        assert_eq!(errors[2], "[Module \"main\"]: Function \"baz\" expects 2 arguments, but 1 were provided, Position { start: 175, end: 182, line: 11, column: 24 }");
     }
 
     #[test]
@@ -751,7 +753,7 @@ mod tests {
         let code = "
             let foo = 42;
 
-            bar(a, b) {
+            fn bar(a, b) {
                 return a + b;
             }
 
@@ -783,7 +785,7 @@ mod tests {
 
         assert_eq!(errors.len(), 1);
 
-        assert_eq!(errors[0], "[Module \"main\"]: Cannot find name \"c\", Position { start: 126, end: 128, line: 8, column: 27 }");
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot find name \"c\", Position { start: 129, end: 131, line: 8, column: 27 }");
     }
 
     #[test]
@@ -1097,7 +1099,7 @@ buffer foo[10] = |i| {
     #[test]
     fn test_function_assignment() {
         let code = "
-        foo() {
+        fn foo() {
             return 12;
         }
 
@@ -1220,7 +1222,7 @@ buffer foo[10] = |i| {
         let module_code = "
             output out = 0;
 
-            export getSomething() {
+            export fn getSomething() {
                 return 42;
             }
 
@@ -1270,7 +1272,7 @@ buffer foo[10] = |i| {
 
         assert_eq!(errors[0], "[Module \"main\"]: Function \"Module.getSomethingElse\" does not exist (Cannot find name \"getSomethingElse\" in module \"./module.meph\"), Position { start: 145, end: 171, line: 6, column: 43 }");
         assert_eq!(errors[1], "[Module \"main\"]: Cannot find name \"bar\" in module \"./module.meph\", Position { start: 224, end: 235, line: 8, column: 28 }");
-        assert_eq!(errors[2], "[Module \"./module.meph\"]: Cannot find name \"b\", Position { start: 164, end: 166, line: 10, column: 19 }");
+        assert_eq!(errors[2], "[Module \"./module.meph\"]: Cannot find name \"b\", Position { start: 167, end: 169, line: 10, column: 19 }");
     }
 
     #[test]
@@ -1420,7 +1422,7 @@ buffer foo[10] = |i| {
     #[test]
     fn test_fn_assign() {
         let code = "
-            foo() {
+            fn foo() {
                 return 1;
             }
 
@@ -1460,15 +1462,48 @@ buffer foo[10] = |i| {
         println!("{:#?}", errors);
 
         assert_eq!(errors.len(), 3);
-        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 74, end: 100, line: 6, column: 13 }");
-        assert_eq!(errors[1], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 99, end: 121, line: 7, column: 13 }");
-        assert_eq!(errors[2], "[Module \"main\"]: Cannot use function \"foo\" as a variable, Position { start: 124, end: 132, line: 8, column: 20 }");
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 77, end: 103, line: 6, column: 13 }");
+        assert_eq!(errors[1], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 102, end: 124, line: 7, column: 13 }");
+        assert_eq!(errors[2], "[Module \"main\"]: Cannot use function \"foo\" as a variable, Position { start: 127, end: 135, line: 8, column: 20 }");
+    }
+
+    #[test]
+    fn test_assignment() {
+        let code = "
+            let a = 0;
+
+            a = 1;
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_ok());
     }
 
     #[test]
     fn test_assign_to_fn() {
         let code = "
-            foo() {
+            fn foo() {
                 return 1;
             }
 
@@ -1504,7 +1539,7 @@ buffer foo[10] = |i| {
         println!("{:#?}", errors);
 
         assert_eq!(errors.len(), 1);
-        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign to constant \"foo\", Position { start: 74, end: 95, line: 6, column: 13 }");
+        assert_eq!(errors[0], "[Module \"main\"]: Cannot assign to constant \"foo\", Position { start: 77, end: 98, line: 6, column: 13 }");
     }
 
     #[test]

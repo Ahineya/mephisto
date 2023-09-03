@@ -597,20 +597,26 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
 
             for node in children {
                 match node {
-                    Node::VariableDeclarationStmt { id, .. } => {
-                        let name = match id.as_ref() {
-                            Node::Identifier { name, .. } => name,
-                            _ => panic!("Expected identifier"),
-                        };
+                    Node::ExpressionStmt {child, ..} => {
+                        match child.as_ref() {
+                            Node::VariableDeclarationStmt { id, .. } => {
+                                let name = match id.as_ref() {
+                                    Node::Identifier { name, .. } => name,
+                                    _ => panic!("Expected identifier"),
+                                };
 
-                        let process_scope_index = context.process_scope_index.unwrap();
+                                let process_scope_index = context.process_scope_index.unwrap();
 
-                        // println!("Looking up {} in scope {}", name, process_scope_index);
-                        // println!("Symbol table: {:#?}", context.symbol_table);
+                                // println!("Looking up {} in scope {}", name, process_scope_index);
+                                // println!("Symbol table: {:#?}", context.symbol_table);
 
-                        let symbol = context.symbol_table.lookup_in_scope(name, process_scope_index).unwrap();
-                        symbols_to_hoist.push((context.get_unique_name(name), symbol.clone()));
+                                let symbol = context.symbol_table.lookup_in_scope(name, process_scope_index).unwrap();
+                                symbols_to_hoist.push((context.get_unique_name(name), symbol.clone()));
+                            }
+                            _ => ()
+                        }
                     }
+
                     _ => ()
                 }
             }
@@ -706,6 +712,29 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
 
             for node in children {
                 match node {
+                    Node::ExpressionStmt {child, ..} => {
+                        match child.as_ref() {
+                            Node::VariableDeclarationStmt { id, specifier, initializer, .. } => {
+                                // Hoist the declaration with a default value
+                                hoisted_declarations.push(Node::VariableDeclarationStmt {
+                                    id: id.clone(),
+                                    specifier: specifier.clone(),
+                                    initializer: Box::new(Node::Number {
+                                        value: 0.0,
+                                        position: Position::new(),
+                                    }),
+                                    position: Position::new(),
+                                });
+
+                                new_nodes.push(Node::AssignmentExpr {
+                                    lhs: id.clone(),
+                                    rhs: initializer.clone(),
+                                    position: Position::new(),
+                                });
+                            }
+                            _ => new_nodes.push(node.clone()),
+                        }
+                    }
                     Node::VariableDeclarationStmt { id, specifier, initializer, .. } => {
                         // Hoist the declaration with a default value
                         hoisted_declarations.push(Node::VariableDeclarationStmt {
@@ -914,7 +943,7 @@ mod tests {
                 foo = 1;
                 foo = 5;
 
-                spoo(foo1) {
+                fn spoo(foo1) {
                     let a = foo1 + 1;
                     return a + foo;
                 }
@@ -1122,7 +1151,7 @@ connect {
             output out = 0;
             export const M_PI = 3.14;
 
-            export add(a, b) {
+            export fn add(a, b) {
                 return a + b + something;
             }
 
@@ -1196,7 +1225,7 @@ connect {
             output out = 0;
             export const M_PI = 3.14;
 
-            export add(a, b) {
+            export fn add(a, b) {
                 return a + b + something;
             }
 
@@ -1285,7 +1314,7 @@ connect {
 
             export const M_PI = 3.14 + sin(25);
 
-            export add(a, b) {
+            export fn add(a, b) {
                 return a + b + something;
             }
 
@@ -1378,7 +1407,7 @@ connect {
 
             export const M_PI = 3.14 + sin(25);
 
-            export add(a, b) {
+            export fn add(a, b) {
                 return a + b + something;
             }
 

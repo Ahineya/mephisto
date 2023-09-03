@@ -30,7 +30,7 @@ process {
     // First Comb Filter
     let delayedSignal1 = buf_read(delayBuffer1, 0);
     let combOut1 = drySignal + (delayedSignal1 * decay);
-    let tmp = buf_push(delayBuffer1, combOut1);
+    buf_push(delayBuffer1, combOut1);
 
     // Second Comb Filter
     let delayedSignal2 = buf_read(delayBuffer2, 0);

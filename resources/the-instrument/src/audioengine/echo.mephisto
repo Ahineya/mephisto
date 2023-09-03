@@ -44,7 +44,7 @@ process {
     let toPush = audioIn + (delayedSignal * feedback);
 
     // Since the buffer is a ring buffer, this will automatically overwrite oldest value if buffer is full
-    let tmp = buf_push($delayBuffer, toPush); // TODO: This should be a void function, but compiler doesn't support it yet because I'm dumb
+    buf_push($delayBuffer, toPush); // TODO: This should be a void function, but compiler doesn't support it yet because I'm dumb
 
     audioOut = (audioIn * (1 - dryWet)) + (delayedSignal * dryWet);
 }

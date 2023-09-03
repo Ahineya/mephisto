@@ -20,8 +20,8 @@ let fadeInOut = 1;  // Between 0 and 1, representing the volume level.
 let fadeRate = 0;  // 0.01 for fade-in, -0.01 for fade-out, 0 for stationary.
 
 
-resize_buf() {
-  let tmp = buf_resize($ksBuffer, SR / frequency);
+fn resize_buf() {
+  buf_resize($ksBuffer, SR / frequency);
   lastSample = 0;
   return 0;
 }
@@ -32,7 +32,8 @@ block {
     lastPluckState = pluckTrigger;
 
     // If the frequency has changed, resize the buffer. But there are no if statements in Mephisto, so we have to do this:
-    let tmp = if((1 - (frequency == oldFrequency)), resize_buf);
+    if((1 - (frequency == oldFrequency)), resize_buf);
+
     oldFrequency = frequency;
 
         // Detect a frequency change and start the fade-out:
@@ -41,7 +42,7 @@ block {
         fadeRate = (fadeInOut == 0) * 0.1; // 0.01 for fade-in.
 }
 
-clamp(x, minv, maxv) {
+fn clamp(x, minv, maxv) {
     return min(max(x, minv), maxv);
 }
 
@@ -66,7 +67,7 @@ process {
     newSample = newSample * fadeInOut;
 
     // Push the new sample into the buffer
-    let tmp = buf_push($ksBuffer, newSample);
+    buf_push($ksBuffer, newSample);
 
     // Save this as the last sample
     lastSample = newSample;
