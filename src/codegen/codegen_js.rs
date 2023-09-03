@@ -204,6 +204,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.set_current_block("block");
+                    context.push_code("{\n");
                 }
                 ASTTraverseStage::Exit => {
                     context.push_code("}\n\n");
@@ -568,6 +569,30 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                     Node::Identifier {name, .. } => {
                                         name.to_string()
                                     }
+                                    Node::UnaryExpr { op, child, .. } => {
+                                        match op {
+                                            Operator::Minus => {
+                                                let mut code = "-".to_string();
+
+                                                // If child is Node::Number, we can unwrap
+                                                match child.as_ref() {
+                                                    Node::Number { value, .. } => {
+                                                        code.push_str(&value.to_string());
+                                                    }
+                                                    _ => {
+                                                        context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
+                                                        return true;
+                                                    }
+                                                };
+
+                                                code
+                                            }
+                                            _ => {
+                                                context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
+                                                return true;
+                                            }
+                                        }
+                                    }
                                     _ => {
                                         context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
                                         return true;
@@ -600,9 +625,32 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                                     name.to_string()
                                                 }
                                             }
+                                            Node::UnaryExpr { op, child, .. } => {
+                                                match op {
+                                                    Operator::Minus => {
+                                                        let mut code = "-".to_string();
+
+                                                        // If child is Node::Number, we can unwrap
+                                                        match child.as_ref() {
+                                                            Node::Number { value, .. } => {
+                                                                code.push_str(&value.to_string());
+                                                            }
+                                                            _ => {
+                                                                context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
+                                                            }
+                                                        };
+
+                                                        code
+                                                    }
+                                                    _ => {
+                                                        panic!("ParameterDeclarationField not expected in the IR")
+                                                    }
+                                                }
+                                            }
                                             _ => {
                                                 panic!("ParameterDeclarationField not expected in the IR")
                                             }
+
                                         };
 
                                         parameter_declaration.push_str(&format!(",{}:{}", name, specifier));

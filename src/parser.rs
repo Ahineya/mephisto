@@ -375,6 +375,9 @@ impl Parser {
             TokenType::NUMBER => {
                 self.parse_number()?
             }
+            TokenType::MINUS => {
+                self.parse_unary_number()?
+            }
             _ => {
                 return Err(self.generic_error(&next_token, "specifier or number"))
             }
@@ -827,6 +830,32 @@ impl Parser {
                 self.parse_infix_expr()
             }
         }
+    }
+
+    fn parse_unary_number(&mut self) -> Result<Node, String> {
+        let position = self.position();
+        let token = self.consume();
+
+        let operator = match token.token_type {
+            TokenType::MINUS => {
+                Operator::Minus
+            }
+            _ => {
+                Err(self.generic_error(&token, "minus"))?
+            }
+        };
+
+        let child = self.parse_number()?;
+
+        let mut node = Node::UnaryExpr {
+            op: operator,
+            child: Box::new(child),
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_unary_expr(&mut self) -> Result<Node, String> {
@@ -1351,6 +1380,25 @@ mod tests {
             process {
                 test();
             }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let ast = parser.parse(tokens);
+
+        println!("AST: {:#?}", ast);
+
+        assert_eq!(ast.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_unary_in_param() {
+        let code = "
+            param something {
+                initial: -1;
+            };
             ".to_string();
 
         let lexer = Lexer::new();

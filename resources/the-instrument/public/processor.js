@@ -581,6 +581,7 @@ function __Freq__semiOffset(freq, semi) {
 return (freq * Math.pow(__Freq__SEMI, semi));
 }
 
+let testicle = -1;
 let osc1waveform = 0;
 let osc2enabled = 0;
 let osc2octaveoffset = 2;
@@ -651,7 +652,7 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
     parameterDescriptors() {
         return [
-            {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.7,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0,min:0,max:1,step:0.01,type:1}, {name:'__Limiter__threshold',min:0,max:1,step:0.01,initial:0.8,type:1}, {name:'__Limiter__recoveryRate',min:0.01,max:1,step:0.01,initial:0.0001,type:1}, {name:'__Freeverb__dryWet',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__roomSize',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__damp',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'osc1waveform',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc2octaveoffset',initial:2,type:1,min:0,max:4,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}, {name:'frequency',initial:440}, {name:'instrument',initial:0,type:1,min:0,max:2,step:1,osc:0,karplus:1,mix:2}, {name:'globalgate',initial:0,type:1,min:0,max:1,step:1}
+            {name:'__Osc3__frequency',initial:110,type:1,min:55,max:880,step:0.01}, {name:'__Osc3__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Osc3__wave',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'__Drum__AR__attackTime',min:0.01,max:10,step:0.01,initial:0.01}, {name:'__Drum__AR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1}, {name:'__Drum__frequency',initial:110,type:1,min:0,max:1000,step:0.01}, {name:'__Drum__gain',initial:0.7,type:1,min:0,max:1,step:0.01}, {name:'__Drum__wave',initial:0,sine:0,square:1,saw:2,triangle:3,type:1,min:0,max:3,step:1}, {name:'__Drum__drum_trigger',initial:0,type:0}, {name:'__ADSR__attackTime',min:0.01,max:10,step:0.01,initial:0.01,type:1}, {name:'__ADSR__decayTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__ADSR__sustainLevel',min:0,max:1,step:0.01,initial:0.7,type:1}, {name:'__ADSR__releaseTime',min:0.01,max:10,step:0.01,initial:0.1,type:1}, {name:'__LowPass__cutoffFrequency',initial:1000,min:20,max:20000,step:10,type:1}, {name:'__LowPass__resonance',initial:0.5,min:0,max:4,step:0.01,type:1}, {name:'__Echo__delayTime',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__feedback',initial:0.5,min:0,max:1,step:0.01,type:1}, {name:'__Echo__dryWet',initial:0,min:0,max:1,step:0.01,type:1}, {name:'__Limiter__threshold',min:0,max:1,step:0.01,initial:0.8,type:1}, {name:'__Limiter__recoveryRate',min:0.01,max:1,step:0.01,initial:0.0001,type:1}, {name:'__Freeverb__dryWet',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__roomSize',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'__Freeverb__damp',initial:0.5,type:1,min:0,max:1,step:0.01}, {name:'testicle',initial:-1}, {name:'osc1waveform',initial:0,type:1,min:0,max:3,step:1,sine:0,square:1,saw:2,triangle:3}, {name:'osc2enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'osc2octaveoffset',initial:2,type:1,min:0,max:4,step:1}, {name:'osc3enabled',initial:0,type:1,min:0,max:1,step:1}, {name:'trigger',initial:0,type:0}, {name:'frequency',initial:440}, {name:'instrument',initial:0,type:1,min:0,max:2,step:1,osc:0,karplus:1,mix:2}, {name:'globalgate',initial:0,type:1,min:0,max:1,step:1}
         ];
     }
 
@@ -686,6 +687,7 @@ case '__Limiter__recoveryRate': __Limiter__recoveryRate = this.scheduledParamete
 case '__Freeverb__dryWet': __Freeverb__dryWet = this.scheduledParameterSetters[i].value; break;
 case '__Freeverb__roomSize': __Freeverb__roomSize = this.scheduledParameterSetters[i].value; break;
 case '__Freeverb__damp': __Freeverb__damp = this.scheduledParameterSetters[i].value; break;
+case 'testicle': testicle = this.scheduledParameterSetters[i].value; break;
 case 'osc1waveform': osc1waveform = this.scheduledParameterSetters[i].value; break;
 case 'osc2enabled': osc2enabled = this.scheduledParameterSetters[i].value; break;
 case 'osc2octaveoffset': osc2octaveoffset = this.scheduledParameterSetters[i].value; break;
@@ -699,7 +701,7 @@ case 'globalgate': globalgate = this.scheduledParameterSetters[i].value; break;
 
         this.scheduledParameterSetters = [];
 
-        /*console.trace('FIX ME, block');*/ {
+        {
 __Limiter__signalMagnitude = Math.abs(__Limiter__audioIn);
 __Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __Karplus__pluckTrigger);
 __Karplus__lastPluckState = __Karplus__pluckTrigger;

@@ -312,6 +312,22 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         Node::Number { value, .. } => {
                             value.to_string()
                         }
+                        Node::UnaryExpr { op, child, .. } => {
+                            match op {
+                                Operator::Minus => {
+                                    match child.as_ref() {
+                                        Node::Identifier { name, .. } => {
+                                            format!("-{}", name)
+                                        }
+                                        Node::Number { value, .. } => {
+                                            format!("-{}", value.to_string())
+                                        }
+                                        _ => panic!("Invalid specifier")
+                                    }
+                                }
+                                _ => panic!("Invalid specifier")
+                            }
+                        }
                         _ => panic!("Invalid specifier")
                     };
 
