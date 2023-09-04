@@ -29,6 +29,7 @@ param releaseTime {
     initial: 0.1;
     type: C_SLIDER;
 };
+
 input gate = 0;
 output curve = 0;
 
@@ -67,5 +68,4 @@ process {
 
     prevGate = gate;
     curve = currentVal;
-
 }

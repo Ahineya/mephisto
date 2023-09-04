@@ -63,8 +63,13 @@ button:focus-visible {
 
 @media (prefers-color-scheme: light) {
   :root {
-    color: #213547;
-    background-color: #ffffff;
+    color: #dadada;
+    background-color: #333333;
+
+    /* tiled texture dark_wood.png */
+    background-image: url("/dark_wood.png");
+    background-repeat: repeat;
+
   }
   a:hover {
     color: #747bff;

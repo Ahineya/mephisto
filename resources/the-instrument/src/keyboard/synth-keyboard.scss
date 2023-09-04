@@ -1,28 +1,33 @@
 
 :root {
-  --color-bg-white: #ffffff;
-  --color-bg-violet: #bbbbfa;
-  --color-violet: #9191fa;
-  --color-caption: #6e6e6e;
+  --color-main-bg: hsl(9 26% 6% / 1);
+  --color-secondary: hsl(25 19% 42% / 1);
+  --color-primary: hsl(26 19% 62% / 1);
+  --color-caption: #b09b8c;
+  --color-secondary-bg: var(--color-primary);
+
+  --shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+  --shadow-deep: 0 4px 24px rgba(0, 0, 0, 1);
 }
 
 .synth-keyboard {
-  border-left: 10px solid var(--color-violet);
-  border-right: 10px solid var(--color-violet);
+  border-left: 10px solid var(--color-primary);
+  border-right: 10px solid var(--color-primary);
 
   height: 245px;
 
   position: relative;
 
+  box-shadow: var(--shadow-deep);
 
   .keyboard-white-keys {
     display: flex;
 
     .key {
       flex-grow: 1;
-      border: 1px solid var(--color-violet);
+      border: 1px solid var(--color-primary);
       margin-left: -1px;
-      background-color: var(--color-bg-white);
+      background-color: var(--color-main-bg);
 
       display: flex;
       justify-content: center;
@@ -39,10 +44,10 @@
 
       height: 245px;
       cursor: pointer;
-      box-shadow: 0 4px 4px rgba(145, 145, 250, 0.25);
+      //box-shadow: var(--shadow);
 
       &:hover {
-        background-color: var(--color-bg-violet);
+        background-color: var(--color-secondary);
       }
 
       &:active {
@@ -50,7 +55,7 @@
       }
 
       &.pressed {
-        background-color: var(--color-bg-violet);
+        background-color: var(--color-secondary);
       }
     }
   }
@@ -73,13 +78,13 @@
       color: white;
       font-size: 12px;
 
-      background-color: var(--color-violet);
+      background-color: var(--color-primary);
 
       cursor: pointer;
-      box-shadow: 0 4px 4px rgba(145, 145, 250, 0.25);
+      box-shadow: var(--shadow);
 
       &:hover {
-        background-color: #bbbbfa;
+        background-color: var(--color-secondary);
       }
 
       &:active {
@@ -87,7 +92,7 @@
       }
 
       &.pressed {
-        background-color: #bbbbfa;
+        background-color: var(--color-secondary);
       }
     }
   }

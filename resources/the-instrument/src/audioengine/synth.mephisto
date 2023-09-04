@@ -46,6 +46,14 @@ param osc2octaveoffset {
     step: 1;
 };
 
+param osc2semioffset {
+    initial: 0;
+    type: C_SLIDER;
+    min: -12;
+    max: 12;
+    step: 1;
+};
+
 param osc3enabled {
     initial: 0;
     type: C_SLIDER;
@@ -103,7 +111,7 @@ param globalgate {
 };
 
 block {
-    osc2freq = Freq.semiOffset(frequency * osc2octaveoffset, 0);
+    osc2freq = Freq.semiOffset(frequency * osc2octaveoffset, osc2semioffset);
 }
 
 process {
@@ -132,7 +140,6 @@ connect {
     trigger -> Karplus.pluckTrigger;
 
     ADSR.curve -> adsr;
-
     trigger -> ADSR.gate;
 
     out -> LowPass.audioIn;
