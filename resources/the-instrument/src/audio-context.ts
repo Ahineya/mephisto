@@ -1,5 +1,7 @@
 // declare const Faustsynth_and_effects: any;
 
+import {synthStore} from "./stores/synth.store.ts";
+
 export const audioContext = new AudioContext();
 export const analyser = audioContext.createAnalyser();
 
@@ -21,16 +23,36 @@ export const analyser = audioContext.createAnalyser();
 await audioContext.audioWorklet.addModule('processor.js');
 export const synth = new AudioWorkletNode(audioContext, 'mephisto-generator');
 
-synth.port.onmessage = (event) => {
-    console.log(event.data);
+type Connection = {
+    path: string[];
+    io: string;
+};
 
+function parseConnection(str: string): Connection {
+    const parts = str.split('#');
+    const io = parts.pop()!;
+    const path = parts.length > 0 ? parts : ['Head'];
+
+    return { path, io };
+}
+
+function toMermaid(connections: string[]): string {
+    const mm = connections.map(connection => {
+        const [outputStr, inputStr] = connection.split(' -> ').map(str => {
+            const { path, io } = parseConnection(str);
+            return { node: path.join(''), io, label: path.join('#') };
+        });
+
+        return `${outputStr.node} -->|"${outputStr.io} > ${inputStr.io}"| ${inputStr.node}[${inputStr.label}]`;
+    }).join('\n');
+
+    return `graph LR\n${mm}`;
+}
+
+synth.port.onmessage = (event) => {
     const port = synth.port;
 
     if (event.data.command === 'init') {
-        //then event.data.parameters is an array of parameters
-        // if parameter.type === 0, then we want to create a button and add it to the dom
-        // if parameter.type === 1, then we want to create a slider and add it to the dom
-
         const controls = document.createElement('div');
 
         event.data.parameters.forEach((parameter: any) => {
@@ -150,7 +172,17 @@ synth.port.onmessage = (event) => {
             }
         })
 
-        document.body.appendChild(controls);
+        let connections = event.data.connections.map(([out, inp]: [number, number]) => {
+            return `${event.data.outputNames[out]} -> ${event.data.inputNames[inp]}`;
+        });
+
+        const chart = toMermaid(connections);
+
+        synthStore.setChart(chart);
+
+
+        const container = document.querySelector('#container');
+        container!.appendChild(controls);
     }
 };
 

@@ -10,8 +10,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@dgaa/store-subject": "^0.0.3",
+    "@dgaa/use-store-subscribe": "^0.0.1",
     "@types/webmidi": "^2.0.7",
     "classnames": "^2.3.2",
+    "mermaid": "^10.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rxjs": "^7.8.1"

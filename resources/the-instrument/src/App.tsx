@@ -1,17 +1,20 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
 import {SynthKeyboard} from "./keyboard/synth-keyboard.tsx";
+import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
+import {synthStore} from "./stores/synth.store.ts";
+import {Mermaid} from "./mermaid/mermaid.tsx";
 
 function App() {
-  const [count, setCount] = useState(0)
+    const chart = useStoreSubscribe(synthStore.chart);
 
-  return (
-    <>
-      <SynthKeyboard/>
-    </>
-  )
+    return (
+        <>
+            <SynthKeyboard/>
+            {
+                chart !== "" && <Mermaid chart={chart}/>
+            }
+        </>
+    )
 }
 
 export default App
