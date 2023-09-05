@@ -163,13 +163,10 @@ impl SemanticAnalyzer {
                                     Node::Identifier { name, .. } => {
                                         let symbol = context.symbol_table.lookup(name);
 
-                                        match symbol {
-                                            Some(symbol) => {
-                                                if symbol.is_constant() {
-                                                    context.errors.push(format!("Cannot assign to constant \"{}\", {:?}", name, position));
-                                                }
+                                        if let Some(symbol) = symbol {
+                                            if symbol.is_constant() {
+                                                context.errors.push(format!("Cannot assign to constant \"{}\", {:?}", name, position));
                                             }
-                                            None => {}
                                         }
                                     }
                                     _ => {}

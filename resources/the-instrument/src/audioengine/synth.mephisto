@@ -117,8 +117,8 @@ block {
 process {
     out = Lib.switch3(instrument,
         (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr,
-        karplus,
-        (karplus + (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr) * 0.5)
+        karplus * 2,
+        (karplus * 2 + (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr) * 0.5)
     * globalgate;
 }
 

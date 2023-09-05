@@ -15,6 +15,8 @@ pub struct IR {
 pub struct IRResult {
     pub ast: AST,
     pub symbol_table: SymbolTable,
+    pub input_names: Vec<String>,
+    pub output_names: Vec<String>,
     pub errors: Vec<String>,
 }
 
@@ -50,39 +52,155 @@ impl IR {
         // First pass should go through all modules and hoist all declarations from block and process nodes
         // Hoisting means that all declarations are moved to the top of the module and initialized with 0
         // Second pass should merge all modules into one
-        // Third pass should inline all functions
+        // Third pass should inline all functions (skip this for now)
+        // Fourth pass should rename all inputs, outputs, and params to array accesses
 
         Self::hoist(modules);
 
-        // TODO: Merge all modules into one
-
-        /*
-          How to merge modules:
-            1. Create a new module with an empty AST and symbol table
-            2. When the module is imported, it is "instantiated". Meaning that importing the same module twice will create two instances of the module
-            3. When a module is instantiated, all its symbols are renamed to be unique
-         */
-
-        // So, the main module is the one that is being executed. Then we need to recursively go through all the modules imported by the main module and merge them into the main module
-        // The main module should be the one that is being executed, so it should be the one that contains the process node
-
         let mut processed_modules = HashSet::new();
+
         let mut merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
-
-        println!("==========================================");
-        println!("{}", merged_module.ast.to_code_string());
-        println!("==========================================");
-
         let mut with_replaced_module_calls = Self::replace_module_calls(&merged_module.ast.root, &merged_module.symbol_table);
-        let with_replaced_stdlib_calls = Self::replace_stdlib_calls(&with_replaced_module_calls.ast.root, &mut with_replaced_module_calls.symbol_table);
+        let mut with_replaced_stdlib_calls = Self::replace_stdlib_calls(&with_replaced_module_calls.ast.root, &mut with_replaced_module_calls.symbol_table);
+        let (with_replaced_connects, input_names, output_names) = Self::replace_connects(&with_replaced_stdlib_calls.ast, &mut with_replaced_stdlib_calls.symbol_table);
 
-        let main_module_data = with_replaced_stdlib_calls;
+        let main_module_data = with_replaced_connects;
 
         Ok(IRResult {
             ast: main_module_data.ast.clone(),
             symbol_table: main_module_data.symbol_table.clone(),
+            input_names,
+            output_names,
             errors: vec![],
         })
+    }
+
+    fn replace_connects(ast: &AST, symbol_table: &mut SymbolTable) -> (ModuleData, Vec<String>, Vec<String>) {
+        let mut result = ast.clone();
+        symbol_table.reset_scopes_indexes();
+
+        // 1st pass — collect all input and output symbols
+        // 2nd pass — rename all input and output symbols
+
+        let mut context = ();
+
+        let mut input_symbols: Vec<(String, SymbolInfo)> = vec![];
+        let mut output_symbols: Vec<(String, SymbolInfo)> = vec![];
+
+        let skip_renaming_identifiers = false;
+        let mut skip_renaming_once = false;
+
+        let input_names = result.inputs();
+        let output_names = result.outputs();
+
+        for name in input_names {
+            let symbol = symbol_table.lookup(&name);
+            if symbol.is_some() {
+                let symbol = symbol.unwrap();
+
+                if symbol.is_input() {
+                    input_symbols.push((name.clone(), symbol.clone()));
+                }
+            }
+        }
+
+        for name in output_names {
+            let symbol = symbol_table.lookup(&name);
+            if symbol.is_some() {
+                let symbol = symbol.unwrap();
+
+                if (symbol.is_output() && !symbol.is_parameter()) {
+                    output_symbols.push((name.clone(), symbol.clone()));
+                }
+            }
+        }
+
+        symbol_table.reset_scopes_indexes();
+
+        traverse_ast(&mut result.root, &mut |stage, node, _context: &mut ()| {
+            match node {
+                Node::BlockNode { .. }
+                |
+                Node::BufferInitializer { .. }
+                |
+                Node::FunctionBody { .. }
+                |
+                Node::ProcessNode { .. }
+                => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            symbol_table.enter_next_scope();
+                        }
+                        ASTTraverseStage::Exit => {
+                            symbol_table.exit_scope();
+                        }
+                    }
+                }
+
+                Node::ParameterDeclarationField {
+                    ..
+                } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            skip_renaming_once = true;
+                        }
+                        ASTTraverseStage::Exit => {
+                            skip_renaming_once = false;
+                        }
+                    }
+                }
+
+                Node::Identifier { name, .. } => {
+                    if skip_renaming_identifiers {
+                        return false;
+                    }
+
+                    if skip_renaming_once {
+                        skip_renaming_once = false;
+                        return false;
+                    }
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            let symbol = symbol_table.lookup(name);
+
+                            println!("Renaming symbol {}", name);
+
+                            if symbol.is_some() {
+                                let symbol = symbol.unwrap();
+
+                                input_symbols.iter().enumerate().for_each(|(i, (new_name, si))| {
+                                    if si.id() == symbol.id() {
+                                        *name = format!("##INPUT_[{}]", i);
+                                    }
+                                });
+
+                                output_symbols.iter().enumerate().for_each(|(i, (new_name, si))| {
+                                    if si.id() == symbol.id() {
+                                        *name = format!("##OUTPUT_[{}]", i);
+                                    }
+                                });
+                            }
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+            false
+        }, &mut context);
+
+        let input_symbol_names: Vec<String> = input_symbols.iter().map(|(name, _)| name.clone()).collect();
+        let output_symbol_names: Vec<String> = output_symbols.iter().map(|(name, _)| name.clone()).collect();
+
+        (
+            ModuleData {
+                ast: AST::new(result.root.clone(), vec![]),
+                symbol_table: SymbolTable::from_ast(&mut AST::new(result.root.clone(), vec![])).unwrap(), // TODO: This is cheating, make it better
+                errors: vec![],
+            },
+            input_symbol_names,
+            output_symbol_names,
+        )
     }
 
     fn replace_stdlib_calls(ast: &Node, symbol_table: &mut SymbolTable) -> ModuleData {
@@ -251,9 +369,7 @@ impl IR {
                             let renamed_node = Self::rename_symbols(&module.ast.root, id, &mut module.symbol_table);
 
                             if let Node::ProgramNode { children: renamed_children, .. } = &renamed_node {
-
                                 for renamed_node in renamed_children.iter() {
-
                                     match renamed_node {
                                         Node::ProcessNode { .. } => {
                                             imported_process_nodes.push(renamed_node.clone());
@@ -393,7 +509,6 @@ impl IR {
                 Node::Identifier { name, .. } => {
                     match stage {
                         ASTTraverseStage::Enter => {
-
                             if !context.rename_symbols {
                                 return false;
                             }
@@ -597,7 +712,7 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
 
             for node in children {
                 match node {
-                    Node::ExpressionStmt {child, ..} => {
+                    Node::ExpressionStmt { child, .. } => {
                         match child.as_ref() {
                             Node::VariableDeclarationStmt { id, .. } => {
                                 let name = match id.as_ref() {
@@ -657,9 +772,9 @@ fn collect_symbols_for_rename(ast: &mut Node, context: &mut HoistingContext) -> 
             |
             Node::FunctionDeclarationStmt { id, .. }
             |
-            Node::BufferDeclarationStmt {id, ..}
+            Node::BufferDeclarationStmt { id, .. }
             |
-            Node::ParameterDeclarationStmt {id, ..} => {
+            Node::ParameterDeclarationStmt { id, .. } => {
                 match stage {
                     ASTTraverseStage::Enter => {
                         let name = match id.as_ref() {
@@ -712,7 +827,7 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
 
             for node in children {
                 match node {
-                    Node::ExpressionStmt {child, ..} => {
+                    Node::ExpressionStmt { child, .. } => {
                         match child.as_ref() {
                             Node::VariableDeclarationStmt { id, specifier, initializer, .. } => {
                                 // Hoist the declaration with a default value
@@ -1082,7 +1197,6 @@ connect {
         let mut ir_result = result.unwrap();
 
         ir_result.symbol_table.reset_scopes_indexes();
-
     }
 
     #[test]

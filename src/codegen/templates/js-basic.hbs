@@ -159,6 +159,15 @@ return otherwise();
 }
 }
 
+const __m_inputs = new Float64Array({{INPUTS_LENGTH}});
+const __m_outputs = new Float64Array({{OUTPUTS_LENGTH}});
+
+const __inputNames = [{{INPUT_NAMES}}];
+const __outputNames = [{{OUTPUT_NAMES}}];
+
+let connections = [
+    {{CONNECTIONS}}
+];
 
 {{GLOB}}
 
@@ -173,7 +182,10 @@ class MephistoGenerator extends AudioWorkletProcessor {
             if (e.data.command === 'init') {
                 this.port.postMessage({
                     command: 'init',
-                    parameters: this.parameterDescriptors()
+                    parameters: this.parameterDescriptors(),
+                    connections,
+                    inputNames: __inputNames,
+                    outputNames: __outputNames,
                 });
             }
 
@@ -233,7 +245,12 @@ class MephistoGenerator extends AudioWorkletProcessor {
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
             {{PROCESS}}
-            {{CONNECTIONS}}
+
+            connections.forEach(([out, inp]) => {
+                __m_inputs[inp] = __m_outputs[out];
+            });
+
+            {{IMPLICIT_CONNECTIONS}}
         }
 
         return true;

@@ -1,9 +1,9 @@
 use crate::codegen::CodeGenerator;
-use crate::module_data::ModuleData;
 use crate::parser::ast::{ASTTraverseStage, Node, Operator, traverse_ast, VariableSpecifier};
 
 use handlebars::Handlebars;
 use std::collections::HashMap;
+use crate::ir::IRResult;
 
 pub struct JSCodeGenerator {
     handlebars: Handlebars<'static>,
@@ -31,6 +31,10 @@ pub struct Context {
 impl Context {
     fn push_code(&mut self, code: &str) {
         self.code_map.get_mut(&self.current_block).unwrap().push_str(code);
+    }
+
+    fn push_implicit_connect(&mut self, code: &str) {
+        self.code_map.get_mut(&"implicit_connect".to_string()).unwrap().push_str(code);
     }
 
     fn remove_last_char(&mut self) {
@@ -117,7 +121,7 @@ impl JSCodeGenerator {
 
 impl CodeGenerator for JSCodeGenerator {
 
-    fn generate(&self, module: ModuleData) -> Result<String, Vec<String>> {
+    fn generate(&self, ir: IRResult) -> Result<String, Vec<String>> {
         let mut context = Context {
             code: String::new(),
             code_map: HashMap::new(),
@@ -133,18 +137,16 @@ impl CodeGenerator for JSCodeGenerator {
 
             stdlib: self.stdlib.clone(),
         };
-        
+
         context.code_map.insert("glob".to_string(), "".to_string());
         context.code_map.insert("block".to_string(), "".to_string());
         context.code_map.insert("process".to_string(), "".to_string());
         context.code_map.insert("connect".to_string(), "".to_string());
+        context.code_map.insert("implicit_connect".to_string(), "".to_string());
 
-        let mut ast = module.ast;
+        let mut ast = ir.ast;
 
         traverse_ast(&mut ast.root, &mut ast_to_code, &mut context);
-
-        // For now let's concatenate the code and connect code
-        // context.push_code(&context.connect_code);
 
         if context.errors.len() > 0 {
             return Err(context.errors);
@@ -157,6 +159,7 @@ impl CodeGenerator for JSCodeGenerator {
         let block_code = code_map.get("block").unwrap();
         let process_code = code_map.get("process").unwrap();
         let connect_code = code_map.get("connect").unwrap();
+        let implicit_connect_code = code_map.get("implicit_connect").unwrap();
 
         let parameters = context.parameter_declarations.join(", ");
         let parameters = &parameters;
@@ -164,12 +167,23 @@ impl CodeGenerator for JSCodeGenerator {
         let parameter_setters = context.parameter_setters.join("\n");
         let parameter_setters = &parameter_setters;
 
+        let inputs_length = ir.input_names.len().to_string();
+        let outputs_length = ir.output_names.len().to_string();
+
+        let input_names = ir.input_names.iter().map(|name| format!("\"{}\"", name)).collect::<Vec<_>>().join(", ");
+        let output_names = ir.output_names.iter().map(|name| format!("\"{}\"", name)).collect::<Vec<_>>().join(", ");
+
+        data.insert("INPUT_NAMES", &input_names);
+        data.insert("OUTPUT_NAMES", &output_names);
+        data.insert("INPUTS_LENGTH", &inputs_length);
+        data.insert("OUTPUTS_LENGTH", &outputs_length);
         data.insert("GLOB", &glob_code);
         data.insert("PARAMETERS", &parameters);
         data.insert("PARAMETER_SETTERS", &parameter_setters);
         data.insert("BLOCK", &block_code);
         data.insert("PROCESS", &process_code);
         data.insert("CONNECTIONS", &connect_code);
+        data.insert("IMPLICIT_CONNECTIONS", &implicit_connect_code);
 
         let rendered = self.handlebars.render("js", &data).unwrap();
 
@@ -224,12 +238,20 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                 // lhs is guaranteed to be Node::Identifier, so we can unwrap
                                 let output_name =  match lhs.as_ref() {
                                     Node::Identifier { name, .. } => {
-                                        if name.contains("#") {
+
+                                        if name.starts_with("##INPUT_") {
+                                            // The string is "##INPUT_[number]". We want to extract the number
+                                            let number = name.trim_start_matches("##INPUT_[").trim_end_matches("]");
+                                            number.to_string()
+                                        } else if name.starts_with("##OUTPUT_") {
+                                            let number = name.trim_start_matches("##OUTPUT_[").trim_end_matches("]");
+                                            number.to_string()
+                                        } else if name.contains("#") {
                                             // replace # with __, and prepend with __
                                             let name = name.replace("#", "__");
-                                            format!("__{}", name)
+                                            format!("##__{}", name) // Should go to implicit connections
                                         } else {
-                                            name.to_string()
+                                            format!("##{}", name.to_string()) // Should go to implicit connections
                                         }
                                     },
                                     _ => {
@@ -240,12 +262,19 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                                 let input_name = match rhs.as_ref() {
                                     Node::Identifier { name, .. } => {
-                                        if name.contains("#") {
+                                        if name.starts_with("##INPUT_") {
+                                            // The string is "##INPUT_[number]". We want to extract the number
+                                            let number = name.trim_start_matches("##INPUT_[").trim_end_matches("]");
+                                            number.to_string()
+                                        } else if name.starts_with("##OUTPUT_") {
+                                            let number = name.trim_start_matches("##OUTPUT_[").trim_end_matches("]");
+                                            number.to_string()
+                                        } else if name.contains("#") {
                                             // replace # with __, and prepend with __
                                             let name = name.replace("#", "__");
-                                            format!("__{}", name)
+                                            format!("##__{}", name) // Should go to implicit connections
                                         } else {
-                                            name.to_string()
+                                            format!("##{}", name.to_string()) // Should go to implicit connections
                                         }
                                     },
                                     Node::OutputsStmt { .. } => "#OUTPUTS".to_string(),
@@ -259,10 +288,36 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                 };
 
                                 if input_name == "#OUTPUTS" {
-                                    context.push_code(&format!("leftOutput[i] = {};\n", output_name));
-                                    context.push_code(&format!("rightOutput && (rightOutput[i] = {});\n", output_name));
-                                } else {
-                                    context.push_code(&format!("{} = {};\n", input_name, output_name));
+
+                                    if output_name.parse::<i32>().is_ok() {
+                                        context.push_implicit_connect(&format!("leftOutput[i] = __m_outputs[{}];\n", output_name));
+                                        context.push_implicit_connect(&format!("rightOutput && (rightOutput[i] = __m_outputs[{}]);\n", output_name));
+                                    } else {
+                                        context.push_implicit_connect(&format!("leftOutput[i] = {};\n", output_name));
+                                        context.push_implicit_connect(&format!("rightOutput && (rightOutput[i] = {});\n", output_name));
+                                    }
+
+
+                                } else if input_name.starts_with("##") || output_name.starts_with("##") {
+                                    let input_name = input_name.trim_start_matches("##");
+                                    let output_name = output_name.trim_start_matches("##");
+
+                                    // Check if input_name is a number
+                                    if input_name.parse::<i32>().is_ok() {
+                                        context.push_implicit_connect(&format!("__m_inputs[{}] =", input_name));
+                                    } else {
+                                        context.push_implicit_connect(&format!("{} =", input_name));
+                                    }
+
+                                    // Check if output_name is a number
+                                    if output_name.parse::<i32>().is_ok() {
+                                        context.push_implicit_connect(&format!(" __m_outputs[{}];\n", output_name));
+                                    } else {
+                                        context.push_implicit_connect(&format!(" {};\n", output_name));
+                                    }
+                                }
+                                else {
+                                    context.push_code(&format!("[{}, {}],\n", output_name, input_name));
                                 }
                             }
                             _ => {
@@ -373,6 +428,12 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                     if name.starts_with("##STD_") {
                         let stdlib_name = name.trim_start_matches("##STD_");
                         context.push_code(&format!("{}", context.get_stdlib_symbol(stdlib_name)));
+                    } else if name.starts_with("##INPUT_") {
+                        let input_name = name.trim_start_matches("##INPUT_");
+                        context.push_code(&format!("__m_inputs{}", input_name))
+                    } else if name.starts_with("##OUTPUT_") {
+                        let output_name = name.trim_start_matches("##OUTPUT_");
+                        context.push_code(&format!("__m_outputs{}", output_name))
                     } else if name.contains("#") {
                         // replace # with __, and prepend with __
                         let name = name.replace("#", "__");
@@ -456,10 +517,10 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                             context.push_code("const ");
                         }
                         VariableSpecifier::Input => {
-                            context.push_code("let ");
+                            context.push_code("");
                         }
                         VariableSpecifier::Output => {
-                            context.push_code("let ");
+                            context.push_code("");
                         }
                         VariableSpecifier::Buffer => {
                             context.push_code("let ");
@@ -468,7 +529,13 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
                     match id.as_ref() {
                         Node::Identifier { name, .. } => {
-                            if name.contains("#") {
+                            if name.starts_with("##INPUT_") {
+                                let input_name = name.trim_start_matches("##INPUT_");
+                                context.push_code(&format!("__m_inputs{}", input_name))
+                            } else if name.starts_with("##OUTPUT_") {
+                                let output_name = name.trim_start_matches("##OUTPUT_");
+                                context.push_code(&format!("__m_outputs{}", output_name))
+                            } else if name.contains("#") {
                                 // replace # with __, and prepend with __
                                 let name = name.replace("#", "__");
                                 context.push_code(&format!("__{}", name));

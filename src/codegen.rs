@@ -1,17 +1,18 @@
 pub mod codegen_js;
 
+use crate::ir::IRResult;
 use crate::module_data::ModuleData;
 
 pub trait CodeGenerator {
-    fn generate(&self, module: ModuleData) -> Result<String, Vec<String>>;
+    fn generate(&self, ir: IRResult) -> Result<String, Vec<String>>;
     fn get_stdlib_symbol(&self, name: &str) -> String;
 }
 
 pub struct StubCodeGenerator;
 
 impl CodeGenerator for StubCodeGenerator {
-    fn generate(&self, module: ModuleData) -> Result<String, Vec<String>> {
-        Ok(format!("[STUB] module: {:?}", module))
+    fn generate(&self, ir: IRResult) -> Result<String, Vec<String>> {
+        Ok(format!("[STUB] IR: {:?}", ir))
     }
     
     fn get_stdlib_symbol(&self, name: &str) -> String {

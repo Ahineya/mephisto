@@ -2,7 +2,7 @@ use std::error::Error;
 use std::path::Path;
 use indexmap::IndexMap;
 use crate::codegen::{CodeGenerator};
-use crate::ir::IR;
+use crate::ir::{IR, IRResult};
 
 use crate::lexer::{Lexer, token::Token};
 use crate::module_data::ModuleData;
@@ -121,13 +121,15 @@ impl<T: FileLoader> Mephisto<T> {
 
         println!("Code: {}", ir_result.ast.to_code_string());
 
-        let module_data = ModuleData {
-            ast: ir_result.ast,
-            symbol_table: ir_result.symbol_table,
-            errors: Vec::new(),
-        };
+        if ir_result.errors.len() > 0 {
+            errors.extend(ir_result.errors.iter().map(|e| format!("{}: {}", main_module_path, e)));
+        }
 
-        self.generate_code(module_data, codegen)
+        if errors.len() > 0 {
+            return Err(errors);
+        }
+
+        self.generate_code(ir_result, codegen)
     }
 
     fn process_module(&mut self, path: &str, context: &mut Context, base_path: Option<&Path>) -> Result<(), Vec<String>> {
@@ -180,7 +182,7 @@ impl<T: FileLoader> Mephisto<T> {
         result
     }
 
-    pub fn generate_code(&self, module: ModuleData, code_generator: Box<dyn CodeGenerator>) -> Result<String, Vec<String>> {
-        code_generator.generate(module)
+    pub fn generate_code(&self, ir: IRResult, code_generator: Box<dyn CodeGenerator>) -> Result<String, Vec<String>> {
+        code_generator.generate(ir)
     }
 }

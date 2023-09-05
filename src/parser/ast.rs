@@ -56,6 +56,66 @@ impl AST {
         }, &mut imports);
         imports
     }
+    
+    pub fn inputs(&self) -> Vec<String> {
+        let mut inputs = Vec::new();
+        traverse_ast(&mut self.root.clone(), &mut |enter_exit, node, context: &mut Vec<String>| {
+            match node {
+                Node::VariableDeclarationStmt { id, specifier, .. } => {
+                    match enter_exit {
+                        ASTTraverseStage::Enter => {
+                            match specifier {
+                                VariableSpecifier::Input => {
+                                    match id.as_ref() {
+                                        Node::Identifier { name, .. } => {
+                                            context.push(name.clone());
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        ASTTraverseStage::Exit => {}
+                    }
+                }
+                _ => {}
+            }
+
+            false
+        }, &mut inputs);
+        inputs
+    }
+    
+    pub fn outputs(&self) -> Vec<String> {
+        let mut outputs = Vec::new();
+        traverse_ast(&mut self.root.clone(), &mut |enter_exit, node, context: &mut Vec<String>| {
+            match node {
+                Node::VariableDeclarationStmt { id, specifier, .. } => {
+                    match enter_exit {
+                        ASTTraverseStage::Enter => {
+                            match specifier {
+                                VariableSpecifier::Output => {
+                                    match id.as_ref() {
+                                        Node::Identifier { name, .. } => {
+                                            context.push(name.clone());
+                                        }
+                                        _ => {}
+                                    }
+                                }
+                                _ => {}
+                            }
+                        }
+                        ASTTraverseStage::Exit => {}
+                    }
+                }
+                _ => {}
+            }
+
+            false
+        }, &mut outputs);
+        outputs
+    }
 }
 
 fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Context) -> bool {

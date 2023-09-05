@@ -159,6 +159,40 @@ return otherwise();
 }
 }
 
+const __m_inputs = new Float64Array(31);
+const __m_outputs = new Float64Array(25);
+
+const __inputNames = ["Osc#Phaser#frequency", "Osc#frequency", "Osc#gain", "Osc#wave", "Osc#phase", "Osc2#Phaser#frequency", "Osc2#frequency", "Osc2#gain", "Osc2#wave", "Osc2#phase", "Osc3#Phaser#frequency", "Osc3#phase", "Drum#Phaser#frequency", "Drum#AR#trigger", "Drum#phase", "Drum#ar_curve", "Drum#trigger_in", "ADSR#gate", "LowPass#audioIn", "Echo#audioIn", "Karplus#pluckTrigger", "Karplus#frequency", "Limiter#audioIn", "Freeverb#audioIn", "osc1", "osc2", "osc3", "drum", "echo", "adsr", "karplus"];
+const __outputNames = ["Osc#Phaser#phase", "Osc#out", "Osc#freq", "Osc2#Phaser#phase", "Osc2#out", "Osc2#freq", "Osc3#Phaser#phase", "Osc3#out", "Osc3#freq", "Drum#Phaser#phase", "Drum#AR#curve", "Drum#out", "Drum#freq", "Drum#trigger", "ADSR#curve", "LowPass#audioOut", "Echo#audioOut", "Karplus#out", "Limiter#audioOut", "Freeverb#audioOut", "out", "osc1gain", "osc2freq", "osc2gain", "osc2wave"];
+
+const connections = [
+    [12, 12],
+[9, 14],
+[13, 13],
+[10, 15],
+[8, 10],
+[6, 11],
+[5, 5],
+[3, 9],
+[2, 0],
+[0, 4],
+[1, 24],
+[4, 25],
+[7, 26],
+[21, 2],
+[22, 6],
+[23, 7],
+[24, 8],
+[17, 30],
+[14, 29],
+[20, 18],
+[15, 19],
+[16, 23],
+[19, 22],
+
+
+
+];
 
 function __Osc__Lib__sinewave(phase) {
 return Math.sin(((phase * 2) * Math.PI));
@@ -196,15 +230,15 @@ function __Osc__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-let __Osc__Phaser__frequency = 110;
-let __Osc__Phaser__phase = 0;
+__m_inputs[0] = 110;
+__m_outputs[0] = 0;
 let __Osc__Phaser__increment = 0;
-let __Osc__frequency = 110;
-let __Osc__gain = 0.7;
-let __Osc__wave = 0;
-let __Osc__out = 0;
-let __Osc__phase = 0;
-let __Osc__freq = 0;
+__m_inputs[1] = 110;
+__m_inputs[2] = 0.7;
+__m_inputs[3] = 0;
+__m_outputs[1] = 0;
+__m_inputs[4] = 0;
+__m_outputs[2] = 0;
 let __Osc__sine = 0;
 let __Osc__square = 0;
 let __Osc__saw = 0;
@@ -246,15 +280,15 @@ function __Osc2__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-let __Osc2__Phaser__frequency = 110;
-let __Osc2__Phaser__phase = 0;
+__m_inputs[5] = 110;
+__m_outputs[3] = 0;
 let __Osc2__Phaser__increment = 0;
-let __Osc2__frequency = 110;
-let __Osc2__gain = 0.7;
-let __Osc2__wave = 0;
-let __Osc2__out = 0;
-let __Osc2__phase = 0;
-let __Osc2__freq = 0;
+__m_inputs[6] = 110;
+__m_inputs[7] = 0.7;
+__m_inputs[8] = 0;
+__m_outputs[4] = 0;
+__m_inputs[9] = 0;
+__m_outputs[5] = 0;
 let __Osc2__sine = 0;
 let __Osc2__square = 0;
 let __Osc2__saw = 0;
@@ -296,15 +330,15 @@ function __Osc3__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-let __Osc3__Phaser__frequency = 110;
-let __Osc3__Phaser__phase = 0;
+__m_inputs[10] = 110;
+__m_outputs[6] = 0;
 let __Osc3__Phaser__increment = 0;
 let __Osc3__frequency = 110;
 let __Osc3__gain = 0.7;
 let __Osc3__wave = 0;
-let __Osc3__out = 0;
-let __Osc3__phase = 0;
-let __Osc3__freq = 0;
+__m_outputs[7] = 0;
+__m_inputs[11] = 0;
+__m_outputs[8] = 0;
 let __Osc3__sine = 0;
 let __Osc3__square = 0;
 let __Osc3__saw = 0;
@@ -346,13 +380,13 @@ function __Drum__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-let __Drum__Phaser__frequency = 110;
-let __Drum__Phaser__phase = 0;
+__m_inputs[12] = 110;
+__m_outputs[9] = 0;
 let __Drum__Phaser__increment = 0;
 let __Drum__AR__attackTime = 0.01;
 let __Drum__AR__releaseTime = 0.1;
-let __Drum__AR__trigger = 0;
-let __Drum__AR__curve = 0;
+__m_inputs[13] = 0;
+__m_outputs[10] = 0;
 let __Drum__AR__currentVal = 0;
 let __Drum__AR__prevTrigger = 0;
 let __Drum__AR__envelopeState = 0;
@@ -366,12 +400,12 @@ let __Drum__frequency = 110;
 let __Drum__gain = 0.7;
 let __Drum__wave = 0;
 let __Drum__drum_trigger = 0;
-let __Drum__out = 0;
-let __Drum__freq = 0;
-let __Drum__trigger = 0;
-let __Drum__phase = 0;
-let __Drum__ar_curve = 0;
-let __Drum__trigger_in = 0;
+__m_outputs[11] = 0;
+__m_outputs[12] = 0;
+__m_outputs[13] = 0;
+__m_inputs[14] = 0;
+__m_inputs[15] = 0;
+__m_inputs[16] = 0;
 let __Drum__sine = 0;
 let __Drum__square = 0;
 let __Drum__saw = 0;
@@ -381,8 +415,8 @@ let __ADSR__attackTime = 0.01;
 let __ADSR__decayTime = 0.1;
 let __ADSR__sustainLevel = 0.7;
 let __ADSR__releaseTime = 0.1;
-let __ADSR__gate = 0;
-let __ADSR__curve = 0;
+__m_inputs[17] = 0;
+__m_outputs[14] = 0;
 let __ADSR__currentVal = 0;
 let __ADSR__prevGate = 0;
 let __ADSR__envelopeState = 0;
@@ -393,8 +427,8 @@ let __ADSR__risingEdge = 0;
 let __ADSR__fallingEdge = 0;
 let __LowPass__cutoffFrequency = 1000;
 let __LowPass__resonance = 0.5;
-let __LowPass__audioIn = 0;
-let __LowPass__audioOut = 0;
+__m_inputs[18] = 0;
+__m_outputs[15] = 0;
 let __LowPass__dt = (1 / sampleRate);
 let __LowPass__previousOutput1 = 0;
 let __LowPass__previousOutput2 = 0;
@@ -409,8 +443,8 @@ let __LowPass__buffer4 = 0;
 let __Echo__delayTime = 0.5;
 let __Echo__feedback = 0.5;
 let __Echo__dryWet = 0;
-let __Echo__audioIn = 0;
-let __Echo__audioOut = 0;
+__m_inputs[19] = 0;
+__m_outputs[16] = 0;
 const __Echo__$delayBuffer = new Ringbuffer(sampleRate);
 let __Echo__delaySamples = 0;
 let __Echo__bufLen = 0;
@@ -453,9 +487,9 @@ function __Karplus__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-let __Karplus__pluckTrigger = 0;
-let __Karplus__frequency = 440;
-let __Karplus__out = 0;
+__m_inputs[20] = 0;
+__m_inputs[21] = 440;
+__m_outputs[17] = 0;
 let __Karplus__$ksBuffer = new Ringbuffer(110);
 let __Karplus__justPlucked = 0;
 let __Karplus__lastSample = 0;
@@ -465,7 +499,7 @@ let __Karplus__oldFrequency = 440;
 let __Karplus__fadeInOut = 1;
 let __Karplus__fadeRate = 0;
 function __Karplus__resize_buf() {
-Rb.resize(__Karplus__$ksBuffer, (sampleRate / __Karplus__frequency));
+Rb.resize(__Karplus__$ksBuffer, (sampleRate / __m_inputs[21]));
 __Karplus__lastSample = 0;
 return 0;
 }
@@ -480,8 +514,8 @@ let __Karplus__impulse = 0;
 let __Karplus__newSample = 0;
 let __Limiter__threshold = 0.8;
 let __Limiter__recoveryRate = 0.0001;
-let __Limiter__audioIn = 0;
-let __Limiter__audioOut = 0;
+__m_inputs[22] = 0;
+__m_outputs[18] = 0;
 let __Limiter__gain = 1;
 let __Limiter__signalMagnitude = 0;
 let __Limiter__exceed = 0;
@@ -525,8 +559,8 @@ return (a + ((b - a) * t));
 let __Freeverb__dryWet = 0.5;
 let __Freeverb__roomSize = 0.5;
 let __Freeverb__damp = 0.5;
-let __Freeverb__audioIn = 0;
-let __Freeverb__audioOut = 0;
+__m_inputs[23] = 0;
+__m_outputs[19] = 0;
 let __Freeverb__$combBuffer1 = new Ringbuffer(1557);
 let __Freeverb__$combBuffer2 = new Ringbuffer(1617);
 let __Freeverb__$combBuffer3 = new Ringbuffer(1491);
@@ -589,18 +623,18 @@ let osc3enabled = 0;
 let trigger = 0;
 let frequency = 440;
 let instrument = 0;
-let out = 0;
-let osc1 = 0;
-let osc2 = 0;
-let osc3 = 0;
-let drum = 0;
-let echo = 0;
-let adsr = 0;
-let karplus = 0;
-let osc1gain = 0.5;
-let osc2freq = 440;
-let osc2gain = 0.5;
-let osc2wave = 2;
+__m_outputs[20] = 0;
+__m_inputs[24] = 0;
+__m_inputs[25] = 0;
+__m_inputs[26] = 0;
+__m_inputs[27] = 0;
+__m_inputs[28] = 0;
+__m_inputs[29] = 0;
+__m_inputs[30] = 0;
+__m_outputs[21] = 0.5;
+__m_outputs[22] = 440;
+__m_outputs[23] = 0.5;
+__m_outputs[24] = 2;
 let globalgate = 0;
 
 
@@ -615,7 +649,10 @@ class MephistoGenerator extends AudioWorkletProcessor {
             if (e.data.command === 'init') {
                 this.port.postMessage({
                     command: 'init',
-                    parameters: this.parameterDescriptors()
+                    parameters: this.parameterDescriptors(),
+                    connections,
+                    inputNames: __inputNames,
+                    outputNames: __outputNames,
                 });
             }
 
@@ -702,12 +739,12 @@ case 'globalgate': globalgate = this.scheduledParameterSetters[i].value; break;
         this.scheduledParameterSetters = [];
 
         {
-__Limiter__signalMagnitude = Math.abs(__Limiter__audioIn);
-__Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __Karplus__pluckTrigger);
-__Karplus__lastPluckState = __Karplus__pluckTrigger;
-Std.if((__Karplus__frequency != __Karplus__oldFrequency ? 1 : 0), __Karplus__resize_buf);
-__Karplus__oldFrequency = __Karplus__frequency;
-__Karplus__fadeRate = ((__Karplus__frequency != __Karplus__oldFrequency ? 1 : 0) * -0.1);
+__Limiter__signalMagnitude = Math.abs(__m_inputs[22]);
+__Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __m_inputs[20]);
+__Karplus__lastPluckState = __m_inputs[20];
+Std.if((__m_inputs[21] != __Karplus__oldFrequency ? 1 : 0), __Karplus__resize_buf);
+__Karplus__oldFrequency = __m_inputs[21];
+__Karplus__fadeRate = ((__m_inputs[21] != __Karplus__oldFrequency ? 1 : 0) * -0.1);
 __Karplus__fadeRate = ((__Karplus__fadeInOut == 0 ? 1 : 0) * 0.1);
 __LowPass__RC = (1 / ((2 * Math.PI) * __LowPass__cutoffFrequency));
 __ADSR__attackInc = (1 / (sampleRate * __ADSR__attackTime));
@@ -715,21 +752,21 @@ __ADSR__decayDec = ((1 - __ADSR__sustainLevel) / (sampleRate * __ADSR__decayTime
 __ADSR__releaseDec = (__ADSR__sustainLevel / (sampleRate * __ADSR__releaseTime));
 __Drum__AR__attackInc = (1 / (sampleRate * __Drum__AR__attackTime));
 __Drum__AR__releaseDec = (1 / (sampleRate * __Drum__AR__releaseTime));
-__Drum__Phaser__increment = (__Drum__Phaser__frequency / sampleRate);
-__Osc3__Phaser__increment = (__Osc3__Phaser__frequency / sampleRate);
-__Osc3__freq = __Osc3__frequency;
-__Osc2__Phaser__increment = (__Osc2__Phaser__frequency / sampleRate);
-__Osc2__freq = __Osc2__frequency;
-__Osc__Phaser__increment = (__Osc__Phaser__frequency / sampleRate);
-__Osc__freq = __Osc__frequency;
-osc2freq = __Freq__semiOffset((frequency * osc2octaveoffset), osc2semioffset);
+__Drum__Phaser__increment = (__m_inputs[12] / sampleRate);
+__Osc3__Phaser__increment = (__m_inputs[10] / sampleRate);
+__m_outputs[8] = __Osc3__frequency;
+__Osc2__Phaser__increment = (__m_inputs[5] / sampleRate);
+__m_outputs[5] = __m_inputs[6];
+__Osc__Phaser__increment = (__m_inputs[0] / sampleRate);
+__m_outputs[2] = __m_inputs[1];
+__m_outputs[22] = __Freq__semiOffset((frequency * osc2octaveoffset), osc2semioffset);
 }
 
 
 
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
-            __Freeverb__inputSample = __Freeverb__audioIn;
+            __Freeverb__inputSample = __m_inputs[23];
 __Freeverb__combOut1 = ((Rb.read(__Freeverb__$combBuffer1, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut2 = ((Rb.read(__Freeverb__$combBuffer2, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut3 = ((Rb.read(__Freeverb__$combBuffer3, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
@@ -742,11 +779,11 @@ Rb.push(__Freeverb__$allpassBuffer1, __Freeverb__combSum);
 __Freeverb__allpassOut2 = -(__Freeverb__allpassOut1 + Rb.read(__Freeverb__$allpassBuffer2, 0));
 Rb.push(__Freeverb__$allpassBuffer2, __Freeverb__allpassOut1);
 __Freeverb__wetSignal = __Freeverb__allpassOut2;
-__Freeverb__audioOut = ((__Freeverb__inputSample * (1 - __Freeverb__dryWet)) + (__Freeverb__wetSignal * __Freeverb__dryWet));
+__m_outputs[19] = ((__Freeverb__inputSample * (1 - __Freeverb__dryWet)) + (__Freeverb__wetSignal * __Freeverb__dryWet));
 __Limiter__exceed = (__Limiter__signalMagnitude - __Limiter__threshold);
 __Limiter__reductionFactor = Math.exp(-(__Limiter__exceed * __Limiter__recoveryRate));
 __Limiter__gain = __Limiter__reductionFactor;
-__Limiter__audioOut = (__Limiter__audioIn * __Limiter__gain);
+__m_outputs[18] = (__m_inputs[22] * __Limiter__gain);
 __Karplus__firstSample = Rb.read(__Karplus__$ksBuffer, 0);
 __Karplus__fadeInOut = (__Karplus__fadeInOut + __Karplus__fadeRate);
 __Karplus__fadeInOut = __Karplus__clamp(__Karplus__fadeInOut, 0, 1);
@@ -758,17 +795,17 @@ __Karplus__newSample = (__Karplus__newSample * __Karplus__fadeInOut);
 Rb.push(__Karplus__$ksBuffer, __Karplus__newSample);
 __Karplus__lastSample = __Karplus__newSample;
 __Karplus__justPlucked = 0;
-__Karplus__out = __Karplus__newSample;
+__m_outputs[17] = __Karplus__newSample;
 __Echo__delaySamples = (__Echo__delayTime * sampleRate);
 __Echo__bufLen = Rb.length(__Echo__$delayBuffer);
 __Echo__readIndex = (__Echo__bufLen - __Echo__delaySamples);
 __Echo__readIndex = Math.max(0, Math.min(__Echo__readIndex, (__Echo__bufLen - 1)));
 __Echo__delayedSignal = Rb.read(__Echo__$delayBuffer, __Echo__readIndex);
-__Echo__toPush = (__Echo__audioIn + (__Echo__delayedSignal * __Echo__feedback));
+__Echo__toPush = (__m_inputs[19] + (__Echo__delayedSignal * __Echo__feedback));
 Rb.push(__Echo__$delayBuffer, __Echo__toPush);
-__Echo__audioOut = ((__Echo__audioIn * (1 - __Echo__dryWet)) + (__Echo__delayedSignal * __Echo__dryWet));
+__m_outputs[16] = ((__m_inputs[19] * (1 - __Echo__dryWet)) + (__Echo__delayedSignal * __Echo__dryWet));
 __LowPass__alpha = (__LowPass__dt / (__LowPass__RC + __LowPass__dt));
-__LowPass__buffer1 = ((__LowPass__alpha * (__LowPass__audioIn - (__LowPass__resonance * __LowPass__previousOutput4))) + ((1 - __LowPass__alpha) * __LowPass__previousOutput1));
+__LowPass__buffer1 = ((__LowPass__alpha * (__m_inputs[18] - (__LowPass__resonance * __LowPass__previousOutput4))) + ((1 - __LowPass__alpha) * __LowPass__previousOutput1));
 __LowPass__previousOutput1 = __LowPass__buffer1;
 __LowPass__buffer2 = ((__LowPass__alpha * __LowPass__buffer1) + ((1 - __LowPass__alpha) * __LowPass__previousOutput2));
 __LowPass__previousOutput2 = __LowPass__buffer2;
@@ -776,9 +813,9 @@ __LowPass__buffer3 = ((__LowPass__alpha * __LowPass__buffer2) + ((1 - __LowPass_
 __LowPass__previousOutput3 = __LowPass__buffer3;
 __LowPass__buffer4 = ((__LowPass__alpha * __LowPass__buffer3) + ((1 - __LowPass__alpha) * __LowPass__previousOutput4));
 __LowPass__previousOutput4 = __LowPass__buffer4;
-__LowPass__audioOut = __LowPass__buffer4;
-__ADSR__risingEdge = (__ADSR__gate * (1 - __ADSR__prevGate));
-__ADSR__fallingEdge = (__ADSR__prevGate * (1 - __ADSR__gate));
+__m_outputs[15] = __LowPass__buffer4;
+__ADSR__risingEdge = (__m_inputs[17] * (1 - __ADSR__prevGate));
+__ADSR__fallingEdge = (__ADSR__prevGate * (1 - __m_inputs[17]));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - __ADSR__risingEdge)) + (1 * __ADSR__risingEdge));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - ((__ADSR__currentVal >= 1 ? 1 : 0) * (__ADSR__envelopeState == 1 ? 1 : 0)))) + ((2 * (__ADSR__currentVal >= 1 ? 1 : 0)) * (__ADSR__envelopeState == 1 ? 1 : 0)));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - ((__ADSR__currentVal <= __ADSR__sustainLevel ? 1 : 0) * (__ADSR__envelopeState == 2 ? 1 : 0)))) + ((3 * (__ADSR__currentVal <= __ADSR__sustainLevel ? 1 : 0)) * (__ADSR__envelopeState == 2 ? 1 : 0)));
@@ -786,89 +823,69 @@ __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - (__ADSR__fallingEdge * ((
 __ADSR__currentVal = (((__ADSR__currentVal + (__ADSR__attackInc * (__ADSR__envelopeState == 1 ? 1 : 0))) - (__ADSR__decayDec * (__ADSR__envelopeState == 2 ? 1 : 0))) - (__ADSR__releaseDec * (__ADSR__envelopeState == 4 ? 1 : 0)));
 __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal >= 0 ? 1 : 0)) + (0 * (__ADSR__currentVal < 0 ? 1 : 0)));
 __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal <= 1 ? 1 : 0)) + (1 * (__ADSR__currentVal > 1 ? 1 : 0)));
-__ADSR__prevGate = __ADSR__gate;
-__ADSR__curve = __ADSR__currentVal;
-__Drum__AR__risingEdge = (__Drum__AR__trigger * (1 - __Drum__AR__prevTrigger));
+__ADSR__prevGate = __m_inputs[17];
+__m_outputs[14] = __ADSR__currentVal;
+__Drum__AR__risingEdge = (__m_inputs[13] * (1 - __Drum__AR__prevTrigger));
 __Drum__AR__envelopeState = ((1 * __Drum__AR__risingEdge) + (__Drum__AR__envelopeState * (1 - __Drum__AR__risingEdge)));
-__Drum__AR__fallingEdge = (__Drum__AR__prevTrigger * (1 - __Drum__AR__trigger));
+__Drum__AR__fallingEdge = (__Drum__AR__prevTrigger * (1 - __m_inputs[13]));
 __Drum__AR__envelopeState = ((__Drum__AR__envelopeState * (1 - (__Drum__AR__fallingEdge * (__Drum__AR__envelopeState == 1 ? 1 : 0)))) + ((2 * __Drum__AR__fallingEdge) * (__Drum__AR__envelopeState == 1 ? 1 : 0)));
 __Drum__AR__increase = (__Drum__AR__attackInc * (__Drum__AR__envelopeState == 1 ? 1 : 0));
 __Drum__AR__decrease = (__Drum__AR__releaseDec * (__Drum__AR__envelopeState == 2 ? 1 : 0));
 __Drum__AR__currentVal = ((__Drum__AR__currentVal + __Drum__AR__increase) - __Drum__AR__decrease);
 __Drum__AR__envelopeState = ((__Drum__AR__envelopeState * (1 - ((__Drum__AR__currentVal >= 1 ? 1 : 0) * (__Drum__AR__envelopeState == 1 ? 1 : 0)))) + ((2 * (__Drum__AR__currentVal >= 1 ? 1 : 0)) * (__Drum__AR__envelopeState == 1 ? 1 : 0)));
 __Drum__AR__currentVal = (__Drum__AR__currentVal * (__Drum__AR__currentVal > 0 ? 1 : 0));
-__Drum__AR__prevTrigger = __Drum__AR__trigger;
-__Drum__AR__curve = __Drum__AR__currentVal;
-__Drum__Phaser__phase = (__Drum__Phaser__increment + (__Drum__Phaser__phase - Math.floor((__Drum__Phaser__increment + __Drum__Phaser__phase))));
-__Drum__trigger = ((__Drum__drum_trigger + __Drum__trigger_in) > 0 ? 1 : 0);
-__Drum__freq = (__Drum__frequency * __Drum__ar_curve);
-__Drum__sine = __Drum__Lib__sinewave(__Drum__phase);
-__Drum__square = __Drum__Lib__squarewave(__Drum__phase);
-__Drum__saw = __Drum__Lib__sawwave(__Drum__phase);
-__Drum__triangle = __Drum__Lib__trianglewave(__Drum__phase);
+__Drum__AR__prevTrigger = __m_inputs[13];
+__m_outputs[10] = __Drum__AR__currentVal;
+__m_outputs[9] = (__Drum__Phaser__increment + (__m_outputs[9] - Math.floor((__Drum__Phaser__increment + __m_outputs[9]))));
+__m_outputs[13] = ((__Drum__drum_trigger + __m_inputs[16]) > 0 ? 1 : 0);
+__m_outputs[12] = (__Drum__frequency * __m_inputs[15]);
+__Drum__sine = __Drum__Lib__sinewave(__m_inputs[14]);
+__Drum__square = __Drum__Lib__squarewave(__m_inputs[14]);
+__Drum__saw = __Drum__Lib__sawwave(__m_inputs[14]);
+__Drum__triangle = __Drum__Lib__trianglewave(__m_inputs[14]);
 __Drum__outwave = __Drum__Lib__switch4(__Drum__wave, __Drum__sine, __Drum__square, __Drum__saw, __Drum__triangle);
-__Drum__out = ((__Drum__outwave * __Drum__gain) * __Drum__ar_curve);
-__Osc3__Phaser__phase = (__Osc3__Phaser__increment + (__Osc3__Phaser__phase - Math.floor((__Osc3__Phaser__increment + __Osc3__Phaser__phase))));
-__Osc3__sine = __Osc3__Lib__sinewave(__Osc3__phase);
-__Osc3__square = __Osc3__Lib__squarewave(__Osc3__phase);
-__Osc3__saw = __Osc3__Lib__sawwave(__Osc3__phase);
-__Osc3__triangle = __Osc3__Lib__trianglewave(__Osc3__phase);
+__m_outputs[11] = ((__Drum__outwave * __Drum__gain) * __m_inputs[15]);
+__m_outputs[6] = (__Osc3__Phaser__increment + (__m_outputs[6] - Math.floor((__Osc3__Phaser__increment + __m_outputs[6]))));
+__Osc3__sine = __Osc3__Lib__sinewave(__m_inputs[11]);
+__Osc3__square = __Osc3__Lib__squarewave(__m_inputs[11]);
+__Osc3__saw = __Osc3__Lib__sawwave(__m_inputs[11]);
+__Osc3__triangle = __Osc3__Lib__trianglewave(__m_inputs[11]);
 __Osc3__outwave = __Osc3__Lib__switch4(__Osc3__wave, __Osc3__sine, __Osc3__square, __Osc3__saw, __Osc3__triangle);
-__Osc3__out = (__Osc3__outwave * __Osc3__gain);
-__Osc2__Phaser__phase = (__Osc2__Phaser__increment + (__Osc2__Phaser__phase - Math.floor((__Osc2__Phaser__increment + __Osc2__Phaser__phase))));
-__Osc2__sine = __Osc2__Lib__sinewave(__Osc2__phase);
-__Osc2__square = __Osc2__Lib__squarewave(__Osc2__phase);
-__Osc2__saw = __Osc2__Lib__sawwave(__Osc2__phase);
-__Osc2__triangle = __Osc2__Lib__trianglewave(__Osc2__phase);
-__Osc2__outwave = __Osc2__Lib__switch4(__Osc2__wave, __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
-__Osc2__out = (__Osc2__outwave * __Osc2__gain);
-__Osc__Phaser__phase = (__Osc__Phaser__increment + (__Osc__Phaser__phase - Math.floor((__Osc__Phaser__increment + __Osc__Phaser__phase))));
-__Osc__sine = __Osc__Lib__sinewave(__Osc__phase);
-__Osc__square = __Osc__Lib__squarewave(__Osc__phase);
-__Osc__saw = __Osc__Lib__sawwave(__Osc__phase);
-__Osc__triangle = __Osc__Lib__trianglewave(__Osc__phase);
-__Osc__outwave = __Osc__Lib__switch4(__Osc__wave, __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
-__Osc__out = (__Osc__outwave * __Osc__gain);
-out = (__Lib__switch3(instrument, (((osc1 + (osc2 * osc2enabled)) + (osc3 * osc3enabled)) * adsr), karplus, ((karplus + (((osc1 + (osc2 * osc2enabled)) + (osc3 * osc3enabled)) * adsr)) * 0.5)) * globalgate);
-
-            leftOutput[i] = __Freeverb__audioOut;
-rightOutput && (rightOutput[i] = __Freeverb__audioOut);
-leftOutput[i] = __Karplus__out;
-rightOutput && (rightOutput[i] = __Karplus__out);
-leftOutput[i] = __Drum__out;
-rightOutput && (rightOutput[i] = __Drum__out);
-__Drum__Phaser__frequency = __Drum__freq;
-__Drum__phase = __Drum__Phaser__phase;
-__Drum__AR__trigger = __Drum__trigger;
-__Drum__ar_curve = __Drum__AR__curve;
-__Osc3__Phaser__frequency = __Osc3__freq;
-__Osc3__phase = __Osc3__Phaser__phase;
-__Osc2__Phaser__frequency = __Osc2__freq;
-__Osc2__phase = __Osc2__Phaser__phase;
-__Osc__Phaser__frequency = __Osc__freq;
-__Osc__phase = __Osc__Phaser__phase;
-osc1 = __Osc__out;
-osc2 = __Osc2__out;
-osc3 = __Osc3__out;
-__Osc__frequency = frequency;
-__Osc__gain = osc1gain;
-__Osc__wave = osc1waveform;
-__Osc2__frequency = osc2freq;
-__Osc2__gain = osc2gain;
-__Osc2__wave = osc2wave;
-karplus = __Karplus__out;
-__Karplus__frequency = frequency;
-__Karplus__pluckTrigger = trigger;
-adsr = __ADSR__curve;
-__ADSR__gate = trigger;
-__LowPass__audioIn = out;
-__Echo__audioIn = __LowPass__audioOut;
-__Freeverb__audioIn = __Echo__audioOut;
-__Limiter__audioIn = __Freeverb__audioOut;
-leftOutput[i] = __Limiter__audioOut;
-rightOutput && (rightOutput[i] = __Limiter__audioOut);
+__m_outputs[7] = (__Osc3__outwave * __Osc3__gain);
+__m_outputs[3] = (__Osc2__Phaser__increment + (__m_outputs[3] - Math.floor((__Osc2__Phaser__increment + __m_outputs[3]))));
+__Osc2__sine = __Osc2__Lib__sinewave(__m_inputs[9]);
+__Osc2__square = __Osc2__Lib__squarewave(__m_inputs[9]);
+__Osc2__saw = __Osc2__Lib__sawwave(__m_inputs[9]);
+__Osc2__triangle = __Osc2__Lib__trianglewave(__m_inputs[9]);
+__Osc2__outwave = __Osc2__Lib__switch4(__m_inputs[8], __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
+__m_outputs[4] = (__Osc2__outwave * __m_inputs[7]);
+__m_outputs[0] = (__Osc__Phaser__increment + (__m_outputs[0] - Math.floor((__Osc__Phaser__increment + __m_outputs[0]))));
+__Osc__sine = __Osc__Lib__sinewave(__m_inputs[4]);
+__Osc__square = __Osc__Lib__squarewave(__m_inputs[4]);
+__Osc__saw = __Osc__Lib__sawwave(__m_inputs[4]);
+__Osc__triangle = __Osc__Lib__trianglewave(__m_inputs[4]);
+__Osc__outwave = __Osc__Lib__switch4(__m_inputs[3], __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
+__m_outputs[1] = (__Osc__outwave * __m_inputs[2]);
+__m_outputs[20] = (__Lib__switch3(instrument, (((__m_inputs[24] + (__m_inputs[25] * osc2enabled)) + (__m_inputs[26] * osc3enabled)) * __m_inputs[29]), (__m_inputs[30] * 2), (((__m_inputs[30] * 2) + (((__m_inputs[24] + (__m_inputs[25] * osc2enabled)) + (__m_inputs[26] * osc3enabled)) * __m_inputs[29])) * 0.5)) * globalgate);
 
 
+            connections.forEach(([out, inp]) => {
+                __m_inputs[inp] = __m_outputs[out];
+            });
+
+            leftOutput[i] = __m_outputs[19];
+rightOutput && (rightOutput[i] = __m_outputs[19]);
+leftOutput[i] = __m_outputs[17];
+rightOutput && (rightOutput[i] = __m_outputs[17]);
+leftOutput[i] = __m_outputs[11];
+rightOutput && (rightOutput[i] = __m_outputs[11]);
+__m_inputs[1] = frequency;
+__m_inputs[3] = osc1waveform;
+__m_inputs[21] = frequency;
+__m_inputs[20] = trigger;
+__m_inputs[17] = trigger;
+leftOutput[i] = __m_outputs[18];
+rightOutput && (rightOutput[i] = __m_outputs[18]);
 
         }
 

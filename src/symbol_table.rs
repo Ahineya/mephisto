@@ -116,6 +116,13 @@ impl SymbolInfo {
             _ => false,
         }
     }
+
+    pub fn is_parameter(&self) -> bool {
+        match self {
+            SymbolInfo::Parameter {..} => true,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
