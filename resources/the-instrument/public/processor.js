@@ -158,36 +158,40 @@ return otherwise();
 }
 }
 
-const __m_inputs = new Float64Array(34);
-const __m_outputs = new Float64Array(25);
+const __m_inputs = new Float64Array(38);
+const __m_outputs = new Float64Array(29);
 
-const __inputNames = ["Osc#Phaser#frequency", "Osc#frequency", "Osc#gain", "Osc#wave", "Osc#phase", "Osc2#Phaser#frequency", "Osc2#frequency", "Osc2#gain", "Osc2#wave", "Osc2#phase", "Osc3#Phaser#frequency", "Osc3#frequency", "Osc3#gain", "Osc3#wave", "Osc3#phase", "LFO#Phaser#frequency", "LFO#frequency", "LFO#gain", "LFO#wave", "LFO#phase", "ADSR#gate", "LowPass#audioIn", "Echo#audioIn", "Karplus#pluckTrigger", "Karplus#frequency", "Limiter#audioIn", "Freeverb#audioIn", "osc1", "osc2", "osc3", "echo", "adsr", "karplus", "frequencyMod"];
-const __outputNames = ["Osc#Phaser#phase", "Osc#out", "Osc#internal_freq", "Osc2#Phaser#phase", "Osc2#out", "Osc2#internal_freq", "Osc3#Phaser#phase", "Osc3#out", "Osc3#internal_freq", "LFO#Phaser#phase", "LFO#out", "LFO#internal_freq", "OscVolume#osc1gainOut", "OscVolume#osc2gainOut", "OscVolume#osc3gainOut", "ADSR#curve", "LowPass#audioOut", "Echo#audioOut", "Karplus#out", "Limiter#audioOut", "Freeverb#audioOut", "out", "osc1freq", "osc2freq", "osc3freq"];
+const __inputNames = ["Osc#Phaser#frequency", "Osc#Smooth#inp", "Osc#frequency", "Osc#gain", "Osc#wave", "Osc#phase", "Osc2#Phaser#frequency", "Osc2#Smooth#inp", "Osc2#frequency", "Osc2#gain", "Osc2#wave", "Osc2#phase", "Osc3#Phaser#frequency", "Osc3#Smooth#inp", "Osc3#frequency", "Osc3#gain", "Osc3#wave", "Osc3#phase", "LFO#Phaser#frequency", "LFO#Smooth#inp", "LFO#frequency", "LFO#gain", "LFO#wave", "LFO#phase", "ADSR#gate", "LowPass#audioIn", "Echo#audioIn", "Karplus#pluckTrigger", "Karplus#frequency", "Limiter#audioIn", "Freeverb#audioIn", "osc1", "osc2", "osc3", "echo", "adsr", "karplus", "frequencyMod"];
+const __outputNames = ["Osc#Phaser#phase", "Osc#Smooth#out", "Osc#out", "Osc#internal_freq", "Osc2#Phaser#phase", "Osc2#Smooth#out", "Osc2#out", "Osc2#internal_freq", "Osc3#Phaser#phase", "Osc3#Smooth#out", "Osc3#out", "Osc3#internal_freq", "LFO#Phaser#phase", "LFO#Smooth#out", "LFO#out", "LFO#internal_freq", "OscVolume#osc1gainOut", "OscVolume#osc2gainOut", "OscVolume#osc3gainOut", "ADSR#curve", "LowPass#audioOut", "Echo#audioOut", "Karplus#out", "Limiter#audioOut", "Freeverb#audioOut", "out", "osc1freq", "osc2freq", "osc3freq"];
 
 let connections = [
-    [11, 15],
-[9, 19],
-[8, 10],
-[6, 14],
-[5, 5],
-[3, 9],
-[2, 0],
-[0, 4],
-[1, 27],
-[4, 28],
-[7, 29],
-[22, 1],
-[12, 2],
-[23, 6],
-[13, 7],
-[24, 11],
-[14, 12],
-[18, 32],
-[15, 31],
-[21, 21],
-[16, 22],
-[17, 26],
-[20, 25],
+    [15, 19],
+[13, 18],
+[12, 23],
+[11, 13],
+[9, 12],
+[8, 17],
+[7, 7],
+[5, 6],
+[4, 11],
+[3, 1],
+[1, 0],
+[0, 5],
+[2, 31],
+[6, 32],
+[10, 33],
+[26, 2],
+[16, 3],
+[27, 8],
+[17, 9],
+[28, 14],
+[18, 15],
+[22, 36],
+[19, 35],
+[25, 25],
+[20, 26],
+[21, 30],
+[24, 29],
 
 
 
@@ -232,12 +236,17 @@ return (a + ((b - a) * t));
 __m_inputs[0] = 110;
 __m_outputs[0] = 0;
 let __Osc__Phaser__increment = 0;
-__m_inputs[1] = 110;
-__m_inputs[2] = 1;
-__m_inputs[3] = 0;
+__m_inputs[1] = 0;
 __m_outputs[1] = 0;
+let __Osc__Smooth__s = (1 - (44.1 / sampleRate));
+let __Osc__Smooth__y_prev = 0;
+let __Osc__Smooth__y_curr = 0;
+__m_inputs[2] = 110;
+__m_inputs[3] = 1;
 __m_inputs[4] = 0;
 __m_outputs[2] = 0;
+__m_inputs[5] = 0;
+__m_outputs[3] = 0;
 let __Osc__sine = 0;
 let __Osc__square = 0;
 let __Osc__saw = 0;
@@ -279,15 +288,20 @@ function __Osc2__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-__m_inputs[5] = 110;
-__m_outputs[3] = 0;
-let __Osc2__Phaser__increment = 0;
 __m_inputs[6] = 110;
-__m_inputs[7] = 1;
-__m_inputs[8] = 0;
 __m_outputs[4] = 0;
-__m_inputs[9] = 0;
+let __Osc2__Phaser__increment = 0;
+__m_inputs[7] = 0;
 __m_outputs[5] = 0;
+let __Osc2__Smooth__s = (1 - (44.1 / sampleRate));
+let __Osc2__Smooth__y_prev = 0;
+let __Osc2__Smooth__y_curr = 0;
+__m_inputs[8] = 110;
+__m_inputs[9] = 1;
+__m_inputs[10] = 0;
+__m_outputs[6] = 0;
+__m_inputs[11] = 0;
+__m_outputs[7] = 0;
 let __Osc2__sine = 0;
 let __Osc2__square = 0;
 let __Osc2__saw = 0;
@@ -329,15 +343,20 @@ function __Osc3__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-__m_inputs[10] = 110;
-__m_outputs[6] = 0;
-let __Osc3__Phaser__increment = 0;
-__m_inputs[11] = 110;
-__m_inputs[12] = 1;
-__m_inputs[13] = 0;
-__m_outputs[7] = 0;
-__m_inputs[14] = 0;
+__m_inputs[12] = 110;
 __m_outputs[8] = 0;
+let __Osc3__Phaser__increment = 0;
+__m_inputs[13] = 0;
+__m_outputs[9] = 0;
+let __Osc3__Smooth__s = (1 - (44.1 / sampleRate));
+let __Osc3__Smooth__y_prev = 0;
+let __Osc3__Smooth__y_curr = 0;
+__m_inputs[14] = 110;
+__m_inputs[15] = 1;
+__m_inputs[16] = 0;
+__m_outputs[10] = 0;
+__m_inputs[17] = 0;
+__m_outputs[11] = 0;
 let __Osc3__sine = 0;
 let __Osc3__square = 0;
 let __Osc3__saw = 0;
@@ -379,15 +398,20 @@ function __LFO__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-__m_inputs[15] = 110;
-__m_outputs[9] = 0;
+__m_inputs[18] = 110;
+__m_outputs[12] = 0;
 let __LFO__Phaser__increment = 0;
-__m_inputs[16] = 110;
-__m_inputs[17] = 1;
-__m_inputs[18] = 0;
-__m_outputs[10] = 0;
 __m_inputs[19] = 0;
-__m_outputs[11] = 0;
+__m_outputs[13] = 0;
+let __LFO__Smooth__s = (1 - (44.1 / sampleRate));
+let __LFO__Smooth__y_prev = 0;
+let __LFO__Smooth__y_curr = 0;
+__m_inputs[20] = 110;
+__m_inputs[21] = 1;
+__m_inputs[22] = 0;
+__m_outputs[14] = 0;
+__m_inputs[23] = 0;
+__m_outputs[15] = 0;
 let __LFO__sine = 0;
 let __LFO__square = 0;
 let __LFO__saw = 0;
@@ -396,15 +420,15 @@ let __LFO__outwave = 0;
 let __OscVolume__osc1gain = 0.33;
 let __OscVolume__osc2gain = 0;
 let __OscVolume__osc3gain = 0;
-__m_outputs[12] = 0;
-__m_outputs[13] = 0;
-__m_outputs[14] = 0;
+__m_outputs[16] = 0;
+__m_outputs[17] = 0;
+__m_outputs[18] = 0;
 let __ADSR__attackTime = 0.01;
 let __ADSR__decayTime = 0.1;
 let __ADSR__sustainLevel = 0.7;
 let __ADSR__releaseTime = 0.1;
-__m_inputs[20] = 0;
-__m_outputs[15] = 0;
+__m_inputs[24] = 0;
+__m_outputs[19] = 0;
 let __ADSR__currentVal = 0;
 let __ADSR__prevGate = 0;
 let __ADSR__envelopeState = 0;
@@ -415,8 +439,8 @@ let __ADSR__risingEdge = 0;
 let __ADSR__fallingEdge = 0;
 let __LowPass__cutoffFrequency = 1000;
 let __LowPass__resonance = 0.5;
-__m_inputs[21] = 0;
-__m_outputs[16] = 0;
+__m_inputs[25] = 0;
+__m_outputs[20] = 0;
 let __LowPass__dt = (1 / sampleRate);
 let __LowPass__previousOutput1 = 0;
 let __LowPass__previousOutput2 = 0;
@@ -431,8 +455,8 @@ let __LowPass__buffer4 = 0;
 let __Echo__delayTime = 0.5;
 let __Echo__feedback = 0.5;
 let __Echo__dryWet = 0;
-__m_inputs[22] = 0;
-__m_outputs[17] = 0;
+__m_inputs[26] = 0;
+__m_outputs[21] = 0;
 const __Echo__$delayBuffer = new Ringbuffer(sampleRate);
 let __Echo__delaySamples = 0;
 let __Echo__bufLen = 0;
@@ -475,9 +499,9 @@ function __Karplus__Lib__lerp(a, b, t) {
 return (a + ((b - a) * t));
 }
 
-__m_inputs[23] = 0;
-__m_inputs[24] = 440;
-__m_outputs[18] = 0;
+__m_inputs[27] = 0;
+__m_inputs[28] = 440;
+__m_outputs[22] = 0;
 let __Karplus__$ksBuffer = new Ringbuffer(110);
 let __Karplus__justPlucked = 0;
 let __Karplus__lastSample = 0;
@@ -487,7 +511,7 @@ let __Karplus__oldFrequency = 440;
 let __Karplus__fadeInOut = 1;
 let __Karplus__fadeRate = 0;
 function __Karplus__resize_buf() {
-Rb.resize(__Karplus__$ksBuffer, (sampleRate / __m_inputs[24]));
+Rb.resize(__Karplus__$ksBuffer, (sampleRate / __m_inputs[28]));
 __Karplus__lastSample = 0;
 return 0;
 }
@@ -502,8 +526,8 @@ let __Karplus__impulse = 0;
 let __Karplus__newSample = 0;
 let __Limiter__threshold = 0.8;
 let __Limiter__recoveryRate = 0.0001;
-__m_inputs[25] = 0;
-__m_outputs[19] = 0;
+__m_inputs[29] = 0;
+__m_outputs[23] = 0;
 let __Limiter__gain = 1;
 let __Limiter__signalMagnitude = 0;
 let __Limiter__exceed = 0;
@@ -547,8 +571,8 @@ return (a + ((b - a) * t));
 let __Freeverb__dryWet = 0.5;
 let __Freeverb__roomSize = 0.5;
 let __Freeverb__damp = 0.5;
-__m_inputs[26] = 0;
-__m_outputs[20] = 0;
+__m_inputs[30] = 0;
+__m_outputs[24] = 0;
 let __Freeverb__$combBuffer1 = new Ringbuffer(1557);
 let __Freeverb__$combBuffer2 = new Ringbuffer(1617);
 let __Freeverb__$combBuffer3 = new Ringbuffer(1491);
@@ -617,17 +641,17 @@ let osc3detune = 0;
 let trigger = 0;
 let frequency = 440;
 let instrument = 0;
-__m_outputs[21] = 0;
-__m_inputs[27] = 0;
-__m_inputs[28] = 0;
-__m_inputs[29] = 0;
-__m_inputs[30] = 0;
+__m_outputs[25] = 0;
 __m_inputs[31] = 0;
 __m_inputs[32] = 0;
-__m_outputs[22] = 440;
-__m_outputs[23] = 440;
-__m_outputs[24] = 440;
 __m_inputs[33] = 0;
+__m_inputs[34] = 0;
+__m_inputs[35] = 0;
+__m_inputs[36] = 0;
+__m_outputs[26] = 440;
+__m_outputs[27] = 440;
+__m_outputs[28] = 440;
+__m_inputs[37] = 0;
 let frequencyModAmount = 0;
 let globalgate = 0;
 let freq = 0;
@@ -772,35 +796,35 @@ case 'globalgate': globalgate = this.scheduledParameterSetters[i].value; break;
         this.scheduledRemoveConnections = [];
 
         {
-__Limiter__signalMagnitude = Math.abs(__m_inputs[25]);
-__Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __m_inputs[23]);
-__Karplus__lastPluckState = __m_inputs[23];
-Std.if((__m_inputs[24] != __Karplus__oldFrequency ? 1 : 0), __Karplus__resize_buf);
-__Karplus__oldFrequency = __m_inputs[24];
-__Karplus__fadeRate = ((__m_inputs[24] != __Karplus__oldFrequency ? 1 : 0) * -0.1);
+__Limiter__signalMagnitude = Math.abs(__m_inputs[29]);
+__Karplus__justPlucked = ((1 - __Karplus__lastPluckState) * __m_inputs[27]);
+__Karplus__lastPluckState = __m_inputs[27];
+Std.if((__m_inputs[28] != __Karplus__oldFrequency ? 1 : 0), __Karplus__resize_buf);
+__Karplus__oldFrequency = __m_inputs[28];
+__Karplus__fadeRate = ((__m_inputs[28] != __Karplus__oldFrequency ? 1 : 0) * -0.1);
 __Karplus__fadeRate = ((__Karplus__fadeInOut == 0 ? 1 : 0) * 0.1);
 __LowPass__RC = (1 / ((2 * Math.PI) * __LowPass__cutoffFrequency));
 __ADSR__attackInc = (1 / (sampleRate * __ADSR__attackTime));
 __ADSR__decayDec = ((1 - __ADSR__sustainLevel) / (sampleRate * __ADSR__decayTime));
 __ADSR__releaseDec = (__ADSR__sustainLevel / (sampleRate * __ADSR__releaseTime));
-__m_outputs[12] = __OscVolume__osc1gain;
-__m_outputs[13] = __OscVolume__osc2gain;
-__m_outputs[14] = __OscVolume__osc3gain;
-__LFO__Phaser__increment = (__m_inputs[15] / sampleRate);
-__m_outputs[11] = __m_inputs[16];
-__Osc3__Phaser__increment = (__m_inputs[10] / sampleRate);
-__m_outputs[8] = __m_inputs[11];
-__Osc2__Phaser__increment = (__m_inputs[5] / sampleRate);
-__m_outputs[5] = __m_inputs[6];
+__m_outputs[16] = __OscVolume__osc1gain;
+__m_outputs[17] = __OscVolume__osc2gain;
+__m_outputs[18] = __OscVolume__osc3gain;
+__LFO__Phaser__increment = (__m_inputs[18] / sampleRate);
+__m_outputs[15] = __m_inputs[20];
+__Osc3__Phaser__increment = (__m_inputs[12] / sampleRate);
+__m_outputs[11] = __m_inputs[14];
+__Osc2__Phaser__increment = (__m_inputs[6] / sampleRate);
+__m_outputs[7] = __m_inputs[8];
 __Osc__Phaser__increment = (__m_inputs[0] / sampleRate);
-__m_outputs[2] = __m_inputs[1];
+__m_outputs[3] = __m_inputs[2];
 }
 
 
 
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
-            __Freeverb__inputSample = __m_inputs[26];
+            __Freeverb__inputSample = __m_inputs[30];
 __Freeverb__combOut1 = ((Rb.read(__Freeverb__$combBuffer1, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut2 = ((Rb.read(__Freeverb__$combBuffer2, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
 __Freeverb__combOut3 = ((Rb.read(__Freeverb__$combBuffer3, 0) * __Freeverb__roomSize) + __Freeverb__inputSample);
@@ -813,11 +837,11 @@ Rb.push(__Freeverb__$allpassBuffer1, __Freeverb__combSum);
 __Freeverb__allpassOut2 = -(__Freeverb__allpassOut1 + Rb.read(__Freeverb__$allpassBuffer2, 0));
 Rb.push(__Freeverb__$allpassBuffer2, __Freeverb__allpassOut1);
 __Freeverb__wetSignal = __Freeverb__allpassOut2;
-__m_outputs[20] = ((__Freeverb__inputSample * (1 - __Freeverb__dryWet)) + (__Freeverb__wetSignal * __Freeverb__dryWet));
+__m_outputs[24] = ((__Freeverb__inputSample * (1 - __Freeverb__dryWet)) + (__Freeverb__wetSignal * __Freeverb__dryWet));
 __Limiter__exceed = (__Limiter__signalMagnitude - __Limiter__threshold);
 __Limiter__reductionFactor = Math.exp(-(__Limiter__exceed * __Limiter__recoveryRate));
 __Limiter__gain = __Limiter__reductionFactor;
-__m_outputs[19] = (__m_inputs[25] * __Limiter__gain);
+__m_outputs[23] = (__m_inputs[29] * __Limiter__gain);
 __Karplus__firstSample = Rb.read(__Karplus__$ksBuffer, 0);
 __Karplus__fadeInOut = (__Karplus__fadeInOut + __Karplus__fadeRate);
 __Karplus__fadeInOut = __Karplus__clamp(__Karplus__fadeInOut, 0, 1);
@@ -829,17 +853,17 @@ __Karplus__newSample = (__Karplus__newSample * __Karplus__fadeInOut);
 Rb.push(__Karplus__$ksBuffer, __Karplus__newSample);
 __Karplus__lastSample = __Karplus__newSample;
 __Karplus__justPlucked = 0;
-__m_outputs[18] = __Karplus__newSample;
+__m_outputs[22] = __Karplus__newSample;
 __Echo__delaySamples = (__Echo__delayTime * sampleRate);
 __Echo__bufLen = Rb.length(__Echo__$delayBuffer);
 __Echo__readIndex = (__Echo__bufLen - __Echo__delaySamples);
 __Echo__readIndex = Math.max(0, Math.min(__Echo__readIndex, (__Echo__bufLen - 1)));
 __Echo__delayedSignal = Rb.read(__Echo__$delayBuffer, __Echo__readIndex);
-__Echo__toPush = (__m_inputs[22] + (__Echo__delayedSignal * __Echo__feedback));
+__Echo__toPush = (__m_inputs[26] + (__Echo__delayedSignal * __Echo__feedback));
 Rb.push(__Echo__$delayBuffer, __Echo__toPush);
-__m_outputs[17] = ((__m_inputs[22] * (1 - __Echo__dryWet)) + (__Echo__delayedSignal * __Echo__dryWet));
+__m_outputs[21] = ((__m_inputs[26] * (1 - __Echo__dryWet)) + (__Echo__delayedSignal * __Echo__dryWet));
 __LowPass__alpha = (__LowPass__dt / (__LowPass__RC + __LowPass__dt));
-__LowPass__buffer1 = ((__LowPass__alpha * (__m_inputs[21] - (__LowPass__resonance * __LowPass__previousOutput4))) + ((1 - __LowPass__alpha) * __LowPass__previousOutput1));
+__LowPass__buffer1 = ((__LowPass__alpha * (__m_inputs[25] - (__LowPass__resonance * __LowPass__previousOutput4))) + ((1 - __LowPass__alpha) * __LowPass__previousOutput1));
 __LowPass__previousOutput1 = __LowPass__buffer1;
 __LowPass__buffer2 = ((__LowPass__alpha * __LowPass__buffer1) + ((1 - __LowPass__alpha) * __LowPass__previousOutput2));
 __LowPass__previousOutput2 = __LowPass__buffer2;
@@ -847,9 +871,9 @@ __LowPass__buffer3 = ((__LowPass__alpha * __LowPass__buffer2) + ((1 - __LowPass_
 __LowPass__previousOutput3 = __LowPass__buffer3;
 __LowPass__buffer4 = ((__LowPass__alpha * __LowPass__buffer3) + ((1 - __LowPass__alpha) * __LowPass__previousOutput4));
 __LowPass__previousOutput4 = __LowPass__buffer4;
-__m_outputs[16] = __LowPass__buffer4;
-__ADSR__risingEdge = (__m_inputs[20] * (1 - __ADSR__prevGate));
-__ADSR__fallingEdge = (__ADSR__prevGate * (1 - __m_inputs[20]));
+__m_outputs[20] = __LowPass__buffer4;
+__ADSR__risingEdge = (__m_inputs[24] * (1 - __ADSR__prevGate));
+__ADSR__fallingEdge = (__ADSR__prevGate * (1 - __m_inputs[24]));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - __ADSR__risingEdge)) + (1 * __ADSR__risingEdge));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - ((__ADSR__currentVal >= 1 ? 1 : 0) * (__ADSR__envelopeState == 1 ? 1 : 0)))) + ((2 * (__ADSR__currentVal >= 1 ? 1 : 0)) * (__ADSR__envelopeState == 1 ? 1 : 0)));
 __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - ((__ADSR__currentVal <= __ADSR__sustainLevel ? 1 : 0) * (__ADSR__envelopeState == 2 ? 1 : 0)))) + ((3 * (__ADSR__currentVal <= __ADSR__sustainLevel ? 1 : 0)) * (__ADSR__envelopeState == 2 ? 1 : 0)));
@@ -857,59 +881,71 @@ __ADSR__envelopeState = ((__ADSR__envelopeState * (1 - (__ADSR__fallingEdge * ((
 __ADSR__currentVal = (((__ADSR__currentVal + (__ADSR__attackInc * (__ADSR__envelopeState == 1 ? 1 : 0))) - (__ADSR__decayDec * (__ADSR__envelopeState == 2 ? 1 : 0))) - (__ADSR__releaseDec * (__ADSR__envelopeState == 4 ? 1 : 0)));
 __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal >= 0 ? 1 : 0)) + (0 * (__ADSR__currentVal < 0 ? 1 : 0)));
 __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal <= 1 ? 1 : 0)) + (1 * (__ADSR__currentVal > 1 ? 1 : 0)));
-__ADSR__prevGate = __m_inputs[20];
-__m_outputs[15] = __ADSR__currentVal;
-__m_outputs[9] = (__LFO__Phaser__increment + (__m_outputs[9] - Math.floor((__LFO__Phaser__increment + __m_outputs[9]))));
-__LFO__sine = __LFO__Lib__sinewave(__m_inputs[19]);
-__LFO__square = __LFO__Lib__squarewave(__m_inputs[19]);
-__LFO__saw = __LFO__Lib__sawwave(__m_inputs[19]);
-__LFO__triangle = __LFO__Lib__trianglewave(__m_inputs[19]);
-__LFO__outwave = __LFO__Lib__switch4(__m_inputs[18], __LFO__sine, __LFO__square, __LFO__saw, __LFO__triangle);
-__m_outputs[10] = (__LFO__outwave * __m_inputs[17]);
-__m_outputs[6] = (__Osc3__Phaser__increment + (__m_outputs[6] - Math.floor((__Osc3__Phaser__increment + __m_outputs[6]))));
-__Osc3__sine = __Osc3__Lib__sinewave(__m_inputs[14]);
-__Osc3__square = __Osc3__Lib__squarewave(__m_inputs[14]);
-__Osc3__saw = __Osc3__Lib__sawwave(__m_inputs[14]);
-__Osc3__triangle = __Osc3__Lib__trianglewave(__m_inputs[14]);
-__Osc3__outwave = __Osc3__Lib__switch4(__m_inputs[13], __Osc3__sine, __Osc3__square, __Osc3__saw, __Osc3__triangle);
-__m_outputs[7] = (__Osc3__outwave * __m_inputs[12]);
-__m_outputs[3] = (__Osc2__Phaser__increment + (__m_outputs[3] - Math.floor((__Osc2__Phaser__increment + __m_outputs[3]))));
-__Osc2__sine = __Osc2__Lib__sinewave(__m_inputs[9]);
-__Osc2__square = __Osc2__Lib__squarewave(__m_inputs[9]);
-__Osc2__saw = __Osc2__Lib__sawwave(__m_inputs[9]);
-__Osc2__triangle = __Osc2__Lib__trianglewave(__m_inputs[9]);
-__Osc2__outwave = __Osc2__Lib__switch4(__m_inputs[8], __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
-__m_outputs[4] = (__Osc2__outwave * __m_inputs[7]);
+__ADSR__prevGate = __m_inputs[24];
+__m_outputs[19] = __ADSR__currentVal;
+__LFO__Smooth__y_curr = ((__LFO__Smooth__s * (__LFO__Smooth__y_prev - __m_inputs[19])) + __m_inputs[19]);
+__LFO__Smooth__y_prev = __LFO__Smooth__y_curr;
+__m_outputs[13] = __LFO__Smooth__y_curr;
+__m_outputs[12] = (__LFO__Phaser__increment + (__m_outputs[12] - Math.floor((__LFO__Phaser__increment + __m_outputs[12]))));
+__LFO__sine = __LFO__Lib__sinewave(__m_inputs[23]);
+__LFO__square = __LFO__Lib__squarewave(__m_inputs[23]);
+__LFO__saw = __LFO__Lib__sawwave(__m_inputs[23]);
+__LFO__triangle = __LFO__Lib__trianglewave(__m_inputs[23]);
+__LFO__outwave = __LFO__Lib__switch4(__m_inputs[22], __LFO__sine, __LFO__square, __LFO__saw, __LFO__triangle);
+__m_outputs[14] = (__LFO__outwave * __m_inputs[21]);
+__Osc3__Smooth__y_curr = ((__Osc3__Smooth__s * (__Osc3__Smooth__y_prev - __m_inputs[13])) + __m_inputs[13]);
+__Osc3__Smooth__y_prev = __Osc3__Smooth__y_curr;
+__m_outputs[9] = __Osc3__Smooth__y_curr;
+__m_outputs[8] = (__Osc3__Phaser__increment + (__m_outputs[8] - Math.floor((__Osc3__Phaser__increment + __m_outputs[8]))));
+__Osc3__sine = __Osc3__Lib__sinewave(__m_inputs[17]);
+__Osc3__square = __Osc3__Lib__squarewave(__m_inputs[17]);
+__Osc3__saw = __Osc3__Lib__sawwave(__m_inputs[17]);
+__Osc3__triangle = __Osc3__Lib__trianglewave(__m_inputs[17]);
+__Osc3__outwave = __Osc3__Lib__switch4(__m_inputs[16], __Osc3__sine, __Osc3__square, __Osc3__saw, __Osc3__triangle);
+__m_outputs[10] = (__Osc3__outwave * __m_inputs[15]);
+__Osc2__Smooth__y_curr = ((__Osc2__Smooth__s * (__Osc2__Smooth__y_prev - __m_inputs[7])) + __m_inputs[7]);
+__Osc2__Smooth__y_prev = __Osc2__Smooth__y_curr;
+__m_outputs[5] = __Osc2__Smooth__y_curr;
+__m_outputs[4] = (__Osc2__Phaser__increment + (__m_outputs[4] - Math.floor((__Osc2__Phaser__increment + __m_outputs[4]))));
+__Osc2__sine = __Osc2__Lib__sinewave(__m_inputs[11]);
+__Osc2__square = __Osc2__Lib__squarewave(__m_inputs[11]);
+__Osc2__saw = __Osc2__Lib__sawwave(__m_inputs[11]);
+__Osc2__triangle = __Osc2__Lib__trianglewave(__m_inputs[11]);
+__Osc2__outwave = __Osc2__Lib__switch4(__m_inputs[10], __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
+__m_outputs[6] = (__Osc2__outwave * __m_inputs[9]);
+__Osc__Smooth__y_curr = ((__Osc__Smooth__s * (__Osc__Smooth__y_prev - __m_inputs[1])) + __m_inputs[1]);
+__Osc__Smooth__y_prev = __Osc__Smooth__y_curr;
+__m_outputs[1] = __Osc__Smooth__y_curr;
 __m_outputs[0] = (__Osc__Phaser__increment + (__m_outputs[0] - Math.floor((__Osc__Phaser__increment + __m_outputs[0]))));
-__Osc__sine = __Osc__Lib__sinewave(__m_inputs[4]);
-__Osc__square = __Osc__Lib__squarewave(__m_inputs[4]);
-__Osc__saw = __Osc__Lib__sawwave(__m_inputs[4]);
-__Osc__triangle = __Osc__Lib__trianglewave(__m_inputs[4]);
-__Osc__outwave = __Osc__Lib__switch4(__m_inputs[3], __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
-__m_outputs[1] = (__Osc__outwave * __m_inputs[2]);
-freq = (frequency + ((frequency * __m_inputs[33]) * frequencyModAmount));
-__m_outputs[22] = freq;
+__Osc__sine = __Osc__Lib__sinewave(__m_inputs[5]);
+__Osc__square = __Osc__Lib__squarewave(__m_inputs[5]);
+__Osc__saw = __Osc__Lib__sawwave(__m_inputs[5]);
+__Osc__triangle = __Osc__Lib__trianglewave(__m_inputs[5]);
+__Osc__outwave = __Osc__Lib__switch4(__m_inputs[4], __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
+__m_outputs[2] = (__Osc__outwave * __m_inputs[3]);
+freq = (frequency + ((frequency * __m_inputs[37]) * frequencyModAmount));
+__m_outputs[26] = freq;
 osc2detuned = (freq * (1 + osc2detune));
 osc3detuned = (freq * (1 + osc3detune));
-__m_outputs[23] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
-__m_outputs[24] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
-__m_outputs[21] = (__Lib__switch3(instrument, (((__m_inputs[27] + __m_inputs[28]) + __m_inputs[29]) * __m_inputs[31]), (__m_inputs[32] * 4), (((__m_inputs[32] * 4) + (((__m_inputs[27] + __m_inputs[28]) + __m_inputs[29]) * __m_inputs[31])) * 0.5)) * globalgate);
+__m_outputs[27] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
+__m_outputs[28] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
+__m_outputs[25] = (__Lib__switch3(instrument, (((__m_inputs[31] + __m_inputs[32]) + __m_inputs[33]) * __m_inputs[35]), (__m_inputs[36] * 4), (((__m_inputs[36] * 4) + (((__m_inputs[31] + __m_inputs[32]) + __m_inputs[33]) * __m_inputs[35])) * 0.5)) * globalgate);
 
 
             connections.forEach(([out, inp]) => {
                 __m_inputs[inp] = __m_outputs[out];
             });
 
-            __m_inputs[3] = osc1waveform;
-__m_inputs[8] = osc2waveform;
-__m_inputs[13] = osc3waveform;
-__m_inputs[18] = lfowaveform;
-__m_inputs[16] = lfoFrequency;
-__m_inputs[24] = frequency;
-__m_inputs[23] = trigger;
-__m_inputs[20] = trigger;
-leftOutput[i] = __m_outputs[19];
-rightOutput && (rightOutput[i] = __m_outputs[19]);
+            __m_inputs[4] = osc1waveform;
+__m_inputs[10] = osc2waveform;
+__m_inputs[16] = osc3waveform;
+__m_inputs[22] = lfowaveform;
+__m_inputs[20] = lfoFrequency;
+__m_inputs[28] = frequency;
+__m_inputs[27] = trigger;
+__m_inputs[24] = trigger;
+leftOutput[i] = __m_outputs[23];
+rightOutput && (rightOutput[i] = __m_outputs[23]);
 
         }
 

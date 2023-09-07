@@ -1,5 +1,6 @@
 import Lib from "./lib.mephisto";
 import Phaser from "./phaser.mephisto";
+import Smooth from "./smoo.mephisto";
 
 input frequency = 110;
 input gain = 1;
@@ -26,6 +27,7 @@ process {
 }
 
 connect {
-    internal_freq -> Phaser.frequency;
+    internal_freq -> Smooth.inp;
+    Smooth.out -> Phaser.frequency;
     Phaser.phase -> phase;
 }

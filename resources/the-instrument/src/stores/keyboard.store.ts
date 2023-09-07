@@ -58,13 +58,16 @@ class KeyboardStore {
 
         const freq = Math.pow(2, ((key + 12) - 69) / 12) * 440;
 
-        synth.port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name: 'globalgate',
-                value: 0
-            }
-        });
+        // synth.port.postMessage({
+        //     command: 'setParameter',
+        //     setter: {
+        //         name: 'globalgate',
+        //         value: 0
+        //     }
+        // });
+
+        // Globalgate to 0 is an ugly hack to prevent a click sound when the karplus node is retriggered.
+        // TODO: Fix this in the karplus node.
 
         synth.port.postMessage({
             command: 'setParameter',
@@ -80,6 +83,7 @@ class KeyboardStore {
                 value: 1
             }
         });
+
         setTimeout(() => {
             synth.port.postMessage({
                 command: 'setParameter',
@@ -88,8 +92,6 @@ class KeyboardStore {
                     value: 1
                 }
             });
-
-
         }, 10);
     }
 
