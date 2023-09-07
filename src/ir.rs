@@ -59,7 +59,7 @@ impl IR {
 
         let mut processed_modules = HashSet::new();
 
-        let mut merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
+        let merged_module = Self::merge_modules(modules, &main_module, &mut processed_modules);
         let mut with_replaced_module_calls = Self::replace_module_calls(&merged_module.ast.root, &merged_module.symbol_table);
         let mut with_replaced_stdlib_calls = Self::replace_stdlib_calls(&with_replaced_module_calls.ast.root, &mut with_replaced_module_calls.symbol_table);
         let (with_replaced_connects, input_names, output_names) = Self::replace_connects(&with_replaced_stdlib_calls.ast, &mut with_replaced_stdlib_calls.symbol_table);
@@ -109,7 +109,7 @@ impl IR {
             if symbol.is_some() {
                 let symbol = symbol.unwrap();
 
-                if (symbol.is_output() && !symbol.is_parameter()) {
+                if symbol.is_output() && !symbol.is_parameter() {
                     output_symbols.push((name.clone(), symbol.clone()));
                 }
             }
@@ -163,18 +163,16 @@ impl IR {
                         ASTTraverseStage::Enter => {
                             let symbol = symbol_table.lookup(name);
 
-                            println!("Renaming symbol {}", name);
-
                             if symbol.is_some() {
                                 let symbol = symbol.unwrap();
 
-                                input_symbols.iter().enumerate().for_each(|(i, (new_name, si))| {
+                                input_symbols.iter().enumerate().for_each(|(i, (_, si))| {
                                     if si.id() == symbol.id() {
                                         *name = format!("##INPUT_[{}]", i);
                                     }
                                 });
 
-                                output_symbols.iter().enumerate().for_each(|(i, (new_name, si))| {
+                                output_symbols.iter().enumerate().for_each(|(i, (_, si))| {
                                     if si.id() == symbol.id() {
                                         *name = format!("##OUTPUT_[{}]", i);
                                     }
@@ -260,7 +258,7 @@ impl IR {
                         ASTTraverseStage::Enter => {
                             let symbol = symbol_table.lookup(name);
 
-                            println!("Renaming symbol {}", name);
+                            // println!("Renaming symbol {}", name);
 
                             if symbol.is_some() {
                                 let symbol = symbol.unwrap();
@@ -359,7 +357,7 @@ impl IR {
                             let imported_module = Self::merge_modules(modules, &path, processed_modules);
                             let mut module = Self::replace_module_calls(&imported_module.ast.root, &imported_module.symbol_table);
 
-                            println!("{}", module.ast.to_code_string());
+                            // println!("{}", module.ast.to_code_string());
 
                             let id = match id.as_ref() {
                                 Node::Identifier { name, .. } => name,
@@ -453,8 +451,8 @@ impl IR {
 
         let symbols_to_rename = collect_symbols_for_rename(&mut renamed_node, &mut context);
 
-        println!("Symbols to rename: {:#?}", symbols_to_rename);
-        println!("AST before renaming: {:#?}", renamed_node);
+        // println!("Symbols to rename: {:#?}", symbols_to_rename);
+        // println!("AST before renaming: {:#?}", renamed_node);
 
         context.symbol_table.reset_scopes_indexes();
 
@@ -513,19 +511,16 @@ impl IR {
                                 return false;
                             }
 
-                            println!("Renaming symbol {}", name);
-
+                            // println!("Renaming symbol {}", name);
 
                             let symbol = context.symbol_table.lookup(name);
 
                             if symbol.is_none() {
                                 println!("Symbol not found");
-                                println!("Symbol table: {:#?}", context.symbol_table);
+                                // println!("Symbol table: {:#?}", context.symbol_table);
                             }
 
                             if symbol.is_some() {
-                                println!("Symbol found");
-
                                 let symbol = symbol.unwrap();
 
                                 // Check if the symbol should be renamed
@@ -961,7 +956,7 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        println!("code: {}", ir_result.ast.to_code_string());
+        // println!("code: {}", ir_result.ast.to_code_string());
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
         assert!(ir_result.symbol_table.lookup("bar").is_some());
@@ -1003,7 +998,7 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        println!("AST: {:#?}", ir_result.ast);
+        // println!("AST: {:#?}", ir_result.ast);
 
         assert!(ir_result.symbol_table.lookup("foo").is_some());
         assert!(ir_result.symbol_table.lookup("#foo_2").is_some());
@@ -1043,7 +1038,7 @@ mod tests {
 
         ir_result.symbol_table.reset_scopes_indexes();
 
-        println!("CODE: {}", ir_result.ast.to_code_string());
+        // println!("CODE: {}", ir_result.ast.to_code_string());
 
         assert!(ir_result.symbol_table.lookup("PI").is_some());
     }
@@ -1308,8 +1303,8 @@ connect {
 
         let mut ir_result = result.unwrap();
 
-        println!("AST: {:#?}", ir_result.ast);
-        println!("{}", ir_result.ast.to_code_string());
+        // println!("AST: {:#?}", ir_result.ast);
+        // println!("{}", ir_result.ast.to_code_string());
 
         ir_result.symbol_table.reset_scopes_indexes();
 
@@ -1382,8 +1377,8 @@ connect {
 
         let mut ir_result = result.unwrap();
 
-        println!("AST: {:#?}", ir_result.ast);
-        println!("{}", ir_result.ast.to_code_string());
+        // println!("AST: {:#?}", ir_result.ast);
+        // println!("{}", ir_result.ast.to_code_string());
 
         ir_result.symbol_table.reset_scopes_indexes();
 
@@ -1475,7 +1470,7 @@ connect {
 
         let mut ir_result = result.unwrap();
 
-        println!("{}", ir_result.ast.to_code_string());
+        // println!("{}", ir_result.ast.to_code_string());
 
         ir_result.symbol_table.reset_scopes_indexes();
 
@@ -1585,7 +1580,7 @@ connect {
 
         let mut ir_result = result.unwrap();
 
-        println!("{}", ir_result.ast.to_code_string());
+        // println!("{}", ir_result.ast.to_code_string());
 
         ir_result.symbol_table.reset_scopes_indexes();
 
@@ -1669,7 +1664,7 @@ process {
 
         let mut ir_result = result.unwrap();
 
-        println!("{}", ir_result.ast.to_code_string());
+        // println!("{}", ir_result.ast.to_code_string());
 
         ir_result.symbol_table.reset_scopes_indexes();
 

@@ -19,7 +19,7 @@ impl FileLoader for NativeFileLoader {
             Path::new(path).to_path_buf()
         };
 
-        println!("Resolved path: {:?}", resolved_path);
+        println!("[Module Loader] Resolved path: {:?}", resolved_path);
 
         let mut file = File::open(&resolved_path)?;
         let mut contents = String::new();

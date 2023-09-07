@@ -33,18 +33,18 @@ impl Lexer {
                 |chars: &str, current: u32| full_pattern_t(TokenType::EXPORT, Regex::new(r"^export\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::CONNECT, Regex::new(r"^connect\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::BUFFER, Regex::new(r"^buffer\b").unwrap(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::EQ, "==".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::NE, "!=".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::GE, ">=".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LE, "<=".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
+                |chars: &str, current: u32| match_word_t(TokenType::CABLE, "->".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LCURLY, "{".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::RCURLY, "}".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LPAREN, "(".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::RPAREN, ")".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::LSQUARE, "[".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::RSQUARE, "]".to_string(), chars, current),
-                |chars: &str, current: u32| match_word_t(TokenType::CABLE, "->".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::SEMI, ";".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::COLON, ":".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::DOT, ".".to_string(), chars, current),
@@ -93,6 +93,8 @@ impl Lexer {
                     position.column += consumed;
 
                     tokens.push(t);
+
+                    break;
                 }
             }
 
@@ -154,6 +156,22 @@ mod tests {
         assert_eq!(tokens[1].token_type, super::token_type::TokenType::ID);
         assert_eq!(tokens[2].token_type, super::token_type::TokenType::FROM);
         assert_eq!(tokens[3].token_type, super::token_type::TokenType::STRING);
+        assert_eq!(tokens[4].token_type, super::token_type::TokenType::SEMI);
+        assert_eq!(tokens[5].token_type, super::token_type::TokenType::EOF);
+    }
+
+    #[test]
+    fn test_immediate_comment() {
+        let lexer = super::Lexer::new();
+        let tokens = lexer.tokenize("let s = 0.999;//1 - 44.1 / SR;".to_string());
+
+        // println!("{:#?}", tokens);
+
+        assert_eq!(tokens.len(), 6);
+        assert_eq!(tokens[0].token_type, super::token_type::TokenType::LET);
+        assert_eq!(tokens[1].token_type, super::token_type::TokenType::ID);
+        assert_eq!(tokens[2].token_type, super::token_type::TokenType::DEF);
+        assert_eq!(tokens[3].token_type, super::token_type::TokenType::NUMBER);
         assert_eq!(tokens[4].token_type, super::token_type::TokenType::SEMI);
         assert_eq!(tokens[5].token_type, super::token_type::TokenType::EOF);
     }

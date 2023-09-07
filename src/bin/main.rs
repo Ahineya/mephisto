@@ -33,6 +33,8 @@ fn main() {
         Ok(res) => {
             if let Some(output) = args.output {
                 std::fs::write(output, res).expect("Unable to write file");
+
+                println!("Compilation successful");
             } else {
                 println!("{}", res);
             }

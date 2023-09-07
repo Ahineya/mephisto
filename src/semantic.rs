@@ -41,7 +41,7 @@ impl SemanticAnalyzer {
             let symbol_table = module_data.symbol_table.to_owned();
             let mut ast = module_data.ast.to_owned();
 
-            println!("{:#?}", ast);
+            // println!("{:#?}", ast);
 
             let mut context = Context {
                 symbol_table, // TODO: Clone is expensive, / Lifetimes are hard, / Today I'm not ready, / To pull the right card.

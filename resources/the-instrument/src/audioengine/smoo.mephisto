@@ -1,16 +1,13 @@
 input inp = 0;
 output out = 0;
 
-let s = 1 - 44.1 / SR;
-let y_prev = 0; // This will hold y[n - 1] in the computation
+let s = 0.999;//1 - 44.1 / SR;
+
+let y_prev = 0;
 
 process {
-    // Implementing the equation y[n] = s * (y[n - 1] - x[n]) + x[n]
     let y_curr = s * (y_prev - inp) + inp;
-
-    // Assign y_curr to y_prev for the next iteration
     y_prev = y_curr;
-
-    // Assign y_curr to the output
     out = y_curr;
 }
+

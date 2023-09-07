@@ -99,6 +99,8 @@ impl<T: FileLoader> Mephisto<T> {
             return Err(vec![format!("Main module {} not found", main_module_path)]);
         }
 
+        println!("Validating semantics...");
+
         self.validate_semantics(&mut modules)?;
 
         for (path, module) in modules.iter() {
@@ -113,13 +115,15 @@ impl<T: FileLoader> Mephisto<T> {
 
         code.push_str("\n\n");
 
+        println!("Creating IR...");
+
         // println!("Code: {}", code);
         let mut ir = IR::new();
-        let mut ir_result = ir.create(&mut modules, main_module_path.to_string())?;
+        let ir_result = ir.create(&mut modules, main_module_path.to_string())?;
 
         // println!("IR: {:#?}", ir_result);
 
-        println!("Code: {}", ir_result.ast.to_code_string());
+        // println!("Code: {}", ir_result.ast.to_code_string());
 
         if ir_result.errors.len() > 0 {
             errors.extend(ir_result.errors.iter().map(|e| format!("{}: {}", main_module_path, e)));
@@ -129,7 +133,11 @@ impl<T: FileLoader> Mephisto<T> {
             return Err(errors);
         }
 
-        self.generate_code(ir_result, codegen)
+        println!("Generating code...");
+
+        let code = self.generate_code(ir_result, codegen);
+
+        code
     }
 
     fn process_module(&mut self, path: &str, context: &mut Context, base_path: Option<&Path>) -> Result<(), Vec<String>> {

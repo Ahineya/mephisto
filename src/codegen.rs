@@ -1,7 +1,6 @@
 pub mod codegen_js;
 
 use crate::ir::IRResult;
-use crate::module_data::ModuleData;
 
 pub trait CodeGenerator {
     fn generate(&self, ir: IRResult) -> Result<String, Vec<String>>;
