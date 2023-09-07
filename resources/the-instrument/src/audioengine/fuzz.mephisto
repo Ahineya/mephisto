@@ -30,6 +30,3 @@ process {
     audioOut = fuzzed * level;
 }
 
-connect {
-    audioOut -> OUTPUTS;
-}

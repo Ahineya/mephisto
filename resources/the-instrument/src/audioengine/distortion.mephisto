@@ -32,6 +32,3 @@ process {
     audioOut = clipped;
 }
 
-connect {
-    audioOut -> OUTPUTS;
-}

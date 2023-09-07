@@ -80,6 +80,3 @@ process {
 
 }
 
-connect {
-    out -> OUTPUTS;
-}

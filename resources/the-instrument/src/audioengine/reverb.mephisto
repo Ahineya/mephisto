@@ -46,7 +46,3 @@ process {
     let wetSignal = (combOut1 + combOut2 + combOut3) / 3.0;
     audioOut = (drySignal * (1.0 - dryWet)) + (wetSignal * dryWet);
 }
-
-connect {
-    audioOut -> OUTPUTS;
-}

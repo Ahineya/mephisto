@@ -279,7 +279,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                                     },
                                     Node::OutputsStmt { .. } => "#OUTPUTS".to_string(),
                                     Node::OutputsNumberedStmt { value, .. } => {
-                                        format!("output[{}][i]", value)
+                                        format!("##output[{}][i]", value)
                                     }
                                     _ => {
                                         context.errors.push("ConnectNode child not expected in the IR".to_string());

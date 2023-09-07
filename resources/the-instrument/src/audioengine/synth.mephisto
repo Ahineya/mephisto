@@ -233,5 +233,5 @@ connect {
     LowPass.audioOut -> Echo.audioIn;
     Echo.audioOut -> Freeverb.audioIn;
     Freeverb.audioOut -> Limiter.audioIn;
-    Limiter.audioOut -> OUTPUTS;
+    Limiter.audioOut -> OUTPUTS; // Or OUTPUTS[0] to send to the left channel only
 }

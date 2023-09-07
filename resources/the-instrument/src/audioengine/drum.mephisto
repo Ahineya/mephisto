@@ -63,7 +63,6 @@ process {
 }
 
 connect {
-    out -> OUTPUTS;
     freq -> Phaser.frequency;
     Phaser.phase -> phase;
     trigger -> AR.trigger;

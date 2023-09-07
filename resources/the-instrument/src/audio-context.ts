@@ -21,7 +21,9 @@ export const analyser = audioContext.createAnalyser();
 //   });
 
 await audioContext.audioWorklet.addModule('processor.js');
-export const synth = new AudioWorkletNode(audioContext, 'mephisto-generator');
+export const synth = new AudioWorkletNode(audioContext, 'mephisto-generator', {
+    outputChannelCount: [2],
+});
 
 type Connection = {
     path: string[];

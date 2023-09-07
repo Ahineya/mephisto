@@ -65,7 +65,3 @@ process {
     // Mix dry and wet signals
     audioOut = (inputSample * (1.0 - dryWet)) + (wetSignal * dryWet);
 }
-
-connect {
-    audioOut -> OUTPUTS;
-}

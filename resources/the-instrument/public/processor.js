@@ -900,11 +900,7 @@ __m_outputs[21] = (__Lib__switch3(instrument, (((__m_inputs[27] + __m_inputs[28]
                 __m_inputs[inp] = __m_outputs[out];
             });
 
-            leftOutput[i] = __m_outputs[20];
-rightOutput && (rightOutput[i] = __m_outputs[20]);
-leftOutput[i] = __m_outputs[18];
-rightOutput && (rightOutput[i] = __m_outputs[18]);
-__m_inputs[3] = osc1waveform;
+            __m_inputs[3] = osc1waveform;
 __m_inputs[8] = osc2waveform;
 __m_inputs[13] = osc3waveform;
 __m_inputs[18] = lfowaveform;
