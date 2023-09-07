@@ -57,7 +57,7 @@ impl JSCodeGenerator {
         handlebars.register_escape_fn(handlebars::no_escape);
 
         handlebars
-            .register_template_string("js", include_str!("templates/js-basic.hbs"))
+            .register_template_string("js", include_str!("templates/js.hbs"))
             .unwrap();
 
         let mut stdlib = HashMap::new();

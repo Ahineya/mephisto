@@ -1,0 +1,33 @@
+param osc1gain {
+    initial: 0.33;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+param osc2gain {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+param osc3gain {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
+
+output osc1gainOut = 0;
+output osc2gainOut = 0;
+output osc3gainOut = 0;
+
+block {
+    osc1gainOut = osc1gain;
+    osc2gainOut = osc2gain;
+    osc3gainOut = osc3gain;
+}

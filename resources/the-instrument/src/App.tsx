@@ -7,9 +7,19 @@ import {Mermaid} from "./mermaid/mermaid.tsx";
 function App() {
     const chart = useStoreSubscribe(synthStore.chart);
 
+    const conn = () => {
+        synthStore.connectLfoToFreqMod();
+    }
+
+    const disconn = () => {
+        synthStore.disconnectLfoFromFreqMod();
+    }
+
     return (
         <>
             <SynthKeyboard/>
+            <button onClick={conn}>Connect lfo to freqmod</button>
+            <button onClick={disconn}>Disconnect lfo from freqmod</button>
             {
                 chart !== "" && <Mermaid chart={chart}/>
             }

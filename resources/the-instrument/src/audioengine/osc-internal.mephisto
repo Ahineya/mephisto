@@ -2,16 +2,16 @@ import Lib from "./lib.mephisto";
 import Phaser from "./phaser.mephisto";
 
 input frequency = 110;
-input gain = 0.7;
+input gain = 1;
 input wave = 0;
 
 output out = 0;
 input phase = 0;
 
-output freq = 0;
+output internal_freq = 0;
 
 block {
-    freq = frequency;
+    internal_freq = frequency;
 }
 
 process {
@@ -26,6 +26,6 @@ process {
 }
 
 connect {
-    freq -> Phaser.frequency;
+    internal_freq -> Phaser.frequency;
     Phaser.phase -> phase;
 }

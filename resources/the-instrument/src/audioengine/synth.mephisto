@@ -1,7 +1,10 @@
 import Osc from "./osc-internal.mephisto";
 import Osc2 from "./osc-internal.mephisto";
-import Osc3 from "./osc.mephisto";
-import Drum from "./drum.mephisto";
+import Osc3 from "./osc-internal.mephisto";
+
+import LFO from "./osc-internal.mephisto";
+
+import OscVolume from "./osc-volume.mephisto";
 
 import ADSR from "./adsr.mephisto";
 
@@ -30,12 +33,54 @@ param osc1waveform {
     triangle: 3;
 };
 
-param osc2enabled {
+param osc2waveform {
     initial: 0;
+
     type: C_SLIDER;
     min: 0;
-    max: 1;
+    max: 3;
     step: 1;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+    triangle: 3;
+};
+
+param osc3waveform {
+    initial: 0;
+
+    type: C_SLIDER;
+    min: 0;
+    max: 3;
+    step: 1;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+    triangle: 3;
+};
+
+param lfowaveform {
+    initial: 0;
+
+    type: C_SLIDER;
+    min: 0;
+    max: 3;
+    step: 1;
+
+    sine: 0;
+    square: 1;
+    saw: 2;
+    triangle: 3;
+};
+
+param lfoFrequency {
+    initial: 1;
+    type: C_SLIDER;
+    min: 0;
+    max: 20;
+    step: 0.01;
 };
 
 param osc2octaveoffset {
@@ -54,12 +99,36 @@ param osc2semioffset {
     step: 1;
 };
 
-param osc3enabled {
+param osc2detune {
     initial: 0;
     type: C_SLIDER;
+    min: -0.1;
+    max: 0.1;
+    step: 0.001;
+};
+
+param osc3octaveoffset {
+    initial: 2;
+    type: C_SLIDER;
     min: 0;
-    max: 1;
+    max: 4;
     step: 1;
+};
+
+param osc3semioffset {
+    initial: 0;
+    type: C_SLIDER;
+    min: -12;
+    max: 12;
+    step: 1;
+};
+
+param osc3detune {
+    initial: 0;
+    type: C_SLIDER;
+    min: -0.1;
+    max: 0.1;
+    step: 0.001;
 };
 
 param trigger {
@@ -89,18 +158,24 @@ input osc1 = 0;
 input osc2 = 0;
 input osc3 = 0;
 
-input drum = 0;
-
 input echo = 0;
 input adsr = 0;
 
 input karplus = 0;
 
-output osc1gain = 0.5;
-
+output osc1freq = 440;
 output osc2freq = 440;
-output osc2gain = 0.5;
-output osc2wave = 2;
+output osc3freq = 440;
+
+input frequencyMod = 0;
+
+param frequencyModAmount {
+    initial: 0;
+    type: C_SLIDER;
+    min: 0;
+    max: 1;
+    step: 0.01;
+};
 
 param globalgate {
     initial: 0;
@@ -110,15 +185,20 @@ param globalgate {
     step: 1;
 };
 
-block {
-    osc2freq = Freq.semiOffset(frequency * osc2octaveoffset, osc2semioffset);
-}
-
 process {
+    let freq = frequency + frequency * frequencyMod * frequencyModAmount;
+    osc1freq = freq;
+
+    let osc2detuned = freq * (1 + osc2detune);
+    let osc3detuned = freq * (1 + osc3detune);
+
+    osc2freq = Freq.semiOffset(osc2detuned * osc2octaveoffset, osc2semioffset);
+    osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);
+
     out = Lib.switch3(instrument,
-        (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr,
-        karplus * 2,
-        (karplus * 2 + (osc1 + (osc2 * osc2enabled) + (osc3 * osc3enabled)) * adsr) * 0.5)
+        (osc1 + osc2 + osc3) * adsr,
+        karplus * 4,
+        (karplus * 4 + (osc1 + osc2 + osc3) * adsr) * 0.5)
     * globalgate;
 }
 
@@ -127,13 +207,20 @@ connect {
     Osc2.out -> osc2;
     Osc3.out -> osc3;
     
-    frequency -> Osc.frequency;
-    osc1gain -> Osc.gain;
+    osc1freq -> Osc.frequency;
+    OscVolume.osc1gainOut -> Osc.gain;
     osc1waveform -> Osc.wave;
 
     osc2freq -> Osc2.frequency;
-    osc2gain -> Osc2.gain;
-    osc2wave -> Osc2.wave;
+    OscVolume.osc2gainOut -> Osc2.gain;
+    osc2waveform -> Osc2.wave;
+
+    osc3freq -> Osc3.frequency;
+    OscVolume.osc3gainOut -> Osc3.gain;
+    osc3waveform -> Osc3.wave;
+
+    lfowaveform -> LFO.wave;
+    lfoFrequency -> LFO.frequency;
 
     Karplus.out -> karplus;
     frequency -> Karplus.frequency;

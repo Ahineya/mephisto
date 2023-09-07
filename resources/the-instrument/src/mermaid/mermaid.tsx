@@ -1,5 +1,5 @@
 import mermaid from "mermaid";
-import {useLayoutEffect} from "react";
+import {useLayoutEffect, useRef} from "react";
 import "./mermaid.scss";
 
 mermaid.initialize({
@@ -64,10 +64,17 @@ mermaid.initialize({
 // }
 
 export function Mermaid(props: { chart: string }) {
+    const mermaidRef = useRef<HTMLDivElement>(null);
 
     useLayoutEffect(() => {
-        mermaid.contentLoaded();
-    }, []);
+        if (mermaidRef.current === null) {
+            return;
+        }
 
-    return <div className="mermaid" style={{backgroundColor: 'var(--color-primary)'}}>{props.chart}</div>;
+        mermaidRef.current.removeAttribute("data-processed");
+
+        mermaid.contentLoaded();
+    }, [props.chart]);
+
+    return <div ref={mermaidRef} className="mermaid" style={{backgroundColor: 'var(--color-primary)'}}>{props.chart}</div>;
 }

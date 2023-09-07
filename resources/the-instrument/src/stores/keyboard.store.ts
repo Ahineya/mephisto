@@ -73,7 +73,13 @@ class KeyboardStore {
                 value: freq
             }
         });
-
+        synth.port.postMessage({
+            command: 'setParameter',
+            setter: {
+                name: TRIGGER,
+                value: 1
+            }
+        });
         setTimeout(() => {
             synth.port.postMessage({
                 command: 'setParameter',
@@ -83,13 +89,7 @@ class KeyboardStore {
                 }
             });
 
-            synth.port.postMessage({
-                command: 'setParameter',
-                setter: {
-                    name: TRIGGER,
-                    value: 1
-                }
-            });
+
         }, 10);
     }
 

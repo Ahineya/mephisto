@@ -176,13 +176,29 @@ synth.port.onmessage = (event) => {
             return `${event.data.outputNames[out]} -> ${event.data.inputNames[inp]}`;
         });
 
+        console.log('Inputs', event.data.inputNames);
+        console.log('Outputs', event.data.outputNames);
+
         const chart = toMermaid(connections);
 
         synthStore.setChart(chart);
+        synthStore.setInputs(event.data.inputNames);
+        synthStore.setOutputs(event.data.outputNames);
 
 
         const container = document.querySelector('#container');
         container!.appendChild(controls);
+    }
+
+    if (event.data.command === 'connectionsChanged') {
+        console.log('Connections changed', event.data.connections);
+        let connections = event.data.connections.map(([out, inp]: [number, number]) => {
+            return `${event.data.outputNames[out]} -> ${event.data.inputNames[inp]}`;
+        });
+
+        const chart = toMermaid(connections);
+
+        synthStore.setChart(chart);
     }
 };
 
