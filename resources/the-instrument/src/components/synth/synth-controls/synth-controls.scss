@@ -1,0 +1,18 @@
+.synth-controls-container {
+  border: 10px solid var(--color-primary);
+  box-sizing: border-box;
+  filter: var(--drop-shadow);
+  background: var(--color-main-bg);
+  position: relative;
+  height: 504px;
+  z-index: 1;
+
+  width: 870px;
+  margin: 0 auto;
+
+  .synth-controls {
+    padding: 13px 12px;
+    height: 474px;
+    position: relative;
+  }
+}

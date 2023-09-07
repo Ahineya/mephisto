@@ -1,15 +1,3 @@
-
-:root {
-  --color-main-bg: hsl(9 26% 6% / 1);
-  --color-secondary: hsl(25 19% 42% / 1);
-  --color-primary: hsl(26 19% 62% / 1);
-  --color-caption: #b09b8c;
-  --color-secondary-bg: var(--color-primary);
-
-  --shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
-  --shadow-deep: 0 4px 24px rgba(0, 0, 0, 1);
-}
-
 .synth-keyboard {
   border-left: 10px solid var(--color-primary);
   border-right: 10px solid var(--color-primary);

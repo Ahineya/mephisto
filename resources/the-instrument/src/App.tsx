@@ -1,25 +1,16 @@
-import './App.css'
-import {SynthKeyboard} from "./keyboard/synth-keyboard.tsx";
+import './App.scss'
 import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
 import {synthStore} from "./stores/synth.store.ts";
-import {Mermaid} from "./mermaid/mermaid.tsx";
+import {Mermaid} from "./components/mermaid/mermaid.tsx";
+import {Synth} from "./components/synth/synth.tsx";
 
 function App() {
     const chart = useStoreSubscribe(synthStore.chart);
 
-    const conn = () => {
-        synthStore.connectLfoToFreqMod();
-    }
-
-    const disconn = () => {
-        synthStore.disconnectLfoFromFreqMod();
-    }
-
     return (
         <>
-            <SynthKeyboard/>
-            <button onClick={conn}>Connect lfo to freqmod</button>
-            <button onClick={disconn}>Disconnect lfo from freqmod</button>
+            <Synth />
+
             {
                 chart !== "" && <Mermaid chart={chart}/>
             }

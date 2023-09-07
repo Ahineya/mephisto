@@ -81,3 +81,20 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+html,
+body {
+  overscroll-behavior: none;
+}
+
+* {
+  user-select: none;
+
+  // Restore user-select for these elements
+    input,
+    textarea,
+    select,
+    button {
+      user-select: auto;
+    }
+}

@@ -1,0 +1,57 @@
+<svg width="24" height="26" viewBox="0 0 60 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <g filter="url(#a)">
+        <ellipse cx="29.913" cy="28.446" rx="28.801" ry="28.446" fill="#E6E6E6"/>
+        <path d="M58.133 28.446c0 15.382-12.628 27.865-28.22 27.865-15.593 0-28.221-12.483-28.221-27.865C1.692 13.063 14.32.58 29.912.58c15.593 0 28.221 12.482 28.221 27.865Z"
+              stroke="#737373" stroke-width="1.161"/>
+    </g>
+    <path d="M2.74 24.382h5.425v7.926H2.739c-.593 1.46-.563-8.846 0-7.926Z" fill="url(#b)"/>
+    <path d="M57.016 24.44h-6.531v7.928h6.532c.714 1.459.676-8.848-.001-7.928Z" fill="url(#c)"/>
+    <g filter="url(#d)">
+        <ellipse cx="29.987" cy="28.814" rx="22.998" ry="22.714" fill="#E6E6E6"/>
+        <ellipse cx="29.987" cy="28.814" rx="22.998" ry="22.714" stroke="url(#e)" stroke-width="1.858"/>
+    </g>
+    <ellipse cx="30.193" cy="28.723" rx="16.151" ry="15.952" fill="#000"/>
+    <defs>
+        <linearGradient id="b" x1="5.15" y1="24.382" x2="5.15" y2="30.61" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#737373"/>
+            <stop offset=".109" stop-opacity=".49"/>
+            <stop offset=".172" stop-opacity=".415"/>
+            <stop offset="1" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="c" x1="54.113" y1="24.44" x2="54.113" y2="30.669" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#737373"/>
+            <stop offset=".109" stop-opacity=".49"/>
+            <stop offset=".172" stop-opacity=".415"/>
+            <stop offset="1" stop-opacity="0"/>
+        </linearGradient>
+        <filter id="a" x=".111" y="0" width="59.602" height="63.891" filterUnits="userSpaceOnUse"
+                color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+            <feMorphology radius="1" in="SourceAlpha" result="effect1_dropShadow_153_217"/>
+            <feOffset dy="6"/>
+            <feGaussianBlur stdDeviation="1"/>
+            <feComposite in2="hardAlpha" operator="out"/>
+            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+            <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_153_217"/>
+            <feBlend in="SourceGraphic" in2="effect1_dropShadow_153_217" result="shape"/>
+        </filter>
+        <filter id="d" x="6.06" y="5.171" width="47.853" height="50.769" filterUnits="userSpaceOnUse"
+                color-interpolation-filters="sRGB">
+            <feFlood flood-opacity="0" result="BackgroundImageFix"/>
+            <feColorMatrix in="SourceAlpha" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+            <feMorphology radius="3.483" in="SourceAlpha" result="effect1_dropShadow_153_217"/>
+            <feOffset dy="5.805"/>
+            <feGaussianBlur stdDeviation=".581"/>
+            <feComposite in2="hardAlpha" operator="out"/>
+            <feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"/>
+            <feBlend in2="BackgroundImageFix" result="effect1_dropShadow_153_217"/>
+            <feBlend in="SourceGraphic" in2="effect1_dropShadow_153_217" result="shape"/>
+        </filter>
+        <radialGradient id="e" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse"
+                        gradientTransform="rotate(-90.145 29.364 -.549) scale(29.3941 15.9254)">
+            <stop/>
+            <stop offset="1" stop-color="#737373"/>
+        </radialGradient>
+    </defs>
+</svg>

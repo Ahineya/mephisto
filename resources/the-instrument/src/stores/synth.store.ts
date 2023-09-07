@@ -30,33 +30,31 @@ class SynthStore {
         return this.outputs.getValue().findIndex((output) => output === name);
     }
 
-    connectLfoToFreqMod() {
-        const lfo = this.getNumericOutput('LFO#out');
-        const freqMod = this.getNumericInput('frequencyMod');
+    connect(output: string, input: string) {
+        const outputIndex = this.getNumericOutput(output);
+        const inputIndex = this.getNumericInput(input);
 
-        if (lfo === -1 || freqMod === -1) {
+        if (outputIndex === -1 || inputIndex === -1) {
             return;
         }
 
-        console.log([lfo, freqMod]);
-
         synth.port.postMessage({
             command: 'addConnection',
-            connection: [lfo, freqMod]
+            connection: [outputIndex, inputIndex]
         });
     }
 
-    disconnectLfoFromFreqMod() {
-        const lfo = this.getNumericOutput('LFO#out');
-        const freqMod = this.getNumericInput('frequencyMod');
+    disconnect(output: string, input: string) {
+        const outputIndex = this.getNumericOutput(output);
+        const inputIndex = this.getNumericInput(input);
 
-        if (lfo === -1 || freqMod === -1) {
+        if (outputIndex === -1 || inputIndex === -1) {
             return;
         }
 
         synth.port.postMessage({
             command: 'removeConnection',
-            connection: [lfo, freqMod]
+            connection: [outputIndex, inputIndex]
         });
     }
 }

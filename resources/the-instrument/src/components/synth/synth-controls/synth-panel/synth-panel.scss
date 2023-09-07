@@ -1,0 +1,25 @@
+.synth-panel-container {
+  position: absolute;
+
+  .synth-panel-caption {
+    position: absolute;
+    font-size: var(--font-size-caption);
+    color: var(--color-caption);
+    font-weight: 600;
+    background-color: var(--color-main-bg);
+    top: -5px;
+    left: 5px;
+    padding: 0 3px;
+  }
+
+  .synth-panel {
+    background: var(--color-main-bg);
+    border: 1px solid var(--color-primary);
+    box-shadow: var(--shadow);
+
+    padding: 10px;
+    height: 100%;
+
+    position: relative;
+  }
+}

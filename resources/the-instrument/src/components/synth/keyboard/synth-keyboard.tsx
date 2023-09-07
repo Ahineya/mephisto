@@ -1,4 +1,4 @@
-import {useEffect, useState} from "react";
+import {useState} from "react";
 import "./synth-keyboard.scss";
 // import {synth} from "../../../../audio-context";
 // import {synthStore} from "../../../../stores/synth.store";
@@ -7,9 +7,9 @@ import "./synth-keyboard.scss";
 // import {ISynthNode} from "../../../../synth-node.interface";
 import classNames from "classnames";
 
-import {audioContext, synth} from "../audio-context.ts";
+import {audioContext} from "../../../audio-context.ts";
 import {KeyboardListener} from "./keyboard-listener.tsx";
-import {keyboardStore} from "../stores/keyboard.store.ts";
+import {keyboardStore} from "../../../stores/keyboard.store.ts";
 console.log(audioContext);
 
 const blackKeysLeft = [

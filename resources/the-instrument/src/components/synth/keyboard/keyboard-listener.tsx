@@ -3,8 +3,8 @@ import {fromEvent} from "rxjs";
 // import {keyboardStore} from "../stores/keyboard.store";
 // import {synthStore} from "../stores/synth.store";
 // import {ISynthPresetMiscValues} from "../stores/synth.interface";
-import {audioContext} from "../audio-context";
-import {keyboardStore} from "../stores/keyboard.store.ts";
+import {audioContext} from "../../../audio-context.ts";
+import {keyboardStore} from "../../../stores/keyboard.store.ts";
 
 const keyToMidi: {
   [key: string]: number;
