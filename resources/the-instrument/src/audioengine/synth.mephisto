@@ -186,11 +186,11 @@ param globalgate {
 };
 
 process {
-    let freq = frequency + frequency * frequencyMod * frequencyModAmount;
+    const freq = frequency + frequency * frequencyMod * frequencyModAmount;
     osc1freq = freq;
 
-    let osc2detuned = freq * (1 + osc2detune);
-    let osc3detuned = freq * (1 + osc3detune);
+    const osc2detuned = freq * (1 + osc2detune);
+    const osc3detuned = freq * (1 + osc3detune);
 
     osc2freq = Freq.semiOffset(osc2detuned * osc2octaveoffset, osc2semioffset);
     osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);

@@ -240,7 +240,13 @@ __m_inputs[1] = 0;
 __m_outputs[1] = 0;
 let __Osc__Smooth__s = 0.999;
 let __Osc__Smooth__y_prev = 0;
-let __Osc__Smooth__y_curr = 0;
+function __Osc__Smooth__smoo(signal) {
+let __Osc__Smooth__y_curr = ((__Osc__Smooth__s * (__Osc__Smooth__y_prev - signal)) + signal);
+__Osc__Smooth__y_prev = __Osc__Smooth__y_curr;
+return __Osc__Smooth__y_curr;
+}
+
+let __Osc__Smooth____y_curr_2 = 0;
 __m_inputs[2] = 110;
 __m_inputs[3] = 1;
 __m_inputs[4] = 0;
@@ -295,7 +301,13 @@ __m_inputs[7] = 0;
 __m_outputs[5] = 0;
 let __Osc2__Smooth__s = 0.999;
 let __Osc2__Smooth__y_prev = 0;
-let __Osc2__Smooth__y_curr = 0;
+function __Osc2__Smooth__smoo(signal) {
+let __Osc2__Smooth__y_curr = ((__Osc2__Smooth__s * (__Osc2__Smooth__y_prev - signal)) + signal);
+__Osc2__Smooth__y_prev = __Osc2__Smooth__y_curr;
+return __Osc2__Smooth__y_curr;
+}
+
+let __Osc2__Smooth____y_curr_2 = 0;
 __m_inputs[8] = 110;
 __m_inputs[9] = 1;
 __m_inputs[10] = 0;
@@ -350,7 +362,13 @@ __m_inputs[13] = 0;
 __m_outputs[9] = 0;
 let __Osc3__Smooth__s = 0.999;
 let __Osc3__Smooth__y_prev = 0;
-let __Osc3__Smooth__y_curr = 0;
+function __Osc3__Smooth__smoo(signal) {
+let __Osc3__Smooth__y_curr = ((__Osc3__Smooth__s * (__Osc3__Smooth__y_prev - signal)) + signal);
+__Osc3__Smooth__y_prev = __Osc3__Smooth__y_curr;
+return __Osc3__Smooth__y_curr;
+}
+
+let __Osc3__Smooth____y_curr_2 = 0;
 __m_inputs[14] = 110;
 __m_inputs[15] = 1;
 __m_inputs[16] = 0;
@@ -405,7 +423,13 @@ __m_inputs[19] = 0;
 __m_outputs[13] = 0;
 let __LFO__Smooth__s = 0.999;
 let __LFO__Smooth__y_prev = 0;
-let __LFO__Smooth__y_curr = 0;
+function __LFO__Smooth__smoo(signal) {
+let __LFO__Smooth__y_curr = ((__LFO__Smooth__s * (__LFO__Smooth__y_prev - signal)) + signal);
+__LFO__Smooth__y_prev = __LFO__Smooth__y_curr;
+return __LFO__Smooth__y_curr;
+}
+
+let __LFO__Smooth____y_curr_2 = 0;
 __m_inputs[20] = 110;
 __m_inputs[21] = 1;
 __m_inputs[22] = 0;
@@ -883,9 +907,9 @@ __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal >= 0 ? 1 : 0)) +
 __ADSR__currentVal = ((__ADSR__currentVal * (__ADSR__currentVal <= 1 ? 1 : 0)) + (1 * (__ADSR__currentVal > 1 ? 1 : 0)));
 __ADSR__prevGate = __m_inputs[24];
 __m_outputs[19] = __ADSR__currentVal;
-__LFO__Smooth__y_curr = ((__LFO__Smooth__s * (__LFO__Smooth__y_prev - __m_inputs[19])) + __m_inputs[19]);
-__LFO__Smooth__y_prev = __LFO__Smooth__y_curr;
-__m_outputs[13] = __LFO__Smooth__y_curr;
+__LFO__Smooth____y_curr_2 = ((__LFO__Smooth__s * (__LFO__Smooth__y_prev - __m_inputs[19])) + __m_inputs[19]);
+__LFO__Smooth__y_prev = __LFO__Smooth____y_curr_2;
+__m_outputs[13] = __LFO__Smooth____y_curr_2;
 __m_outputs[12] = (__LFO__Phaser__increment + (__m_outputs[12] - Math.floor((__LFO__Phaser__increment + __m_outputs[12]))));
 __LFO__sine = __LFO__Lib__sinewave(__m_inputs[23]);
 __LFO__square = __LFO__Lib__squarewave(__m_inputs[23]);
@@ -893,9 +917,9 @@ __LFO__saw = __LFO__Lib__sawwave(__m_inputs[23]);
 __LFO__triangle = __LFO__Lib__trianglewave(__m_inputs[23]);
 __LFO__outwave = __LFO__Lib__switch4(__m_inputs[22], __LFO__sine, __LFO__square, __LFO__saw, __LFO__triangle);
 __m_outputs[14] = (__LFO__outwave * __m_inputs[21]);
-__Osc3__Smooth__y_curr = ((__Osc3__Smooth__s * (__Osc3__Smooth__y_prev - __m_inputs[13])) + __m_inputs[13]);
-__Osc3__Smooth__y_prev = __Osc3__Smooth__y_curr;
-__m_outputs[9] = __Osc3__Smooth__y_curr;
+__Osc3__Smooth____y_curr_2 = ((__Osc3__Smooth__s * (__Osc3__Smooth__y_prev - __m_inputs[13])) + __m_inputs[13]);
+__Osc3__Smooth__y_prev = __Osc3__Smooth____y_curr_2;
+__m_outputs[9] = __Osc3__Smooth____y_curr_2;
 __m_outputs[8] = (__Osc3__Phaser__increment + (__m_outputs[8] - Math.floor((__Osc3__Phaser__increment + __m_outputs[8]))));
 __Osc3__sine = __Osc3__Lib__sinewave(__m_inputs[17]);
 __Osc3__square = __Osc3__Lib__squarewave(__m_inputs[17]);
@@ -903,9 +927,9 @@ __Osc3__saw = __Osc3__Lib__sawwave(__m_inputs[17]);
 __Osc3__triangle = __Osc3__Lib__trianglewave(__m_inputs[17]);
 __Osc3__outwave = __Osc3__Lib__switch4(__m_inputs[16], __Osc3__sine, __Osc3__square, __Osc3__saw, __Osc3__triangle);
 __m_outputs[10] = (__Osc3__outwave * __m_inputs[15]);
-__Osc2__Smooth__y_curr = ((__Osc2__Smooth__s * (__Osc2__Smooth__y_prev - __m_inputs[7])) + __m_inputs[7]);
-__Osc2__Smooth__y_prev = __Osc2__Smooth__y_curr;
-__m_outputs[5] = __Osc2__Smooth__y_curr;
+__Osc2__Smooth____y_curr_2 = ((__Osc2__Smooth__s * (__Osc2__Smooth__y_prev - __m_inputs[7])) + __m_inputs[7]);
+__Osc2__Smooth__y_prev = __Osc2__Smooth____y_curr_2;
+__m_outputs[5] = __Osc2__Smooth____y_curr_2;
 __m_outputs[4] = (__Osc2__Phaser__increment + (__m_outputs[4] - Math.floor((__Osc2__Phaser__increment + __m_outputs[4]))));
 __Osc2__sine = __Osc2__Lib__sinewave(__m_inputs[11]);
 __Osc2__square = __Osc2__Lib__squarewave(__m_inputs[11]);
@@ -913,9 +937,9 @@ __Osc2__saw = __Osc2__Lib__sawwave(__m_inputs[11]);
 __Osc2__triangle = __Osc2__Lib__trianglewave(__m_inputs[11]);
 __Osc2__outwave = __Osc2__Lib__switch4(__m_inputs[10], __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
 __m_outputs[6] = (__Osc2__outwave * __m_inputs[9]);
-__Osc__Smooth__y_curr = ((__Osc__Smooth__s * (__Osc__Smooth__y_prev - __m_inputs[1])) + __m_inputs[1]);
-__Osc__Smooth__y_prev = __Osc__Smooth__y_curr;
-__m_outputs[1] = __Osc__Smooth__y_curr;
+__Osc__Smooth____y_curr_2 = ((__Osc__Smooth__s * (__Osc__Smooth__y_prev - __m_inputs[1])) + __m_inputs[1]);
+__Osc__Smooth__y_prev = __Osc__Smooth____y_curr_2;
+__m_outputs[1] = __Osc__Smooth____y_curr_2;
 __m_outputs[0] = (__Osc__Phaser__increment + (__m_outputs[0] - Math.floor((__Osc__Phaser__increment + __m_outputs[0]))));
 __Osc__sine = __Osc__Lib__sinewave(__m_inputs[5]);
 __Osc__square = __Osc__Lib__squarewave(__m_inputs[5]);

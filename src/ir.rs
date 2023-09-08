@@ -4,7 +4,7 @@ use indexmap::IndexMap;
 
 use crate::lexer::token::Position;
 use crate::module_data::ModuleData;
-use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast};
+use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast, VariableSpecifier};
 use crate::symbol_table::{SymbolInfo, SymbolTable};
 
 pub struct IR {
@@ -825,10 +825,15 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
                     Node::ExpressionStmt { child, .. } => {
                         match child.as_ref() {
                             Node::VariableDeclarationStmt { id, specifier, initializer, .. } => {
-                                // Hoist the declaration with a default value
+                                // Hoisted variable declarations are converted to assignments, so we need to change the specifier to let
+                                let specifier = match specifier {
+                                    VariableSpecifier::Const => VariableSpecifier::Let,
+                                    _ => specifier.clone(),
+                                };
+
                                 hoisted_declarations.push(Node::VariableDeclarationStmt {
                                     id: id.clone(),
-                                    specifier: specifier.clone(),
+                                    specifier,
                                     initializer: Box::new(Node::Number {
                                         value: 0.0,
                                         position: Position::new(),
@@ -847,9 +852,14 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
                     }
                     Node::VariableDeclarationStmt { id, specifier, initializer, .. } => {
                         // Hoist the declaration with a default value
+                        let specifier = match specifier {
+                            VariableSpecifier::Const => VariableSpecifier::Let,
+                            _ => specifier.clone(),
+                        };
+
                         hoisted_declarations.push(Node::VariableDeclarationStmt {
                             id: id.clone(),
-                            specifier: specifier.clone(),
+                            specifier,
                             initializer: Box::new(Node::Number {
                                 value: 0.0,
                                 position: Position::new(),
