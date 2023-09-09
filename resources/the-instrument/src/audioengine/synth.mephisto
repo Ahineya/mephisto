@@ -2,6 +2,8 @@ import Osc from "./osc-internal.mephisto";
 import Osc2 from "./osc-internal.mephisto";
 import Osc3 from "./osc-internal.mephisto";
 
+import Noise from "./noise.mephisto";
+
 import LFO from "./osc-internal.mephisto";
 
 import OscVolume from "./osc-volume.mephisto";
@@ -158,6 +160,8 @@ input osc1 = 0;
 input osc2 = 0;
 input osc3 = 0;
 
+input noise = 0;
+
 input echo = 0;
 input adsr = 0;
 
@@ -196,9 +200,9 @@ process {
     osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);
 
     out = Lib.switch3(instrument,
-        (osc1 + osc2 + osc3) * adsr,
+        (osc1 + osc2 + osc3 + noise) * adsr,
         karplus * 4,
-        (karplus * 4 + (osc1 + osc2 + osc3) * adsr) * 0.5)
+        (karplus * 4 + (osc1 + osc2 + osc3 + noise) * adsr) * 0.5)
     * globalgate;
 }
 
@@ -206,6 +210,9 @@ connect {
     Osc.out -> osc1;
     Osc2.out -> osc2;
     Osc3.out -> osc3;
+
+    Noise.out -> noise;
+    OscVolume.noiseGainOut -> Noise.gain;
     
     osc1freq -> Osc.frequency;
     OscVolume.osc1gainOut -> Osc.gain;

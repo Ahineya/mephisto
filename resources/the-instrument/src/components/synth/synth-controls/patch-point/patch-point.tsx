@@ -2,6 +2,7 @@ import {FC, PropsWithChildren, useCallback, useEffect, useRef} from 'react';
 import './patch-point.scss';
 import {wireStore} from "../../../../stores/wire-store.ts";
 import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
+import {ReactComponent as PatchPointSvg} from "../../../../assets/patch-point.svg";
 
 type IProps = {
     type: 'input' | 'output';
@@ -9,19 +10,30 @@ type IProps = {
         x: number;
         y: number;
     };
-    modulePosition: {
-        x: number;
-        y: number;
-    };
     controlId: string;
+    label?: string;
 }
 
 export const PatchPoint: FC<PropsWithChildren<IProps>> = ({
                                                               type,
                                                               position,
-                                                              children,
                                                               controlId,
+                                                              label
                                                           }) => {
+    return (
+        <PatchPointInternal type={type} position={position} controlId={controlId}>
+            <PatchPointSvg/>
+            <label className={`${type}-label`}>{label || type}</label>
+        </PatchPointInternal>
+    )
+}
+
+export const PatchPointInternal: FC<PropsWithChildren<IProps>> = ({
+                                                                      type,
+                                                                      position,
+                                                                      children,
+                                                                      controlId,
+                                                                  }) => {
     const realRef = useRef<HTMLDivElement>(null);
 
     const draggedWireId = useStoreSubscribe(wireStore.draggedWireId);
@@ -37,27 +49,12 @@ export const PatchPoint: FC<PropsWithChildren<IProps>> = ({
             return;
         }
 
-        const rect = (e.target! as HTMLDivElement).closest(`.patch-point`)!
-            .getBoundingClientRect();
+        const closestSynthRect = closestSynth!.getBoundingClientRect();
+        const closestSynthPosition = {
+            x: closestSynthRect.x,
+            y: closestSynthRect.y,
+        }
 
-        wireStore.startWireDrag(controlId, {
-            position: {
-                x: position.x + rect.width / 2 + 13, // Don't ask me, it is some offsets from my very old code
-                y: position.y + rect.height / 2 - 4 + 12.5,
-            },
-            type,
-            controlId,
-        }, {
-            position: {
-                x: position.x + rect.width / 2 + 13,
-                y: position.x + rect.width / 2 - 4 + 12.5,
-            },
-            type: 'cursor',
-            controlId: null,
-        });
-    };
-
-    const updateWireToPos = useCallback((e: PointerEvent) => {
         const closestSynthPanel = realRef.current!.closest('.synth-panel-container');
 
         if (!closestSynthPanel) {
@@ -71,10 +68,46 @@ export const PatchPoint: FC<PropsWithChildren<IProps>> = ({
             y: closestSynthPanelRect.y,
         };
 
+        const rect = (e.target! as HTMLDivElement).closest(`.patch-point`)!
+            .getBoundingClientRect();
+
+        wireStore.startWireDrag(controlId, {
+            position: {
+                x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9, // Don't ask me, it is some offsets from my very old code
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
+            },
+            type,
+            controlId,
+        }, {
+            position: {
+                x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9,
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
+            },
+            type: 'cursor',
+            controlId: null,
+        });
+    };
+
+    const updateWireToPos = useCallback((e: PointerEvent) => {
+        const closestSynth = realRef.current!.closest('.synth');
+
+        if (!closestSynth) {
+            console.error('No closest synth found. Patch point should be in the synth.');
+            return;
+        }
+
+        const closestSynthRect = closestSynth!.getBoundingClientRect();
+        const closestSynthPosition = {
+            x: closestSynthRect.x,
+            y: closestSynthRect.y,
+            width: closestSynthRect.width,
+            height: closestSynthRect.height,
+        }
+
         wireStore.updateWireTo(draggedWireId!, {
             position: {
-                x: e.clientX - closestSynthPanelPosition.x + 13,
-                y: e.clientY - closestSynthPanelPosition.y + 12.5,
+                x: e.clientX - closestSynthPosition.x - 9,
+                y: e.clientY - closestSynthPosition.y - 12.5
             },
             type: 'cursor',
             controlId: null,
@@ -93,10 +126,35 @@ export const PatchPoint: FC<PropsWithChildren<IProps>> = ({
             return;
         }
 
+        const closestSynth = realRef.current!.closest('.synth');
+
+        if (!closestSynth) {
+            console.error('No closest synth found. Patch point should be in the synth.');
+            return;
+        }
+
+        const closestSynthRect = closestSynth!.getBoundingClientRect();
+        const closestSynthPosition = {
+            x: closestSynthRect.x,
+            y: closestSynthRect.y,
+        }
+
+        const closestSynthPanel = realRef.current!.closest('.synth-panel-container');
+        if (!closestSynthPanel) {
+            console.error('No closest synth panel found. Patch point should be in the synth panel.');
+            return;
+        }
+
+        const closestSynthPanelRect = closestSynthPanel!.getBoundingClientRect();
+        const closestSynthPanelPosition = {
+            x: closestSynthPanelRect.x,
+            y: closestSynthPanelRect.y,
+        };
+
         wireStore.connectWireTo(draggedWireId, {
             position: {
-                x: position.x + rect.width / 2 + 13,
-                y: position.y + rect.height / 2 - 4 + 12.5,
+                x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9,
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
             },
             type,
             controlId,

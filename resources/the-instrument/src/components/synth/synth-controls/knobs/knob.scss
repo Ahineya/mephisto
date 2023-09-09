@@ -1,0 +1,138 @@
+.knob {
+  width: fit-content;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  position: relative;
+
+  .knob-circle-container {
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+
+    &.active {
+      box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    &:hover {
+      box-shadow: 0 4px 4px rgba(0, 0, 0, 0.25);
+    }
+
+    .knob-circle {
+      position: relative;
+
+      border-radius: 50%;
+      border: 1px solid var(--color-control);
+
+      background: var(--color-bg-white);
+      transform: rotate(-135deg);
+
+      &.knob-circle-filled {
+        background: var(--color-main-gb);
+      }
+
+      .knob-marker {
+        background-color: var(--color-control);
+        position: absolute;
+        z-index: -1;
+      }
+    }
+
+    &:before {
+      content: "";
+      position: absolute;
+      background-color: var(--color-mark);
+      transform: rotate(-135deg);
+      left: 0;
+    }
+
+    &:after {
+      content: "";
+      position: absolute;
+      background-color: var(--color-mark);
+      transform: rotate(135deg);
+      right: 1px;
+    }
+
+    &.knob-size-medium {
+      width: 45px;
+      height: 45px;
+
+      .knob-circle {
+        width: 45px;
+        height: 45px;
+
+        .knob-marker {
+          height: 13px;
+          width: 3px;
+          left: 20px;
+        }
+      }
+
+      &:before {
+        top: 38px;
+        height: 10px;
+        width: 2px;
+      }
+
+      &:after {
+        top: 38px;
+        height: 10px;
+        width: 2px;
+      }
+    }
+
+    &.knob-size-small {
+      width: 29px;
+      height: 29px;
+
+      .knob-circle {
+        width: 29px;
+        height: 29px;
+
+        .knob-marker {
+          height: 8px;
+          width: 2px;
+          left: 13px;
+        }
+      }
+
+      &:before {
+        top: 25px;
+        left: -1px;
+        height: 6px;
+        width: 2px;
+      }
+
+      &:after {
+        top: 25px;
+        height: 6px;
+        width: 2px;
+        right: 0;
+      }
+    }
+
+    &.knob-size-large {
+
+    }
+  }
+
+  .knob-display-value {
+    display: none;
+    position: absolute;
+    right: -100%;
+  }
+
+  &:hover, &.active {
+    .knob-display-value {
+      display: block;
+    }
+  }
+
+  .knob-caption {
+    margin-top: 13px;
+    font-size: var(--font-size-caption);
+    text-align: center;
+  }
+}

@@ -1,0 +1,8 @@
+input gain = 1;
+output out = 0;
+
+process {
+    const randomValue = rand();
+    out = randomValue * 2 - 1;
+    out = out * gain;
+}

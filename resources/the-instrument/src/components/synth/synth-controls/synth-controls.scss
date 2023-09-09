@@ -7,6 +7,8 @@
   height: 504px;
   z-index: 1;
 
+  font-family: 'Antonio', sans-serif;
+
   width: 870px;
   margin: 0 auto;
 
@@ -14,5 +16,37 @@
     padding: 13px 12px;
     height: 474px;
     position: relative;
+  }
+
+  .input-label, .output-label {
+    border: 1px solid transparent;
+
+    border-radius: 2px;
+    font-size: 11px;
+    line-height: 0.8;
+    padding: 1px 2px;
+    font-weight: 600;
+    background-color: var(--color-main-bg);
+
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+
+    white-space: nowrap;
+  }
+
+  .input-label {
+    color: #e3c8b3;
+
+    font-weight: 400;
+  }
+
+  .output-label {
+    border: 1px solid transparent;//var(--color-primary);
+    background-color: var(--color-primary);
+    color: black;
+    //filter: invert(1);
+    font-weight: 700;
   }
 }
