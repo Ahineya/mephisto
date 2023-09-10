@@ -119,13 +119,11 @@ impl IR {
 
         traverse_ast(&mut result.root, &mut |stage, node, _context: &mut ()| {
             match node {
-                Node::BlockNode { .. }
-                |
-                Node::BufferInitializer { .. }
-                |
-                Node::FunctionBody { .. }
-                |
-                Node::ProcessNode { .. }
+                | Node::BlockSection { .. }
+                | Node::BufferInitializer { .. }
+                | Node::FunctionBody { .. }
+                | Node::ProcessSection { .. }
+                | Node::BlockStmt { .. }
                 => {
                     match stage {
                         ASTTraverseStage::Enter => {
@@ -213,13 +211,11 @@ impl IR {
 
         traverse_ast(&mut result, &mut |stage, node, _context: &mut ()| {
             match node {
-                Node::BlockNode { .. }
-                |
-                Node::BufferInitializer { .. }
-                |
-                Node::FunctionBody { .. }
-                |
-                Node::ProcessNode { .. }
+                | Node::BlockSection { .. }
+                | Node::BufferInitializer { .. }
+                | Node::FunctionBody { .. }
+                | Node::ProcessSection { .. }
+                | Node::BlockStmt { .. }
                 => {
                     match stage {
                         ASTTraverseStage::Enter => {
@@ -369,13 +365,13 @@ impl IR {
                             if let Node::ProgramNode { children: renamed_children, .. } = &renamed_node {
                                 for renamed_node in renamed_children.iter() {
                                     match renamed_node {
-                                        Node::ProcessNode { .. } => {
+                                        Node::ProcessSection { .. } => {
                                             imported_process_nodes.push(renamed_node.clone());
                                         }
-                                        Node::BlockNode { .. } => {
+                                        Node::BlockSection { .. } => {
                                             imported_block_nodes.push(renamed_node.clone());
                                         }
-                                        Node::ConnectNode { .. } => {
+                                        Node::ConnectSection { .. } => {
                                             imported_connect_nodes.push(renamed_node.clone());
                                         }
                                         _ => {
@@ -394,8 +390,8 @@ impl IR {
 
                 // After iterating through all children, handle the imported nodes
                 for imported_node in imported_block_nodes {
-                    if let Some(Node::BlockNode { children: main_block_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::BlockNode { .. })) {
-                        if let Node::BlockNode { children: imported_block_children, .. } = &imported_node {
+                    if let Some(Node::BlockSection { children: main_block_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::BlockSection { .. })) {
+                        if let Node::BlockSection { children: imported_block_children, .. } = &imported_node {
                             main_block_children.splice(0..0, imported_block_children.clone());
                         }
                     } else {
@@ -404,8 +400,8 @@ impl IR {
                 }
 
                 for imported_node in imported_process_nodes {
-                    if let Some(Node::ProcessNode { children: main_process_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ProcessNode { .. })) {
-                        if let Node::ProcessNode { children: imported_process_children, .. } = &imported_node {
+                    if let Some(Node::ProcessSection { children: main_process_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ProcessSection { .. })) {
+                        if let Node::ProcessSection { children: imported_process_children, .. } = &imported_node {
                             main_process_children.splice(0..0, imported_process_children.clone());
                         }
                     } else {
@@ -414,8 +410,8 @@ impl IR {
                 }
 
                 for imported_node in imported_connect_nodes {
-                    if let Some(Node::ConnectNode { children: main_connect_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ConnectNode { .. })) {
-                        if let Node::ConnectNode { children: imported_connect_children, .. } = &imported_node {
+                    if let Some(Node::ConnectSection { children: main_connect_children, .. }) = result_children.iter_mut().find(|n| matches!(n, Node::ConnectSection { .. })) {
+                        if let Node::ConnectSection { children: imported_connect_children, .. } = &imported_node {
                             main_connect_children.splice(0..0, imported_connect_children.clone());
                         }
                     } else {
@@ -460,13 +456,11 @@ impl IR {
 
         traverse_ast(&mut renamed_node, &mut |stage, node, context: &mut HoistingContext| {
             match node {
-                Node::BlockNode { .. }
-                |
-                Node::BufferInitializer { .. }
-                |
-                Node::FunctionBody { .. }
-                |
-                Node::ProcessNode { .. }
+                | Node::BlockSection { .. }
+                | Node::BufferInitializer { .. }
+                | Node::FunctionBody { .. }
+                | Node::ProcessSection { .. }
+                | Node::BlockStmt { .. }
                 => {
                     match stage {
                         ASTTraverseStage::Enter => {
@@ -579,7 +573,7 @@ impl IR {
 
             traverse_ast(&mut module.ast.root, &mut |stage, node, context: &mut HoistingContext| {
                 match node {
-                    Node::ProcessNode { .. } => {
+                    Node::ProcessSection { .. } => {
                         match stage {
                             ASTTraverseStage::Enter => {
                                 context.rename_symbols = true;
@@ -649,11 +643,10 @@ fn find_process_scope(ast: &Node, symbol_table: &mut SymbolTable) -> Option<usiz
 
     traverse_ast(&mut ast, &mut |stage, node, context: &mut (&mut SymbolTable, Option<usize>)| {
         match node {
-            Node::BlockNode { .. }
-            |
-            Node::BufferInitializer { .. }
-            |
-            Node::FunctionBody { .. }
+            | Node::BlockSection { .. }
+            | Node::BufferInitializer { .. }
+            | Node::FunctionBody { .. }
+            | Node::BlockStmt { .. }
             => {
                 match stage {
                     ASTTraverseStage::Enter => {
@@ -665,7 +658,7 @@ fn find_process_scope(ast: &Node, symbol_table: &mut SymbolTable) -> Option<usiz
                 }
             }
 
-            Node::ProcessNode { .. } => {
+            Node::ProcessSection { .. } => {
                 match stage {
                     ASTTraverseStage::Enter => {
                         context.0.enter_next_scope();
@@ -692,7 +685,7 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
 
             for node in children {
                 match node {
-                    Node::ProcessNode { .. } => {
+                    Node::ProcessSection { .. } => {
                         symbols_to_hoist.append(&mut collect_symbols_for_hoisting(node, context));
                     }
                     _ => ()
@@ -702,7 +695,7 @@ fn collect_symbols_for_hoisting(ast: &mut Node, context: &mut HoistingContext) -
             symbols_to_hoist
         }
 
-        Node::ProcessNode { children, .. } => {
+        Node::ProcessSection { children, .. } => {
             let mut symbols_to_hoist: Vec<(String, SymbolInfo)> = Vec::new();
 
             for node in children {
@@ -745,13 +738,11 @@ fn collect_symbols_for_rename(ast: &mut Node, context: &mut HoistingContext) -> 
     // We want to collect all variable declarations in all scopes here
     traverse_ast(ast, &mut |stage, node, context: &mut HoistingContext| {
         match node {
-            Node::BlockNode { .. }
-            |
-            Node::BufferInitializer { .. }
-            |
-            Node::FunctionBody { .. }
-            |
-            Node::ProcessNode { .. }
+            | Node::BlockSection { .. }
+            | Node::BufferInitializer { .. }
+            | Node::FunctionBody { .. }
+            | Node::ProcessSection { .. }
+            | Node::BlockStmt { .. }
             => {
                 match stage {
                     ASTTraverseStage::Enter => {
@@ -806,7 +797,7 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
 
             for node in children {
                 match node {
-                    Node::ProcessNode { .. } => {
+                    Node::ProcessSection { .. } => {
                         new_nodes.append(&mut hoist_process_block(node, context));
                     }
                     _ => new_nodes.push(node.clone()),
@@ -816,7 +807,7 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
             new_nodes
         }
 
-        Node::ProcessNode { children, .. } => {
+        Node::ProcessSection { children, .. } => {
             let mut hoisted_declarations = Vec::new();
             let mut new_nodes = Vec::new();
 
@@ -879,7 +870,7 @@ fn hoist_process_block(ast: &mut Node, context: &mut HoistingContext) -> Vec<Nod
 
             // Return the hoisted declarations followed by the transformed ProcessNode
             let mut result = hoisted_declarations;
-            result.push(Node::ProcessNode {
+            result.push(Node::ProcessSection {
                 children: new_nodes,
                 position: ast.position().clone(),
             });

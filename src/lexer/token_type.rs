@@ -56,4 +56,7 @@ pub enum TokenType {
     UNKNOWN,
 
     BUFI,
+
+    IF,
+    ELSE,
 }

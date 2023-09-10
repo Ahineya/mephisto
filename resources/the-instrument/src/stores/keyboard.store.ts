@@ -16,6 +16,8 @@ class KeyboardStore {
 
     // private currentSynthPreset!: ISynthPreset;
 
+    private firstLoad = true;
+
     constructor() {
         // synthStore.onCurrentPresetChanged.subscribe(values => {
         // this.currentSynthPreset = values;
@@ -27,7 +29,7 @@ class KeyboardStore {
     }
 
     public keyOn(key: number) {
-        if (audioContext.state === "suspended") {
+        if (audioContext.state === "suspended" || this.firstLoad) {
             audioContext.resume();
 
             synth.port.postMessage({
@@ -35,6 +37,8 @@ class KeyboardStore {
             });
 
             synthStore.loadCurrentPreset();
+
+            this.firstLoad = false;
         }
 
         // if (this.currentSynthPreset.values.misc.retrigger) {

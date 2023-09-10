@@ -72,7 +72,7 @@ impl Parser {
                         children.push(process_node);
                     }
                     TokenType::BLOCK => {
-                        let block_node = match self.parse_block() {
+                        let block_node = match self.parse_block_section() {
                             Ok(block_node) => block_node,
                             Err(e) => {
                                 self.errors.push(e);
@@ -189,6 +189,21 @@ impl Parser {
                         };
 
                         children.push(parameter_declaration_stmt);
+                    }
+                    TokenType::IF => {
+                        let if_statement = match self.parse_if_statement() {
+                            Ok(if_statement) => if_statement,
+                            Err(e) => {
+                                self.errors.push(e);
+
+                                return AST {
+                                    root: ast.clone(),
+                                    errors: self.errors.clone(),
+                                };
+                            }
+                        };
+
+                        children.push(if_statement);
                     }
                     TokenType::EOF => {
                         break;
@@ -379,7 +394,7 @@ impl Parser {
                 self.parse_unary_number()?
             }
             _ => {
-                return Err(self.generic_error(&next_token, "specifier or number"))
+                return Err(self.generic_error(&next_token, "specifier or number"));
             }
         };
 
@@ -402,10 +417,10 @@ impl Parser {
         self.skip(TokenType::CONNECT)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut connect = Node::ConnectNode { children: Vec::new(), position };
+        let mut connect = Node::ConnectSection { children: Vec::new(), position };
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::ConnectNode { children, position: _ } = &mut connect {
+            if let Node::ConnectSection { children, position: _ } = &mut connect {
                 let child = self.parse_connect_statement()?;
                 children.push(child);
             }
@@ -591,6 +606,12 @@ impl Parser {
 
                 node
             }
+            TokenType::IF => {
+                self.parse_if_statement()
+            }
+            TokenType::LCURLY => {
+                self.parse_block()
+            }
             TokenType::FN => {
                 self.parse_function_declaration_stmt()
             }
@@ -678,10 +699,10 @@ impl Parser {
         self.skip(TokenType::PROCESS)?;
         self.skip(TokenType::LCURLY)?;
 
-        let mut process = Node::ProcessNode { children: Vec::new(), position };
+        let mut process = Node::ProcessSection { children: Vec::new(), position };
 
         while self.peek().token_type != TokenType::RCURLY {
-            if let Node::ProcessNode { children, .. } = &mut process {
+            if let Node::ProcessSection { children, .. } = &mut process {
                 let child = self.parse_expression_statement()?;
                 children.push(child);
             }
@@ -694,17 +715,17 @@ impl Parser {
         Ok(process)
     }
 
-    fn parse_block(&mut self) -> Result<Node, String> {
-        let mut block = Node::BlockNode {
+    fn parse_block_section(&mut self) -> Result<Node, String> {
+        let mut block = Node::BlockSection {
             children: Vec::new(),
-            position: self.position()
+            position: self.position(),
         };
 
         self.skip(TokenType::BLOCK)?;
         self.skip(TokenType::LCURLY)?;
 
         while self.tokens[self.position].token_type != TokenType::RCURLY {
-            if let Node::BlockNode { children, .. } = &mut block {
+            if let Node::BlockSection { children, .. } = &mut block {
                 children.push(self.parse_expression_statement()?);
             }
         }
@@ -830,6 +851,78 @@ impl Parser {
                 self.parse_infix_expr()
             }
         }
+    }
+
+    fn parse_if_statement(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
+        self.skip(TokenType::IF)?;
+        self.skip(TokenType::LPAREN)?;
+        let condition = self.parse_expression()?;
+        self.skip(TokenType::RPAREN)?;
+        let body = self.parse_block()?;
+
+        let next_token = self.peek();
+
+        let mut node = match next_token.token_type {
+            TokenType::ELSE => {
+                self.skip(TokenType::ELSE)?;
+
+                let next_token = self.peek();
+
+                let else_body = match next_token.token_type {
+                    TokenType::IF => {
+                        self.parse_if_statement()?
+                    }
+                    _ => {
+                        self.parse_block()?
+                    }
+                };
+
+                Node::IfStmt {
+                    test: Box::new(condition),
+                    consequent: Box::new(body),
+                    alternate: Some(Box::new(else_body)),
+                    position,
+                }
+            }
+            _ => {
+                Node::IfStmt {
+                    test: Box::new(condition),
+                    consequent: Box::new(body),
+                    alternate: None,
+                    position,
+                }
+            }
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
+    }
+
+    fn parse_block(&mut self) -> Result<Node, String> {
+        let position = self.position();
+
+        self.skip(TokenType::LCURLY)?;
+
+        let mut block = Node::BlockStmt {
+            children: Vec::new(),
+            position,
+        };
+
+        while self.tokens[self.position].token_type != TokenType::RCURLY {
+            if let Node::BlockStmt { children, .. } = &mut block {
+                let child = self.parse_expression_statement()?;
+                children.push(child);
+            }
+        }
+
+        self.skip(TokenType::RCURLY)?;
+
+        self.set_end(&mut block);
+
+        Ok(block)
     }
 
     fn parse_unary_number(&mut self) -> Result<Node, String> {
@@ -1201,7 +1294,7 @@ mod tests {
         assert_eq!(ast, AST {
             root: Node::ProgramNode {
                 children: vec![
-                    Node::BlockNode {
+                    Node::BlockSection {
                         children: vec![],
                         position: Position { start: 0, end: 7, line: 1, column: 7 },
                     },
@@ -1325,12 +1418,15 @@ mod tests {
 
         let result = parser.parse_id();
 
-        assert_eq!(result, Ok(Node::Identifier { name: "id".to_string(), position: Position {
-            start: 0,
-            end: 2,
-            column: 1,
-            line: 1,
-        }}));
+        assert_eq!(result, Ok(Node::Identifier {
+            name: "id".to_string(),
+            position: Position {
+                start: 0,
+                end: 2,
+                column: 1,
+                line: 1,
+            },
+        }));
     }
 
     #[test]
@@ -1425,6 +1521,68 @@ mod tests {
                 let b = 1;
                 test(a != b);
             }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let ast = parser.parse(tokens);
+
+        println!("AST: {:#?}", ast);
+
+        assert_eq!(ast.errors.len(), 0);
+    }
+
+    #[test]
+    fn test_if_else() {
+        let code = "
+                let a = 0;
+                let b = 1;
+                if (a == b) {
+                    a = 42;
+                } else {
+                    b = 42;
+                }
+
+                if (someFunc()) {
+                    a = 42;
+                }
+
+                process {
+                    if (a == b) {
+                        a = 42;
+                    } else {
+                        b = 42;
+                    }
+                }
+
+                if (a == b) {
+                    a = 42;
+
+                    if (a == b) {
+                        a = 42;
+                    } else {
+                        b = 42;
+                    }
+
+                } else {
+                    b = 42;
+
+                    if (a == b) {
+                        a = 42;
+                    } else {
+                        b = 42;
+                    }
+                }
+
+                if (a == b) {
+                    a = 42;
+                } else if (a == b) {
+                    b = 42;
+                } else {
+                    a = 42;
+                }
             ".to_string();
 
         let lexer = Lexer::new();

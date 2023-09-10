@@ -56,20 +56,10 @@ impl SemanticAnalyzer {
 
             traverse_ast(&mut ast.root, &mut |traverse_stage, node, context: &mut Context| {
                 match node {
-                    Node::BlockNode {
-                        children: _,
-                        position: _,
-                    }
-                    |
-                    Node::BufferInitializer {
-                        children: _,
-                        position: _,
-                    }
-                    |
-                    Node::FunctionBody {
-                        children: _,
-                        position: _,
-                    }
+                    | Node::BlockSection { .. }
+                    | Node::BufferInitializer { .. }
+                    | Node::FunctionBody { .. }
+                    | Node::BlockStmt { .. }
                     => {
                         match traverse_stage {
                             ASTTraverseStage::Enter => {
@@ -81,7 +71,7 @@ impl SemanticAnalyzer {
                         }
                     }
 
-                    Node::ProcessNode { .. } => {
+                    Node::ProcessSection { .. } => {
                         match traverse_stage {
                             ASTTraverseStage::Enter => {
                                 if context.has_process_node {
@@ -97,7 +87,7 @@ impl SemanticAnalyzer {
                         }
                     }
 
-                    Node::ConnectNode { .. } => {
+                    Node::ConnectSection { .. } => {
                         match traverse_stage {
                             ASTTraverseStage::Enter => {
                                 if context.has_connect_node {
@@ -671,6 +661,10 @@ mod tests {
             let foo = 42;
 
             fn bar(a, b) {
+                if (a > b) {
+                    return a;
+                }
+
                 return a + b;
             }
             ".to_string();

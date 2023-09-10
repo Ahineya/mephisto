@@ -33,6 +33,8 @@ impl Lexer {
                 |chars: &str, current: u32| full_pattern_t(TokenType::EXPORT, Regex::new(r"^export\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::CONNECT, Regex::new(r"^connect\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::BUFFER, Regex::new(r"^buffer\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::IF, Regex::new(r"^if\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::ELSE, Regex::new(r"^else\b").unwrap(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::BUFI, "|i|".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::EQ, "==".to_string(), chars, current),
                 |chars: &str, current: u32| match_word_t(TokenType::NE, "!=".to_string(), chars, current),
@@ -174,5 +176,37 @@ mod tests {
         assert_eq!(tokens[3].token_type, super::token_type::TokenType::NUMBER);
         assert_eq!(tokens[4].token_type, super::token_type::TokenType::SEMI);
         assert_eq!(tokens[5].token_type, super::token_type::TokenType::EOF);
+    }
+
+    #[test]
+    fn test_if_else() {
+        let lexer = super::Lexer::new();
+        let tokens = lexer.tokenize("if (a == 1) {
+            return 1;
+        } else {
+            return 0;
+        }".to_string());
+
+        // println!("{:#?}", tokens);
+
+        assert_eq!(tokens.len(), 18);
+        assert_eq!(tokens[0].token_type, super::token_type::TokenType::IF);
+        assert_eq!(tokens[1].token_type, super::token_type::TokenType::LPAREN);
+        assert_eq!(tokens[2].token_type, super::token_type::TokenType::ID);
+        assert_eq!(tokens[3].token_type, super::token_type::TokenType::EQ);
+        assert_eq!(tokens[4].token_type, super::token_type::TokenType::NUMBER);
+        assert_eq!(tokens[5].token_type, super::token_type::TokenType::RPAREN);
+        assert_eq!(tokens[6].token_type, super::token_type::TokenType::LCURLY);
+        assert_eq!(tokens[7].token_type, super::token_type::TokenType::RETURN);
+        assert_eq!(tokens[8].token_type, super::token_type::TokenType::NUMBER);
+        assert_eq!(tokens[9].token_type, super::token_type::TokenType::SEMI);
+        assert_eq!(tokens[10].token_type, super::token_type::TokenType::RCURLY);
+        assert_eq!(tokens[11].token_type, super::token_type::TokenType::ELSE);
+        assert_eq!(tokens[12].token_type, super::token_type::TokenType::LCURLY);
+        assert_eq!(tokens[13].token_type, super::token_type::TokenType::RETURN);
+        assert_eq!(tokens[14].token_type, super::token_type::TokenType::NUMBER);
+        assert_eq!(tokens[15].token_type, super::token_type::TokenType::SEMI);
+        assert_eq!(tokens[16].token_type, super::token_type::TokenType::RCURLY);
+        assert_eq!(tokens[17].token_type, super::token_type::TokenType::EOF);
     }
 }

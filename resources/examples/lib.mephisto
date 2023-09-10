@@ -14,10 +14,9 @@ export squarewave(phase) {
     return ((phase < 0.5) * 2 - 1);
 }
 
-/*
 export noise(phase) {
     return rand(phase);
-}*/
+}
 
 export if_math(cond, a, b) {
     return cond * a + (1 - cond) * b;

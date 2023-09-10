@@ -126,7 +126,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 ASTTraverseStage::Exit => {}
             }
         }
-        Node::ProcessNode { .. } => {
+        Node::ProcessSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.code.push_str("process {\n");
@@ -136,7 +136,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
-        Node::BlockNode { .. } => {
+        Node::BlockSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.code.push_str("block {\n");
@@ -146,7 +146,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
-        Node::ConnectNode { .. } => {
+        Node::ConnectSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.code.push_str("connect {\n");
@@ -551,6 +551,32 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
+        Node::IfStmt { test, consequent, alternate, .. } => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.code.push_str("if (");
+                    traverse_ast(test, &mut ast_to_code, context);
+                    context.code.push_str(") ");
+                    traverse_ast(consequent, &mut ast_to_code, context);
+
+                    if let Some(alternate) = alternate {
+                        context.code.push_str(" else ");
+                        traverse_ast(alternate, &mut ast_to_code, context);
+                    }
+                }
+                ASTTraverseStage::Exit => {}
+            }
+        }
+        Node::BlockStmt { .. } => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.code.push_str("{\n");
+                }
+                ASTTraverseStage::Exit => {
+                    context.code.push_str("}\n");
+                }
+            }
+        }
     }
 
     false
@@ -586,15 +612,15 @@ pub enum Node {
         children: Vec<Node>,
         position: Position,
     },
-    ProcessNode {
+    ProcessSection {
         children: Vec<Node>,
         position: Position,
     },
-    BlockNode {
+    BlockSection {
         children: Vec<Node>,
         position: Position,
     },
-    ConnectNode {
+    ConnectSection {
         children: Vec<Node>,
         position: Position,
     },
@@ -705,6 +731,16 @@ pub enum Node {
         path: String,
         position: Position,
     },
+    IfStmt {
+        test: Box<Node>,
+        consequent: Box<Node>,
+        alternate: Option<Box<Node>>,
+        position: Position,
+    },
+    BlockStmt {
+        children: Vec<Node>,
+        position: Position,
+    },
 }
 
 impl Node {
@@ -718,9 +754,9 @@ impl Node {
     pub fn position(&self) -> &Position {
         match self {
             Node::ProgramNode { position, .. } => position,
-            Node::ProcessNode { position, .. } => position,
-            Node::BlockNode { position, .. } => position,
-            Node::ConnectNode { position, .. } => position,
+            Node::ProcessSection { position, .. } => position,
+            Node::BlockSection { position, .. } => position,
+            Node::ConnectSection { position, .. } => position,
             Node::FunctionBody { position, .. } => position,
             Node::Identifier { position, .. } => position,
             Node::ExpressionStmt { position, .. } => position,
@@ -743,6 +779,8 @@ impl Node {
             Node::BufferDeclarationStmt { position, .. } => position,
             Node::BufferInitializer { position, .. } => position,
             Node::ImportStatement { position, .. } => position,
+            Node::IfStmt { position, .. } => position,
+            Node::BlockStmt { position, .. } => position,
         }
     }
 
@@ -752,15 +790,15 @@ impl Node {
                 position.end = end;
                 position.column = column;
             }
-            Node::ProcessNode { position, .. } => {
+            Node::ProcessSection { position, .. } => {
                 position.end = end;
                 position.column = column;
             }
-            Node::BlockNode { position, .. } => {
+            Node::BlockSection { position, .. } => {
                 position.end = end;
                 position.column = column;
             }
-            Node::ConnectNode { position, .. } => {
+            Node::ConnectSection { position, .. } => {
                 position.end = end;
                 position.column = column;
             }
@@ -852,6 +890,14 @@ impl Node {
                 position.end = end;
                 position.column = column;
             }
+            Node::IfStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            }
+            Node::BlockStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            }
         }
     }
 }
@@ -871,17 +917,29 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
                     traverse_ast(child, f, context);
                 }
             }
-            Node::ProcessNode { children, position: _ } => {
+            Node::ProcessSection { children, position: _ } => {
                 for child in children {
                     traverse_ast(child, f, context);
                 }
             }
-            Node::BlockNode { children, position: _ } => {
+            Node::BlockSection { children, position: _ } => {
                 for child in children {
                     traverse_ast(child, f, context);
                 }
             }
-            Node::ConnectNode { children, position: _ } => {
+            Node::IfStmt { test, consequent, alternate, position: _ } => {
+                traverse_ast(test, f, context);
+                traverse_ast(consequent, f, context);
+                if let Some(alternate) = alternate {
+                    traverse_ast(alternate, f, context);
+                }
+            }
+            Node::BlockStmt { children, position: _ } => {
+                for child in children {
+                    traverse_ast(child, f, context);
+                }
+            }
+            Node::ConnectSection { children, position: _ } => {
                 for child in children {
                     traverse_ast(child, f, context);
                 }
@@ -974,126 +1032,6 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
             }
             Node::ImportStatement { id, path: _, position: _ } => {
                 traverse_ast(id, f, context);
-            }
-            Node::Identifier { name: _, position: _ } => {}
-        }
-    }
-
-    f(ASTTraverseStage::Exit, node, context);
-}
-
-pub fn traverse_mut_ast<Context>(node: &Node, f: &mut dyn FnMut(ASTTraverseStage, &Node, &mut Context) -> bool, context: &mut Context) {
-    let should_skip = f(ASTTraverseStage::Enter, node, context);
-
-    if !should_skip {
-        match node {
-            Node::ProgramNode { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::ProcessNode { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::BlockNode { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::ConnectNode { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::FunctionBody { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::ExpressionStmt { child, position: _ } => {
-                traverse_mut_ast(child, f, context);
-            }
-            Node::AssignmentExpr { lhs, rhs, position: _ } => {
-                traverse_mut_ast(lhs, f, context);
-                traverse_mut_ast(rhs, f, context);
-            }
-            Node::ConnectStmt { lhs, rhs, position: _ } => {
-                traverse_mut_ast(lhs, f, context);
-                traverse_mut_ast(rhs, f, context);
-            }
-            Node::ReturnStmt { child, position: _ } => {
-                traverse_mut_ast(child, f, context);
-            }
-            Node::VariableDeclarationStmt {
-                id,
-                initializer,
-                specifier: _,
-                position: _
-            } => {
-                traverse_mut_ast(id, f, context);
-                traverse_mut_ast(initializer, f, context);
-            }
-            Node::FunctionDeclarationStmt { id, params, body, position: _ } => {
-                traverse_mut_ast(id, f, context);
-                for param in params {
-                    traverse_mut_ast(param, f, context);
-                }
-                traverse_mut_ast(body, f, context);
-            }
-            Node::FunctionParameter { id, position: _ } => {
-                traverse_mut_ast(id, f, context);
-            }
-            Node::MemberExpr { object, property, position: _ } => {
-                traverse_mut_ast(object, f, context);
-                traverse_mut_ast(property, f, context);
-            }
-            Node::ExportDeclarationStmt { declaration, position: _ } => {
-                traverse_mut_ast(declaration, f, context);
-            }
-            Node::ParameterDeclarationStmt { id, fields, position: _ } => {
-                traverse_mut_ast(id, f, context);
-                for field in fields {
-                    traverse_mut_ast(field, f, context);
-                }
-            }
-            Node::ParameterDeclarationField { id, specifier: _, position: _ } => {
-                traverse_mut_ast(id, f, context);
-            }
-            Node::FnCallExpr { callee, args, position: _ } => {
-                traverse_mut_ast(callee, f, context);
-                for arg in args {
-                    traverse_mut_ast(arg, f, context);
-                }
-            }
-            Node::Number { value: _, position: _ } => {}
-            Node::UnaryExpr { op: _, child, position: _ } => {
-                traverse_mut_ast(child, f, context);
-            }
-            Node::BinaryExpr { op: _, lhs, rhs, position: _ } => {
-                traverse_mut_ast(lhs, f, context);
-                traverse_mut_ast(rhs, f, context);
-            }
-            Node::OutputsStmt { position: _ } => {}
-            Node::OutputsNumberedStmt { value: _, position: _ } => {}
-            Node::BufferDeclarationStmt {
-                id,
-                size,
-                initializer,
-                position: _
-            } => {
-                traverse_mut_ast(id, f, context);
-                traverse_mut_ast(size, f, context);
-                traverse_mut_ast(initializer, f, context);
-            }
-            Node::BufferInitializer { children, position: _ } => {
-                for child in children {
-                    traverse_mut_ast(child, f, context);
-                }
-            }
-            Node::ImportStatement { id, path: _, position: _ } => {
-                traverse_mut_ast(id, f, context);
             }
             Node::Identifier { name: _, position: _ } => {}
         }

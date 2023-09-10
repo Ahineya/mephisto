@@ -112,14 +112,14 @@ impl SymbolInfo {
     pub fn is_output(&self) -> bool {
         match self {
             SymbolInfo::Variable { specifier, .. } => *specifier == VariableSpecifier::Output,
-            SymbolInfo::Parameter {..} => true,
+            SymbolInfo::Parameter { .. } => true,
             _ => false,
         }
     }
 
     pub fn is_parameter(&self) -> bool {
         match self {
-            SymbolInfo::Parameter {..} => true,
+            SymbolInfo::Parameter { .. } => true,
             _ => false,
         }
     }
@@ -321,9 +321,6 @@ impl SymbolTable {
         symbol_table.define_stdlib_fn("buf_put", vec!["buffer", "index", "value"]);
         symbol_table.define_stdlib_fn("buf_resize", vec!["buffer", "size"]);
 
-        symbol_table.define_stdlib_fn("if", vec!["condition", "a"]);
-        symbol_table.define_stdlib_fn("if_else", vec!["condition", "a", "b"]);
-
         symbol_table
     }
 
@@ -332,7 +329,7 @@ impl SymbolTable {
 
         for scope in self.scopes.iter() {
             for (name, symbol_info) in scope.symbols.iter() {
-                if let SymbolInfo::Function { origin, .. } | SymbolInfo::Variable {origin, ..} = symbol_info {
+                if let SymbolInfo::Function { origin, .. } | SymbolInfo::Variable { origin, .. } = symbol_info {
                     if let SymbolOrigin::StandardLibrary = origin {
                         symbols.push((name.clone(), symbol_info.clone()));
                     }
@@ -393,16 +390,10 @@ impl SymbolTable {
 
         traverse_ast(&mut ast.root, &mut |traverse_stage, node, context: &mut Context| {
             match node {
-                |
-                Node::ProcessNode {
-                    children: _,
-                    position: _,
-                }
-                |
-                Node::BlockNode {
-                    children: _,
-                    position: _,
-                } => {
+                | Node::ProcessSection { .. }
+                | Node::BlockSection { .. }
+                | Node::BlockStmt { .. }
+                => {
                     match traverse_stage {
                         ASTTraverseStage::Enter => {
                             context.symbol_table.create_and_enter_scope();
@@ -1175,6 +1166,72 @@ fn someFn() {
         } else {
             panic!("Expected a function symbol");
         }
+    }
+
+    #[test]
+    fn test_block_stmt_creates_scope() {
+        let code = "
+            let foo = 42;
+
+            if (foo == 42) {
+                let bar = 42;
+
+                // foo and bar are visible here
+            } else {
+                let baz = 42;
+
+                // foo and baz are visible here
+            }
+
+            // only foo is visible here
+        ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast);
+
+        assert!(symbol_table.is_ok());
+
+        let mut symbol_table = symbol_table.unwrap();
+
+        println!("{:#?}", symbol_table);
+
+        let symbol = symbol_table.lookup("foo");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("bar");
+        assert!(symbol.is_none());
+
+        let symbol = symbol_table.lookup("baz");
+        assert!(symbol.is_none());
+
+        // Enter the if block scope
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("foo");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("bar");
+        assert!(symbol.is_some());
+
+        // Exit the if block scope
+        symbol_table.exit_scope();
+
+        // Enter the else block scope
+        symbol_table.enter_next_scope();
+
+        let symbol = symbol_table.lookup("foo");
+        assert!(symbol.is_some());
+
+        let symbol = symbol_table.lookup("baz");
+        assert!(symbol.is_some());
+
+        // Exit the else block scope
+        symbol_table.exit_scope();
     }
 
     #[test]

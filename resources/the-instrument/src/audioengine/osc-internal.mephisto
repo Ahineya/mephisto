@@ -15,12 +15,17 @@ block {
 }
 
 process {
-    let sine = Lib.sinewave(phase);
-    let square = Lib.squarewave(phase);
-    let saw = Lib.sawwave(phase);
-    let triangle = Lib.trianglewave(phase);
+    let outwave = 0;
 
-    let outwave = Lib.switch4(wave, sine, square, saw, triangle);
+    if (wave == 0) {
+        outwave = Lib.sinewave(phase);
+    } else if (wave == 1) {
+        outwave = Lib.squarewave(phase);
+    } else if (wave == 2) {
+        outwave = Lib.sawwave(phase);
+    } else if (wave == 3) {
+        outwave = Lib.trianglewave(phase);
+    }
 
     out = outwave;
 }

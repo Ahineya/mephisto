@@ -249,10 +249,6 @@ __m_inputs[3] = 0;
 __m_outputs[2] = 0;
 __m_inputs[4] = 0;
 __m_outputs[3] = 0;
-let __Osc__sine = 0;
-let __Osc__square = 0;
-let __Osc__saw = 0;
-let __Osc__triangle = 0;
 let __Osc__outwave = 0;
 function __Osc2__Lib__sinewave(phase) {
 return Math.sin(((phase * 2) * Math.PI));
@@ -309,10 +305,6 @@ __m_inputs[8] = 0;
 __m_outputs[6] = 0;
 __m_inputs[9] = 0;
 __m_outputs[7] = 0;
-let __Osc2__sine = 0;
-let __Osc2__square = 0;
-let __Osc2__saw = 0;
-let __Osc2__triangle = 0;
 let __Osc2__outwave = 0;
 function __Osc3__Lib__sinewave(phase) {
 return Math.sin(((phase * 2) * Math.PI));
@@ -369,10 +361,6 @@ __m_inputs[13] = 0;
 __m_outputs[10] = 0;
 __m_inputs[14] = 0;
 __m_outputs[11] = 0;
-let __Osc3__sine = 0;
-let __Osc3__square = 0;
-let __Osc3__saw = 0;
-let __Osc3__triangle = 0;
 let __Osc3__outwave = 0;
 __m_inputs[15] = 1;
 __m_outputs[12] = 0;
@@ -432,10 +420,6 @@ __m_inputs[19] = 0;
 __m_outputs[15] = 0;
 __m_inputs[20] = 0;
 __m_outputs[16] = 0;
-let __LFO__sine = 0;
-let __LFO__square = 0;
-let __LFO__saw = 0;
-let __LFO__triangle = 0;
 let __LFO__outwave = 0;
 let __OscVolume__osc1gain = 0.33;
 let __OscVolume__osc2gain = 0;
@@ -886,11 +870,20 @@ __LFO__Smooth____y_curr_2 = ((__LFO__Smooth__s * (__LFO__Smooth__y_prev - __m_in
 __LFO__Smooth__y_prev = __LFO__Smooth____y_curr_2;
 __m_outputs[14] = __LFO__Smooth____y_curr_2;
 __m_outputs[13] = (__LFO__Phaser__increment + (__m_outputs[13] - Math.floor((__LFO__Phaser__increment + __m_outputs[13]))));
-__LFO__sine = __LFO__Lib__sinewave(__m_inputs[20]);
-__LFO__square = __LFO__Lib__squarewave(__m_inputs[20]);
-__LFO__saw = __LFO__Lib__sawwave(__m_inputs[20]);
-__LFO__triangle = __LFO__Lib__trianglewave(__m_inputs[20]);
-__LFO__outwave = __LFO__Lib__switch4(__m_inputs[19], __LFO__sine, __LFO__square, __LFO__saw, __LFO__triangle);
+__LFO__outwave = 0;
+if ((__m_inputs[19] == 0 ? 1 : 0)) {
+__LFO__outwave = __LFO__Lib__sinewave(__m_inputs[20]);
+}  else if ((__m_inputs[19] == 1 ? 1 : 0)) {
+__LFO__outwave = __LFO__Lib__squarewave(__m_inputs[20]);
+}  else if ((__m_inputs[19] == 2 ? 1 : 0)) {
+__LFO__outwave = __LFO__Lib__sawwave(__m_inputs[20]);
+}  else if ((__m_inputs[19] == 3 ? 1 : 0)) {
+__LFO__outwave = __LFO__Lib__trianglewave(__m_inputs[20]);
+} 
+
+
+
+;
 __m_outputs[15] = __LFO__outwave;
 __Noise__randomValue = Math.random();
 __m_outputs[12] = ((__Noise__randomValue * 2) - 1);
@@ -899,31 +892,58 @@ __Osc3__Smooth____y_curr_2 = ((__Osc3__Smooth__s * (__Osc3__Smooth__y_prev - __m
 __Osc3__Smooth__y_prev = __Osc3__Smooth____y_curr_2;
 __m_outputs[9] = __Osc3__Smooth____y_curr_2;
 __m_outputs[8] = (__Osc3__Phaser__increment + (__m_outputs[8] - Math.floor((__Osc3__Phaser__increment + __m_outputs[8]))));
-__Osc3__sine = __Osc3__Lib__sinewave(__m_inputs[14]);
-__Osc3__square = __Osc3__Lib__squarewave(__m_inputs[14]);
-__Osc3__saw = __Osc3__Lib__sawwave(__m_inputs[14]);
-__Osc3__triangle = __Osc3__Lib__trianglewave(__m_inputs[14]);
-__Osc3__outwave = __Osc3__Lib__switch4(__m_inputs[13], __Osc3__sine, __Osc3__square, __Osc3__saw, __Osc3__triangle);
+__Osc3__outwave = 0;
+if ((__m_inputs[13] == 0 ? 1 : 0)) {
+__Osc3__outwave = __Osc3__Lib__sinewave(__m_inputs[14]);
+}  else if ((__m_inputs[13] == 1 ? 1 : 0)) {
+__Osc3__outwave = __Osc3__Lib__squarewave(__m_inputs[14]);
+}  else if ((__m_inputs[13] == 2 ? 1 : 0)) {
+__Osc3__outwave = __Osc3__Lib__sawwave(__m_inputs[14]);
+}  else if ((__m_inputs[13] == 3 ? 1 : 0)) {
+__Osc3__outwave = __Osc3__Lib__trianglewave(__m_inputs[14]);
+} 
+
+
+
+;
 __m_outputs[10] = __Osc3__outwave;
 __Osc2__Smooth____y_curr_2 = ((__Osc2__Smooth__s * (__Osc2__Smooth__y_prev - __m_inputs[6])) + __m_inputs[6]);
 __Osc2__Smooth__y_prev = __Osc2__Smooth____y_curr_2;
 __m_outputs[5] = __Osc2__Smooth____y_curr_2;
 __m_outputs[4] = (__Osc2__Phaser__increment + (__m_outputs[4] - Math.floor((__Osc2__Phaser__increment + __m_outputs[4]))));
-__Osc2__sine = __Osc2__Lib__sinewave(__m_inputs[9]);
-__Osc2__square = __Osc2__Lib__squarewave(__m_inputs[9]);
-__Osc2__saw = __Osc2__Lib__sawwave(__m_inputs[9]);
-__Osc2__triangle = __Osc2__Lib__trianglewave(__m_inputs[9]);
-__Osc2__outwave = __Osc2__Lib__switch4(__m_inputs[8], __Osc2__sine, __Osc2__square, __Osc2__saw, __Osc2__triangle);
+__Osc2__outwave = 0;
+if ((__m_inputs[8] == 0 ? 1 : 0)) {
+__Osc2__outwave = __Osc2__Lib__sinewave(__m_inputs[9]);
+}  else if ((__m_inputs[8] == 1 ? 1 : 0)) {
+__Osc2__outwave = __Osc2__Lib__squarewave(__m_inputs[9]);
+}  else if ((__m_inputs[8] == 2 ? 1 : 0)) {
+__Osc2__outwave = __Osc2__Lib__sawwave(__m_inputs[9]);
+}  else if ((__m_inputs[8] == 3 ? 1 : 0)) {
+__Osc2__outwave = __Osc2__Lib__trianglewave(__m_inputs[9]);
+} 
+
+
+
+;
 __m_outputs[6] = __Osc2__outwave;
 __Osc__Smooth____y_curr_2 = ((__Osc__Smooth__s * (__Osc__Smooth__y_prev - __m_inputs[1])) + __m_inputs[1]);
 __Osc__Smooth__y_prev = __Osc__Smooth____y_curr_2;
 __m_outputs[1] = __Osc__Smooth____y_curr_2;
 __m_outputs[0] = (__Osc__Phaser__increment + (__m_outputs[0] - Math.floor((__Osc__Phaser__increment + __m_outputs[0]))));
-__Osc__sine = __Osc__Lib__sinewave(__m_inputs[4]);
-__Osc__square = __Osc__Lib__squarewave(__m_inputs[4]);
-__Osc__saw = __Osc__Lib__sawwave(__m_inputs[4]);
-__Osc__triangle = __Osc__Lib__trianglewave(__m_inputs[4]);
-__Osc__outwave = __Osc__Lib__switch4(__m_inputs[3], __Osc__sine, __Osc__square, __Osc__saw, __Osc__triangle);
+__Osc__outwave = 0;
+if ((__m_inputs[3] == 0 ? 1 : 0)) {
+__Osc__outwave = __Osc__Lib__sinewave(__m_inputs[4]);
+}  else if ((__m_inputs[3] == 1 ? 1 : 0)) {
+__Osc__outwave = __Osc__Lib__squarewave(__m_inputs[4]);
+}  else if ((__m_inputs[3] == 2 ? 1 : 0)) {
+__Osc__outwave = __Osc__Lib__sawwave(__m_inputs[4]);
+}  else if ((__m_inputs[3] == 3 ? 1 : 0)) {
+__Osc__outwave = __Osc__Lib__trianglewave(__m_inputs[4]);
+} 
+
+
+
+;
 __m_outputs[2] = __Osc__outwave;
 freq = (frequency + ((frequency * __m_inputs[37]) * frequencyModAmount));
 __m_outputs[29] = freq;
@@ -931,7 +951,7 @@ osc2detuned = (freq * (1 + osc2detune));
 osc3detuned = (freq * (1 + osc3detune));
 __m_outputs[30] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
 __m_outputs[31] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
-__m_outputs[28] = ((((((__m_inputs[30] * (__m_outputs[17] + ((__m_inputs[38] + 1) * 0.5))) + (__m_inputs[31] * (__m_outputs[18] + ((__m_inputs[39] + 1) * 0.5)))) + (__m_inputs[32] * __m_outputs[19])) + (__m_inputs[33] * __m_outputs[20])) * __m_inputs[35]) * globalgate);
+__m_outputs[28] = (((((((__m_inputs[30] * __m_outputs[17]) + (__m_inputs[31] * __m_outputs[18])) + (__m_inputs[32] * __m_outputs[19])) + (__m_inputs[33] * __m_outputs[20])) + ((__m_inputs[40] + 1) * 0.5)) * __m_inputs[35]) * globalgate);
 
 
             connections.forEach(([out, inp]) => {

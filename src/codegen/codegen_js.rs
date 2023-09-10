@@ -109,9 +109,6 @@ impl JSCodeGenerator {
         stdlib.insert("buf_put".to_string(), "Rb.put".to_string());
         stdlib.insert("buf_resize".to_string(), "Rb.resize".to_string());
 
-        stdlib.insert("if".to_string(), "Std.if".to_string());
-        stdlib.insert("if_else".to_string(), "Std.ifElse".to_string());
-
         JSCodeGenerator {
             handlebars,
             stdlib
@@ -204,7 +201,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 ASTTraverseStage::Exit => {}
             }
         }
-        Node::ProcessNode { .. } => {
+        Node::ProcessSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.set_current_block("process");
@@ -214,7 +211,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
-        Node::BlockNode { .. } => {
+        Node::BlockSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.set_current_block("block");
@@ -226,7 +223,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
-        Node::ConnectNode { children, .. } => {
+        Node::ConnectSection { children, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     
@@ -952,7 +949,94 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
+        Node::IfStmt { test, consequent, alternate, .. } => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.push_code("if (");
+                    traverse_ast(test, &mut ast_to_code, context);
+                    context.push_code(") ");
+                    traverse_ast(consequent, &mut ast_to_code, context);
+                    if let Some(alternate) = alternate {
+                        context.push_code(" else ");
+                        traverse_ast(alternate, &mut ast_to_code, context);
+                        context.push_code("");
+                    }
+
+                    context.push_code("\n");
+                }
+                ASTTraverseStage::Exit => {}
+            }
+
+            return true;
+        }
+        Node::BlockStmt { children, .. } => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.push_code("{\n");
+                    for child in children {
+                        traverse_ast(child, &mut ast_to_code, context);
+                    }
+                    context.push_code("} ");
+                }
+                ASTTraverseStage::Exit => {}
+            }
+
+            return true;
+        }
     }
 
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use indexmap::IndexMap;
+    use crate::ir::IR;
+    use crate::lexer::Lexer;
+    use crate::module_data::ModuleData;
+    use crate::parser::Parser;
+    use crate::symbol_table::SymbolTable;
+    use super::*;
+
+    // Ok, to be honest, this is not really a test. It's more of a "does it compile" test.
+    // I'm not sure how to test the generated code. Let me think about it.
+    #[test]
+    fn test_js_codegen() {
+        let mut handlebars = Handlebars::new();
+        handlebars.register_template_string("js", include_str!("templates/js.hbs")).unwrap();
+
+        let code_generator = JSCodeGenerator::new();
+
+        let code = "
+            let foo = 42;
+
+            bar(a, b) {
+                return a + b;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        let mut modules = IndexMap::new();
+        modules.insert("main".to_string(), module_data);
+
+        let mut ir = IR::new();
+        let result = ir.create(&mut modules, "main".to_string());
+
+        let result = code_generator.generate(result.unwrap());
+
+        assert!(result.is_ok());
+    }
 }
