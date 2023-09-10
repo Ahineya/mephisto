@@ -1,3 +1,5 @@
+import Lib from "./lib.mephisto";
+
 param cutoffFrequency {
     initial: 1000;
     min: 20;
@@ -5,6 +7,8 @@ param cutoffFrequency {
     step: 10;
     type: C_SLIDER;
 };
+
+input cutoffMod = 0;
 
 param resonance {
     initial: 0.5;
@@ -25,13 +29,15 @@ let previousOutput2 = 0;
 let previousOutput3 = 0;
 let previousOutput4 = 0;
 
-let RC = 1.0 / (2 * PI * cutoffFrequency);
-
-block {
-    RC = 1.0 / (2 * PI * cutoffFrequency);
-}
 
 process {
+
+    // cutoffFrequency should be between 20 and 20000 Hz
+    // cutoffMod is a modulation input from -1 to 1
+    let cutoffFreq = Lib.clamp(cutoffFrequency + cutoffMod * 10000, 20, 20000);
+
+    let RC = 1.0 / (2 * PI * cutoffFreq);
+
     let alpha = dt / (RC + dt);
 
     // First stage

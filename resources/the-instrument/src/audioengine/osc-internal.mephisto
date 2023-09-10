@@ -3,7 +3,6 @@ import Phaser from "./phaser.mephisto";
 import Smooth from "./smoo.mephisto";
 
 input frequency = 110;
-input gain = 1;
 input wave = 0;
 
 output out = 0;
@@ -23,7 +22,7 @@ process {
 
     let outwave = Lib.switch4(wave, sine, square, saw, triangle);
 
-    out = outwave * gain;
+    out = outwave;
 }
 
 connect {

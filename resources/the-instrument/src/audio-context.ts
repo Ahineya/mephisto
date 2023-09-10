@@ -181,14 +181,21 @@ synth.port.onmessage = (event) => {
         console.log('Inputs', event.data.inputNames);
         console.log('Outputs', event.data.outputNames);
 
+        const parameterNames = event.data.parameters.map((parameter: any) => parameter.name);
+        console.log('Parameters', parameterNames);
+
         const chart = toMermaid(connections);
 
         synthStore.setChart(chart);
         synthStore.setInputs(event.data.inputNames);
         synthStore.setOutputs(event.data.outputNames);
 
-
         const container = document.querySelector('#container');
+
+        if (!container) {
+            return;
+        }
+
         container!.appendChild(controls);
     }
 

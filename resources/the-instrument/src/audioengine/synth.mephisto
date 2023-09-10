@@ -13,13 +13,14 @@ import ADSR from "./adsr.mephisto";
 import LowPass from "./lowpass.mephisto";
 import Echo from "./echo.mephisto";
 
-import Karplus from "./karplus.mephisto";
-
 import Limiter from "./limiter.mephisto";
 import Freeverb from "./freeverb.mephisto";
 
 import Lib from "./lib.mephisto";
 import Freq from "./freq.mephisto";
+
+import Mix from "./mix.mephisto";
+import Attenuator from "./attenuator.mephisto";
 
 param osc1waveform {
     initial: 0;
@@ -142,18 +143,6 @@ param frequency {
     initial: 440;
 };
 
-param instrument {
-    initial: 0;
-    type: C_SLIDER;
-    min: 0;
-    max: 2;
-    step: 1;
-
-    osc: 0;
-    karplus: 1;
-    mix: 2;
-};
-
 output out = 0;
 
 input osc1 = 0;
@@ -189,6 +178,10 @@ param globalgate {
     step: 1;
 };
 
+input osc1gainMod = 0;
+input osc2gainMod = 0;
+input noiseGainMod = 0;
+
 process {
     const freq = frequency + frequency * frequencyMod * frequencyModAmount;
     osc1freq = freq;
@@ -199,11 +192,7 @@ process {
     osc2freq = Freq.semiOffset(osc2detuned * osc2octaveoffset, osc2semioffset);
     osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);
 
-    out = Lib.switch3(instrument,
-        (osc1 + osc2 + osc3 + noise) * adsr,
-        karplus * 4,
-        (karplus * 4 + (osc1 + osc2 + osc3 + noise) * adsr) * 0.5)
-    * globalgate;
+    out =  (osc1 * (OscVolume.osc1gainOut + (osc1gainMod + 1) * 0.5) + osc2 * (OscVolume.osc2gainOut + (osc2gainMod + 1) * 0.5) + osc3 * OscVolume.osc3gainOut + noise * OscVolume.noiseGainOut + (noiseGainMod + 1) * 0.5) * adsr * globalgate;
 }
 
 connect {
@@ -212,26 +201,18 @@ connect {
     Osc3.out -> osc3;
 
     Noise.out -> noise;
-    OscVolume.noiseGainOut -> Noise.gain;
-    
+
     osc1freq -> Osc.frequency;
-    OscVolume.osc1gainOut -> Osc.gain;
     osc1waveform -> Osc.wave;
 
     osc2freq -> Osc2.frequency;
-    OscVolume.osc2gainOut -> Osc2.gain;
     osc2waveform -> Osc2.wave;
 
     osc3freq -> Osc3.frequency;
-    OscVolume.osc3gainOut -> Osc3.gain;
     osc3waveform -> Osc3.wave;
 
     lfowaveform -> LFO.wave;
     lfoFrequency -> LFO.frequency;
-
-    Karplus.out -> karplus;
-    frequency -> Karplus.frequency;
-    trigger -> Karplus.pluckTrigger;
 
     ADSR.curve -> adsr;
     trigger -> ADSR.gate;

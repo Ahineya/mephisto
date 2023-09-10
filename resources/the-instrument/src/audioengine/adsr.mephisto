@@ -47,6 +47,11 @@ block {
     releaseDec = sustainLevel / (SR * releaseTime);
 }
 
+// So there is currently a bug in this implementation.
+// releaseDec is calculated incorrectly. It should remember the currentVal when the gate goes low, and then decay from that value.
+// Perhaps the time should be taken into the account as well, so it will have less release time when the envelope hasn't reached the sustain level yet,
+// or overshot it because of decay.
+
 process {
     let risingEdge = gate * (1 - prevGate);
     let fallingEdge = prevGate * (1 - gate);

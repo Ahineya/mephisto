@@ -1,7 +1,7 @@
 input inp = 0;
 output out = 0;
 
-let s = 0.999;//1 - 44.1 / SR;
+let s = 0.7;//999;//1 - 44.1 / SR;
 
 let y_prev = 0;
 

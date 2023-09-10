@@ -4,8 +4,10 @@ import {SynthPanel} from "./synth-panel/synth-panel.tsx";
 import {PatchPoint} from "./patch-point/patch-point.tsx";
 import {KnobFree} from "./knobs/knob-free.tsx";
 import {KnobSize} from "./knobs/knob.interface.ts";
-import {useState} from "react";
-import {synth} from "../../../audio-context.ts";
+import {synthStore} from "../../../stores/synth.store.ts";
+import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
+import {KnobPredefined} from "./knobs/knob-predefined.tsx";
+import {closestIndex} from "../../../helpers/closest.ts";
 
 // import {PanelEnvelope} from "./panels/panel-envelope";
 // import {PanelDistortion} from "./panels/panel-distortion";
@@ -19,14 +21,21 @@ import {synth} from "../../../audio-context.ts";
 // import {SynthMenu} from "./synth-menu";
 // import {PanelFreqAnalyser} from "./panels/panel-freq";
 
+enum Waveform {
+    Sine,
+    Square,
+    Saw,
+    Triangle,
+}
+
 export const SynthControls = () => {
 
-    const [freqMod, setFreqMod] = useState(0);
+    const synthParams = useStoreSubscribe(synthStore.preset);
 
     return <div className="synth-controls-container">
 
         <div className="synth-controls">
-            <SynthPanel left={610} top={12} width={230} height={288} caption="Ainanenane">
+            <SynthPanel left={610} top={12} width={230} height={320} caption="Ainanenane">
 
                 <PatchPoint
                     type={"input"}
@@ -34,7 +43,7 @@ export const SynthControls = () => {
                         x: 20,
                         y: 20
                     }}
-                    controlId={"attenIn"}
+                    controlId={"Attenuator#inp"}
                     label="ATTEN"
                 />
                 <PatchPoint
@@ -43,7 +52,7 @@ export const SynthControls = () => {
                         x: 20 + 50,
                         y: 20
                     }}
-                    controlId={"attenOut"}
+                    controlId={"Attenuator#out"}
                     label="ATTEN"
                 />
 
@@ -72,7 +81,7 @@ export const SynthControls = () => {
                         x: 20,
                         y: 20 + 50,
                     }}
-                    controlId={"mix1"}
+                    controlId={"Mix#mix1"}
                     label="MIX1"
                 />
 
@@ -82,7 +91,7 @@ export const SynthControls = () => {
                         x: 20 + 50,
                         y: 20 + 50,
                     }}
-                    controlId={"mix2"}
+                    controlId={"Mix#mix2"}
                     label="MIX2"
                 />
 
@@ -92,7 +101,7 @@ export const SynthControls = () => {
                         x: 120,
                         y: 20 + 50,
                     }}
-                    controlId={"mixout"}
+                    controlId={"Mix#out"}
                     label="MIX"
                 />
 
@@ -102,7 +111,7 @@ export const SynthControls = () => {
                         x: 20 + 150,
                         y: 20 + 50
                     }}
-                    controlId={"cutoff"}
+                    controlId={"LowPass#cutoffMod"}
                     label="LPF"
                 />
 
@@ -122,7 +131,7 @@ export const SynthControls = () => {
                         x: 20 + 50,
                         y: 20 + 100
                     }}
-                    controlId={"coscgainmodamount"}
+                    controlId={"osc1gainMod"}
                     label="OSC1 GAIN"
                 />
 
@@ -132,7 +141,7 @@ export const SynthControls = () => {
                         x: 120,
                         y: 20 + 100
                     }}
-                    controlId={"osc2gainmodamount"}
+                    controlId={"osc2gainMod"}
                     label="OSC2 GAIN"
                 />
 
@@ -142,7 +151,7 @@ export const SynthControls = () => {
                         x: 120 + 50,
                         y: 20 + 100
                     }}
-                    controlId={"noiseGainmodamount"}
+                    controlId={"noiseGainMod"}
                     label="NOISE GAIN"
                 />
 
@@ -152,8 +161,8 @@ export const SynthControls = () => {
                         x: 20,
                         y: 20 + 150
                     }}
-                    controlId={"osc1"}
-                    label="OSC1"
+                    controlId={"Osc3#out"}
+                    label="OSC3"
                 />
 
                 <PatchPoint
@@ -171,7 +180,7 @@ export const SynthControls = () => {
                         x: 120,
                         y: 20 + 150
                     }}
-                    controlId={"Adsr"}
+                    controlId={"ADSR#curve"}
                     label="ADSR"
                 />
 
@@ -181,42 +190,477 @@ export const SynthControls = () => {
                         x: 20 + 150,
                         y: 20 + 150,
                     }}
-                    controlId={"noiseOut"}
+                    controlId={"Noise#out"}
                     label="NOISE"
                 />
 
-
             </SynthPanel>
-            <KnobFree id="reverb-mix"
+
+            <KnobFree id="freq-mod"
                       caption="Freq Mod"
                       onValueChanged={(v) => {
-                          setFreqMod(v);
-
-                          synth.port.postMessage({
-                              command: "setParameter",
-                              setter: {
-                                  name: "frequencyModAmount",
-                                  value: v
-                              }
-                          })
+                          synthStore.setSynthParameter("frequencyModAmount", v);
                       }}
-                      value={freqMod}
-                      from={0}
+                      value={synthParams.values.frequencyModAmount}
+                      from={-1}
                       to={1}
                       filled={false}
-                      displayValue={freqMod.toFixed(2)}
+                      displayValue={synthParams.values.frequencyModAmount.toFixed(2)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 120,
+                          y: 30
+                      }}
+            />
+
+            <KnobFree id="attenuator-balance"
+                      caption="Attenuator"
+                      onValueChanged={(v) => {
+                          synthStore.setSynthParameter("__Attenuator__balance", v);
+                      }}
+                      value={synthParams.values.__Attenuator__balance}
+                      from={-1}
+                      to={1}
+                      filled={false}
+                      displayValue={synthParams.values.__Attenuator__balance.toFixed(2)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 650,
+                          y: 250
+                      }}
+            />
+
+            <KnobFree id="mixer-balance"
+                      caption="Mix"
+                      onValueChanged={(v) => {
+                          synthStore.setSynthParameter("__Mix__balance", v);
+                      }}
+                      value={synthParams.values.__Mix__balance}
+                      from={-1}
+                      to={1}
+                      filled={false}
+                      displayValue={synthParams.values.__Mix__balance.toFixed(2)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 750,
+                          y: 250
+                      }}
+            />
+
+            <KnobPredefined id="oscillators-second-octave"
+                            caption="Octave"
+                            values={[0.25, 0.5, 1, 2, 4]}
+                            valueIndex={closestIndex([0.25, 0.5, 1, 2, 4], synthParams.values.osc2octaveoffset)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc2octaveoffset', [0.25, 0.5, 1, 2, 4][valueIndex])}
+                            from={0.25}
+                            to={4}
+                            displayValue={`${["-2", "-1", "0", "+1", "+2"][closestIndex([0.25, 0.5, 1, 2, 4], synthParams.values.osc2octaveoffset)]}`}
+                            size={KnobSize.SMALL}
+                            position={{
+                                x: 113,
+                                y: 130
+                            }}
+            />
+
+            <KnobPredefined id="oscillators-third-octave"
+                            caption="Octave"
+                            values={[0.25, 0.5, 1, 2, 4]}
+                            valueIndex={closestIndex([0.25, 0.5, 1, 2, 4], synthParams.values.osc3octaveoffset)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc3octaveoffset', [0.25, 0.5, 1, 2, 4][valueIndex])}
+                            from={0.25}
+                            to={4}
+                            displayValue={`${["-2", "-1", "0", "+1", "+2"][closestIndex([0.25, 0.5, 1, 2, 4], synthParams.values.osc3octaveoffset)]}`}
+                            size={KnobSize.SMALL}
+                            position={{
+                                x: 113,
+                                y: 230
+                            }}
+            />
+
+            <KnobPredefined id="oscillators-second-semi"
+                            caption="Semi"
+                            values={[-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7]}
+                            valueIndex={closestIndex([-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7], synthParams.values.osc2semioffset)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc2semioffset', [-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7][valueIndex])}
+                            from={-7}
+                            to={7}
+                            displayValue={`${synthParams.values.osc2semioffset}`}
+                            size={KnobSize.SMALL}
+                            position={{
+                                x: 180,
+                                y: 130
+                            }}
+            />
+
+            <KnobFree id="oscillators-second-fine"
+                      caption="Fine"
+                      onValueChanged={value => synthStore.setSynthParameter('osc2detune', value)}
+                      value={synthParams.values.osc2detune}
+                      from={-0.1}
+                      to={0.1}
+                      displayValue={synthParams.values.osc2detune.toFixed(3)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 250,
+                          y: 130
+                      }}
+            />
+
+            <KnobPredefined id="oscillators-third-semi"
+                            caption="Semi"
+                            values={[-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7]}
+                            valueIndex={closestIndex([-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7], synthParams.values.osc3semioffset)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc3semioffset', [-7, -6, -5, -4, -3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7][valueIndex])}
+                            from={-7}
+                            to={7}
+                            displayValue={`${synthParams.values.osc3semioffset}`}
+                            size={KnobSize.SMALL}
+                            position={{
+                                x: 180,
+                                y: 230
+                            }}
+            />
+
+            <KnobFree id="oscillators-third-fine"
+                      caption="Fine"
+                      onValueChanged={value => synthStore.setSynthParameter('osc3detune', value)}
+                      value={synthParams.values.osc3detune}
+                      from={-0.1}
+                      to={0.1}
+                      displayValue={synthParams.values.osc3detune.toFixed(3)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 250,
+                          y: 230
+                      }}
+            />
+
+            <KnobPredefined id="oscillators-first-waveform"
+                            caption="OSC1 waveform"
+                            values={[0, 1, 2, 3]}
+                            valueIndex={closestIndex([0, 1, 2, 3], synthParams.values.osc1waveform)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc1waveform', [0, 1, 2, 3][valueIndex])}
+                            from={0}
+                            to={3}
+                            filled={true}
+                            displayValue={Waveform[synthParams.values.osc1waveform]}
+                            position={{
+                                x: 20,
+                                y: 20
+                            }}
+            />
+
+            <KnobPredefined id="oscillators-second-waveform"
+                            caption="OSC2 waveform"
+                            values={[0, 1, 2, 3]}
+                            valueIndex={closestIndex([0, 1, 2, 3], synthParams.values.osc2waveform)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc2waveform', [0, 1, 2, 3][valueIndex])}
+                            from={0}
+                            to={3}
+                            filled={true}
+                            displayValue={Waveform[synthParams.values.osc2waveform]}
+                            position={{
+                                x: 20,
+                                y: 120
+                            }}
+            />
+
+            <KnobPredefined id="oscillators-third-waveform"
+                            caption="OSC3 waveform"
+                            values={[0, 1, 2, 3]}
+                            valueIndex={closestIndex([0, 1, 2, 3], synthParams.values.osc3waveform)}
+                            onValueIndexChanged={valueIndex => synthStore.setSynthParameter('osc3waveform', [0, 1, 2, 3][valueIndex])}
+                            from={0}
+                            to={3}
+                            filled={true}
+                            displayValue={Waveform[synthParams.values.osc3waveform]}
+                            position={{
+                                x: 20,
+                                y: 220
+                            }}
+            />
+
+            <KnobFree id="oscillators-first-gain"
+                      caption="Volume"
+                      onValueChanged={value => synthStore.setSynthParameter('__OscVolume__osc1gain', value)}
+                      value={synthParams.values.__OscVolume__osc1gain}
+                      from={0}
+                      to={1}
+                      filled={true}
+                      displayValue={synthParams.values.__OscVolume__osc1gain.toFixed(2)}
+                      position={{
+                          x: 320,
+                          y: 20
+                      }}
+            />
+
+            <KnobFree id="oscillators-second-gain"
+                      caption="Volume"
+                      onValueChanged={value => synthStore.setSynthParameter('__OscVolume__osc2gain', value)}
+                      value={synthParams.values.__OscVolume__osc2gain}
+                      from={0}
+                      to={1}
+                      filled={true}
+                      displayValue={synthParams.values.__OscVolume__osc2gain.toFixed(2)}
+                      position={{
+                          x: 320,
+                          y: 120
+                      }}
+            />
+
+            <KnobFree id="oscillators-third-gain"
+                      caption="Volume"
+                      onValueChanged={value => synthStore.setSynthParameter('__OscVolume__osc3gain', value)}
+                      value={synthParams.values.__OscVolume__osc3gain}
+                      from={0}
+                      to={1}
+                      filled={true}
+                      displayValue={synthParams.values.__OscVolume__osc3gain.toFixed(2)}
+                      position={{
+                          x: 320,
+                          y: 220
+                      }}
+            />
+
+            <KnobFree id="noise-gain"
+                      caption="Noise"
+                      onValueChanged={value => synthStore.setSynthParameter('__OscVolume__noiseGain', value)}
+                      value={synthParams.values.__OscVolume__noiseGain}
+                      from={0}
+                      to={1}
+                      displayValue={synthParams.values.__OscVolume__noiseGain.toFixed(2)}
+                      position={{
+                          x: 400,
+                          y: 80
+                      }}
                       size={KnobSize.SMALL}
             />
-            {/*<PanelOscillators left={12} top={12} width={357} height={288}/>*/}
-            {/*<PanelMisc left={12} top={318} width={122} height={123}/>*/}
-            {/*<PanelAnalyser left={147} top={318} width={222} height={123}/>*/}
-            {/*<PanelFreqAnalyser left={146} top={316} width={222} height={123}/>*/}
-            {/*<PanelFilter left={382} top={12} width={173} height={107}/>*/}
-            {/*<PanelEnvelope left={568} top={12} width={272} height={208}/>*/}
-            {/*<PanelLfo left={382} top={137} width={173} height={304}/>*/}
-            {/*<PanelDistortion left={568} top={237} width={85} height={204}/>*/}
-            {/*<PanelDelay left={662} top={237} width={85} height={204}/>*/}
-            {/*<PanelReverb left={755} top={237} width={85} height={204}/>*/}
+
+            <KnobFree id="filter-cutoff"
+                      caption="LPF Cutoff"
+                      onValueChanged={value => synthStore.setSynthParameter('__LowPass__cutoffFrequency', value)}
+                      value={synthParams.values.__LowPass__cutoffFrequency}
+                      from={40}
+                      to={22000}
+                      displayValue={`${synthParams.values.__LowPass__cutoffFrequency.toFixed(2)}Hz`}
+                      position={{
+                          x: 470,
+                          y: 20
+                      }}
+                      conversionType="exponential"
+            />
+
+            <KnobFree id="filter-lp-resonance"
+                      caption="Resonance"
+                      onValueChanged={value => synthStore.setSynthParameter('__LowPass__resonance', value)}
+                      value={synthParams.values.__LowPass__resonance}
+                      from={0.01}
+                      to={4}
+                      filled={false}
+                      displayValue={synthParams.values.__LowPass__resonance.toFixed(2)}
+                      size={KnobSize.SMALL}
+                      position={{
+                          x: 468,
+                          y: 120
+                      }}
+            />
+
+            <KnobFree
+                id="adsr-attack"
+                caption="Attack"
+                onValueChanged={value => synthStore.setSynthParameter('__ADSR__attackTime', value === 0 ? 0.000001 : value)}
+                value={synthParams.values.__ADSR__attackTime}
+                from={0}
+                to={5}
+                filled={false}
+                displayValue={`${synthParams.values.__ADSR__attackTime.toFixed(3)}s`}
+                position={{
+                    x: 35,
+                    y: 350
+                }}
+                conversionType="exponential"
+            />
+
+            <KnobFree
+                id="adsr-decay"
+                caption="Decay"
+                onValueChanged={value => synthStore.setSynthParameter('__ADSR__decayTime', value === 0 ? 0.000001 : value)}
+                value={synthParams.values.__ADSR__decayTime}
+                from={0}
+                to={5}
+                filled={false}
+                displayValue={`${synthParams.values.__ADSR__decayTime.toFixed(3)}s`}
+                position={{
+                    x: 105,
+                    y: 350
+                }}
+                conversionType="exponential"
+            />
+
+            <KnobFree
+                id="adsr-sustain"
+                caption="Sustain"
+                onValueChanged={value => synthStore.setSynthParameter('__ADSR__sustainLevel', value)}
+                value={synthParams.values.__ADSR__sustainLevel}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__ADSR__sustainLevel.toFixed(2)}
+                position={{
+                    x: 175,
+                    y: 350
+                }}
+            />
+
+            <KnobFree
+                id="adsr-release"
+                caption="Release"
+                onValueChanged={value => synthStore.setSynthParameter('__ADSR__releaseTime', value === 0 ? 0.000001 : value)}
+                value={synthParams.values.__ADSR__releaseTime}
+                from={0}
+                to={5}
+                filled={false}
+                displayValue={`${synthParams.values.__ADSR__releaseTime.toFixed(3)}s`}
+                position={{
+                    x: 245,
+                    y: 350
+                }}
+                conversionType="exponential"
+            />
+
+            {/*Freeverb*/}
+
+            <KnobFree
+                id="freeverb-room-size"
+                caption="Room Size"
+                onValueChanged={value => synthStore.setSynthParameter('__Freeverb__roomSize', value === 1 ? 0.99 : value)}
+                value={synthParams.values.__Freeverb__roomSize}
+                from={0}
+                to={0.99}
+                filled={false}
+                displayValue={synthParams.values.__Freeverb__roomSize.toFixed(2)}
+                position={{
+                    x: 425,
+                    y: 230
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            <KnobFree
+                id="freeverb-dampening"
+                caption="Damp"
+                onValueChanged={value => synthStore.setSynthParameter('__Freeverb__damp', value)}
+                value={synthParams.values.__Freeverb__damp}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__Freeverb__damp.toFixed(2)}
+                position={{
+                    x: 435,
+                    y: 310
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            <KnobFree
+                id="freeverb-wet"
+                caption="Wet"
+                onValueChanged={value => synthStore.setSynthParameter('__Freeverb__dryWet', value)}
+                value={synthParams.values.__Freeverb__dryWet}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__Freeverb__dryWet.toFixed(2)}
+                position={{
+                    x: 435,
+                    y: 390
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            {/* Echo */}
+            <KnobFree
+                id="echo-delay"
+                caption="Delay"
+                onValueChanged={value => synthStore.setSynthParameter('__Echo__delayTime', value)}
+                value={synthParams.values.__Echo__delayTime}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__Echo__delayTime.toFixed(2)}
+                position={{
+                    x: 525,
+                    y: 230
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            <KnobFree
+                id="echo-feedback"
+                caption="Feedback"
+                onValueChanged={value => synthStore.setSynthParameter('__Echo__feedback', value)}
+                value={synthParams.values.__Echo__feedback}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__Echo__feedback.toFixed(2)}
+                position={{
+                    x: 518,
+                    y: 310
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            <KnobFree
+                id="echo-wet"
+                caption="Wet"
+                onValueChanged={value => synthStore.setSynthParameter('__Echo__dryWet', value)}
+                value={synthParams.values.__Echo__dryWet}
+                from={0}
+                to={1}
+                filled={false}
+                displayValue={synthParams.values.__Echo__dryWet.toFixed(2)}
+                position={{
+                    x: 527,
+                    y: 390
+                }}
+                size={KnobSize.SMALL}
+            />
+
+            {/* LFO */}
+            <KnobFree
+                id="lfo-frequency"
+                caption="LFO Freq"
+                onValueChanged={value => synthStore.setSynthParameter('lfoFrequency', value)}
+                value={synthParams.values.lfoFrequency}
+                from={0}
+                to={20}
+                filled={false}
+                displayValue={`${synthParams.values.lfoFrequency.toFixed(2)}Hz`}
+                position={{
+                    x: 340,
+                    y: 390
+                }}
+                conversionType="exponential"
+                size={KnobSize.SMALL}
+            />
+
+            <KnobPredefined
+                id="lfo-waveform"
+                caption="LFO Wave"
+                values={[0, 1, 2, 3]}
+                valueIndex={closestIndex([0, 1, 2, 3], synthParams.values.lfowaveform)}
+                onValueIndexChanged={valueIndex => synthStore.setSynthParameter('lfowaveform', [0, 1, 2, 3][valueIndex])}
+                from={0}
+                to={3}
+                filled={true}
+                displayValue={Waveform[synthParams.values.lfowaveform]}
+                position={{
+                    x: 340,
+                    y: 320
+                }}
+                size={KnobSize.SMALL}
+            />
 
             <Wires/>
 

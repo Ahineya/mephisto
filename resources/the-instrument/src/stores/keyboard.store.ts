@@ -1,5 +1,6 @@
 import {BehaviorSubject} from "rxjs";
 import {audioContext, synth} from "../audio-context";
+import {synthStore} from "./synth.store.ts";
 // import {synthStore} from "./synth.store";
 // import {ISynthPreset} from "./synth.interface";
 // import {ISynthNode} from "../synth-node.interface";
@@ -32,6 +33,8 @@ class KeyboardStore {
             synth.port.postMessage({
                 command: 'init'
             });
+
+            synthStore.loadCurrentPreset();
         }
 
         // if (this.currentSynthPreset.values.misc.retrigger) {

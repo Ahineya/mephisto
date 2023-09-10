@@ -1,0 +1,17 @@
+// Attenuator
+
+input inp = 0;
+
+param balance {
+    initial: 0;
+    min: -1;
+    max: 1;
+    step: 0.01;
+    type: C_SLIDER;
+};
+
+output out = 0;
+
+process {
+    out = inp * (balance);
+}
