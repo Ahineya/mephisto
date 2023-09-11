@@ -3,6 +3,7 @@ use std::error::Error;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
+use colored::Colorize;
 
 pub trait FileLoader {
     fn load(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>>;
@@ -19,7 +20,7 @@ impl FileLoader for NativeFileLoader {
             Path::new(path).to_path_buf()
         };
 
-        println!("[Module Loader] Resolved path: {:?}", resolved_path);
+        println!("{} Resolved path: {:?}", "[Module Loader]".blue(), resolved_path);
 
         let mut file = File::open(&resolved_path)?;
         let mut contents = String::new();

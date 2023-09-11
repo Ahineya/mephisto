@@ -951,7 +951,7 @@ osc2detuned = (freq * (1 + osc2detune));
 osc3detuned = (freq * (1 + osc3detune));
 __m_outputs[30] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
 __m_outputs[31] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
-__m_outputs[28] = (((((((__m_inputs[30] * __m_outputs[17]) + (__m_inputs[31] * __m_outputs[18])) + (__m_inputs[32] * __m_outputs[19])) + (__m_inputs[33] * __m_outputs[20])) + ((__m_inputs[40] + 1) * 0.5)) * __m_inputs[35]) * globalgate);
+__m_outputs[28] = ((((((__m_inputs[30] * __m_outputs[17]) + (__m_inputs[31] * __m_outputs[18])) + (__m_inputs[32] * __m_outputs[19])) + (__m_inputs[33] * __m_outputs[20])) * __m_inputs[35]) * globalgate);
 
 
             connections.forEach(([out, inp]) => {

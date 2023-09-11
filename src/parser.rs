@@ -1249,9 +1249,9 @@ impl Parser {
             self.position += 1;
             Ok(())
         } else {
-            println!("PARSED: {:?}", self.ast);
-            println!("TOKENS: {:?}", self.tokens);
-            println!("POSITION: {:?}", self.position);
+            // println!("PARSED: {:?}", self.ast);
+            // println!("TOKENS: {:?}", self.tokens);
+            // println!("POSITION: {:?}", self.position);
 
             Err(format!("Unexpected token: {}, expected {:?}", self.tokens[self.position].to_string(), token_type))
         }

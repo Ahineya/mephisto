@@ -12,6 +12,8 @@ use crate::parser::Parser;
 use crate::semantic::SemanticAnalyzer;
 use crate::symbol_table::SymbolTable;
 
+use colored::Colorize;
+
 pub mod lexer;
 pub mod parser;
 pub mod symbol_table;
@@ -99,7 +101,7 @@ impl<T: FileLoader> Mephisto<T> {
             return Err(vec![format!("Main module {} not found", main_module_path)]);
         }
 
-        println!("Validating semantics...");
+        println!("{}", "Validating semantics...".blue());
 
         self.validate_semantics(&mut modules)?;
 
@@ -115,7 +117,7 @@ impl<T: FileLoader> Mephisto<T> {
 
         code.push_str("\n\n");
 
-        println!("Creating IR...");
+        println!("{}", "Creating IR...".blue());
 
         // println!("Code: {}", code);
         let mut ir = IR::new();
@@ -133,7 +135,7 @@ impl<T: FileLoader> Mephisto<T> {
             return Err(errors);
         }
 
-        println!("Generating code...");
+        println!("{}", "Generating code...".blue());
 
         let code = self.generate_code(ir_result, codegen);
 

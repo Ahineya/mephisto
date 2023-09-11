@@ -192,7 +192,11 @@ process {
     osc2freq = Freq.semiOffset(osc2detuned * osc2octaveoffset, osc2semioffset);
     osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);
 
-    out = (osc1 * OscVolume.osc1gainOut + osc2 * (OscVolume.osc2gainOut) + osc3 * OscVolume.osc3gainOut + noise * OscVolume.noiseGainOut + (noiseGainMod + 1) * 0.5) * adsr * globalgate;
+    out = (
+    osc1 * OscVolume.osc1gainOut
+        + osc2 * OscVolume.osc2gainOut
+        + osc3 * OscVolume.osc3gainOut
+        + noise * OscVolume.noiseGainOut) * adsr * globalgate;
 }
 
 connect {
