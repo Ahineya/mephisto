@@ -95,6 +95,7 @@ impl IR {
 
         let skip_renaming_identifiers = false;
         let mut skip_renaming_once = false;
+        let mut rename_as_connectindex = false;
 
         let input_names = result.inputs();
         let output_names = result.outputs();
@@ -154,6 +155,19 @@ impl IR {
                     }
                 }
 
+                Node::ConnectedExpr {
+                    ..
+                } => {
+                    match stage {
+                        ASTTraverseStage::Enter => {
+                            rename_as_connectindex = true;
+                        }
+                        ASTTraverseStage::Exit => {
+                            rename_as_connectindex = false;
+                        }
+                    }
+                }
+
                 Node::Identifier { name, .. } => {
                     if skip_renaming_identifiers {
                         return false;
@@ -172,13 +186,21 @@ impl IR {
 
                                 input_symbols.iter().enumerate().for_each(|(i, (_, si))| {
                                     if si.id() == symbol.id() {
-                                        *name = format!("##INPUT_[{}]", i);
+                                        if rename_as_connectindex {
+                                            *name = format!("##INPUTINDEX[{}]", i);
+                                        } else {
+                                            *name = format!("##INPUT_[{}]", i);
+                                        }
                                     }
                                 });
 
                                 output_symbols.iter().enumerate().for_each(|(i, (_, si))| {
                                     if si.id() == symbol.id() {
-                                        *name = format!("##OUTPUT_[{}]", i);
+                                        if rename_as_connectindex {
+                                            *name = format!("##OUTPUTINDEX[{}]", i);
+                                        } else {
+                                            *name = format!("##OUTPUT_[{}]", i);
+                                        }
                                     }
                                 });
                             }

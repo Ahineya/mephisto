@@ -31,6 +31,7 @@ impl Lexer {
                 |chars: &str, current: u32| full_pattern_t(TokenType::IMPORT, Regex::new(r"^import\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::FROM, Regex::new(r"^from\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::EXPORT, Regex::new(r"^export\b").unwrap(), chars, current),
+                |chars: &str, current: u32| full_pattern_t(TokenType::CONNECTED, Regex::new(r"^connected\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::CONNECT, Regex::new(r"^connect\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::BUFFER, Regex::new(r"^buffer\b").unwrap(), chars, current),
                 |chars: &str, current: u32| full_pattern_t(TokenType::IF, Regex::new(r"^if\b").unwrap(), chars, current),

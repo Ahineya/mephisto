@@ -22,6 +22,8 @@ import Freq from "./freq.mephisto";
 import Mix from "./mix.mephisto";
 import Attenuator from "./attenuator.mephisto";
 
+import Snh from "./snh.mephisto";
+
 param osc1waveform {
     initial: 0;
 
@@ -179,24 +181,38 @@ param globalgate {
 };
 
 input osc1gainMod = 0;
-input osc2gainMod = 0;
+input osc2detuneMod = 0;
 input noiseGainMod = 0;
 
 process {
     const freq = frequency + frequency * frequencyMod * frequencyModAmount;
     osc1freq = freq;
 
-    const osc2detuned = freq * (1 + osc2detune);
+    let osc2detunedV = osc2detune + osc2detuneMod;
+
+    const osc2detuned = freq * (1 + osc2detunedV);
     const osc3detuned = freq * (1 + osc3detune);
 
     osc2freq = Freq.semiOffset(osc2detuned * osc2octaveoffset, osc2semioffset);
     osc3freq = Freq.semiOffset(osc3detuned * osc3octaveoffset, osc3semioffset);
 
+    let oscGainMod = 1;
+
+    if (connected(osc1gainMod)) {
+        oscGainMod = osc1gainMod;
+    }
+
+    let noiseGainModV = 1;
+
+    if (connected(noiseGainMod)) {
+        noiseGainModV = noiseGainMod;
+    }
+
     out = (
     osc1 * OscVolume.osc1gainOut
-        + osc2 * OscVolume.osc2gainOut
+        + osc2 * OscVolume.osc2gainOut * oscGainMod
         + osc3 * OscVolume.osc3gainOut
-        + noise * OscVolume.noiseGainOut) * adsr * globalgate;
+        + noise * OscVolume.noiseGainOut * noiseGainModV) * adsr * globalgate;
 }
 
 connect {
@@ -220,6 +236,8 @@ connect {
 
     ADSR.curve -> adsr;
     trigger -> ADSR.gate;
+
+    trigger -> Snh.trigger;
 
     out -> LowPass.audioIn;
     LowPass.audioOut -> Echo.audioIn;

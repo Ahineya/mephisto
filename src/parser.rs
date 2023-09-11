@@ -847,6 +847,9 @@ impl Parser {
             TokenType::PLUS | TokenType::MINUS => {
                 self.parse_unary_expr()
             }
+            TokenType::CONNECTED => {
+                self.parse_connected()
+            }
             _ => {
                 self.parse_infix_expr()
             }
@@ -1146,6 +1149,23 @@ impl Parser {
                 Err(self.generic_error(&token, "(, -, id, number)"))
             }
         }
+    }
+
+    fn parse_connected(&mut self) -> Result<Node, String> {
+        let position = self.position();
+        self.skip(TokenType::CONNECTED)?;
+        self.skip(TokenType::LPAREN)?;
+        let expr = self.parse_id()?;
+        self.skip(TokenType::RPAREN)?;
+
+        let mut node = Node::ConnectedExpr {
+            test: Box::new(expr),
+            position,
+        };
+
+        self.set_end(&mut node);
+
+        Ok(node)
     }
 
     fn parse_number(&mut self) -> Result<Node, String> {

@@ -74,14 +74,14 @@ export const PatchPointInternal: FC<PropsWithChildren<IProps>> = ({
         wireStore.startWireDrag(controlId, {
             position: {
                 x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9, // Don't ask me, it is some offsets from my very old code
-                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5 - 30,
             },
             type,
             controlId,
         }, {
             position: {
                 x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9,
-                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5 - 30,
             },
             type: 'cursor',
             controlId: null,
@@ -107,7 +107,7 @@ export const PatchPointInternal: FC<PropsWithChildren<IProps>> = ({
         wireStore.updateWireTo(draggedWireId!, {
             position: {
                 x: e.clientX - closestSynthPosition.x - 9,
-                y: e.clientY - closestSynthPosition.y - 12.5
+                y: e.clientY - closestSynthPosition.y - 12.5 - 30
             },
             type: 'cursor',
             controlId: null,
@@ -154,7 +154,7 @@ export const PatchPointInternal: FC<PropsWithChildren<IProps>> = ({
         wireStore.connectWireTo(draggedWireId, {
             position: {
                 x: position.x + closestSynthPanelPosition.x - closestSynthPosition.x + rect.width / 2 - 9,
-                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5,
+                y: position.y + closestSynthPanelPosition.y - closestSynthPosition.y + rect.height / 2 - 12.5 - 30,
             },
             type,
             controlId,

@@ -172,7 +172,7 @@ class SynthStore {
     }
 
     public exportPreset() {
-        copyToClipboard(JSON.stringify(this.preset.getValue()));
+        return this.preset.getValue();
     }
 
     setChart(chart: string) {

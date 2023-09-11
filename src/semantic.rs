@@ -141,6 +141,30 @@ impl SemanticAnalyzer {
                         }
                     }
 
+                    Node::ConnectedExpr {
+                        test,
+                        position
+                    } => {
+                        match traverse_stage {
+                            ASTTraverseStage::Enter => {
+                                match test.as_ref() {
+                                    Node::Identifier { name, .. } => {
+                                        match context.symbol_table.lookup(name) {
+                                            Some(symbol_info) => {
+                                                if !symbol_info.is_input() && !symbol_info.is_output() {
+                                                    context.errors.push(format!("Cannot use {} in connected statement. Use either input or output. {:?}", name, position));
+                                                }
+                                            }
+                                            None => {}
+                                        }
+                                    }
+                                    _ => {}
+                                }
+                            }
+                            ASTTraverseStage::Exit => {}
+                        }
+                    }
+
                     Node::AssignmentExpr {
                         lhs,
                         rhs,
@@ -1456,6 +1480,82 @@ buffer foo[10] = |i| {
         assert_eq!(errors[0], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 77, end: 103, line: 6, column: 13 }");
         assert_eq!(errors[1], "[Module \"main\"]: Cannot assign function \"foo\" to a variable, Position { start: 102, end: 124, line: 7, column: 13 }");
         assert_eq!(errors[2], "[Module \"main\"]: Cannot use function \"foo\" as a variable, Position { start: 127, end: 135, line: 8, column: 20 }");
+    }
+
+    #[test]
+    fn test_connected_expr() {
+        let code = "
+            input a = 0;
+
+            if (connected(a)) {
+                let b = 0;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        println!("{:#?}", ast);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_invalid_connected_expr() {
+        let code = "
+            input a = 0;
+
+            const m = 1;
+
+            if (connected(m)) {
+                let b = 0;
+            }
+            ".to_string();
+
+        let lexer = Lexer::new();
+        let tokens = lexer.tokenize(code);
+
+        let mut parser = Parser::new();
+        let mut ast = parser.parse(tokens);
+
+        println!("{:#?}", ast);
+
+        let symbol_table = SymbolTable::from_ast(&mut ast).unwrap();
+
+        let mut semantic = SemanticAnalyzer::new();
+
+        let mut modules = IndexMap::new();
+
+        let module_data = ModuleData {
+            ast,
+            symbol_table,
+            errors: vec![],
+        };
+
+        modules.insert("main".to_string(), module_data);
+
+        let result = semantic.validate_semantics(&mut modules);
+
+        assert!(result.is_err());
     }
 
     #[test]

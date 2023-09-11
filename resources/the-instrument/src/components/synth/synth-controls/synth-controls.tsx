@@ -8,18 +8,7 @@ import {synthStore} from "../../../stores/synth.store.ts";
 import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
 import {KnobPredefined} from "./knobs/knob-predefined.tsx";
 import {closestIndex} from "../../../helpers/closest.ts";
-
-// import {PanelEnvelope} from "./panels/panel-envelope";
-// import {PanelDistortion} from "./panels/panel-distortion";
-// import {PanelReverb} from "./panels/panel-reverb";
-// import {PanelDelay} from "./panels/panel-delay";
-// import {PanelLfo} from "./panels/panel-lfo";
-// import {PanelFilter} from "./panels/panel-filter";
-// import {PanelAnalyser} from "./panels/panel-analyser";
-// import {PanelMisc} from "./panels/panel-misc";
-// import {PanelOscillators} from "./panels/panel-oscillators";
-// import {SynthMenu} from "./synth-menu";
-// import {PanelFreqAnalyser} from "./panels/panel-freq";
+import {SynthMenu} from "./synth-menu/synth-menu.tsx";
 
 enum Waveform {
     Sine,
@@ -29,11 +18,10 @@ enum Waveform {
 }
 
 export const SynthControls = () => {
-
     const synthParams = useStoreSubscribe(synthStore.preset);
 
     return <div className="synth-controls-container">
-
+        <SynthMenu />
         <div className="synth-controls">
             <SynthPanel left={610} top={12} width={230} height={320} caption="Ainanenane">
 
@@ -62,7 +50,7 @@ export const SynthControls = () => {
                         x: 20 + 100,
                         y: 20
                     }}
-                    controlId={"snhIn"}
+                    controlId={"Snh#inp"}
                     label="S&H"
                 />
                 <PatchPoint
@@ -71,7 +59,7 @@ export const SynthControls = () => {
                         x: 20 + 150,
                         y: 20
                     }}
-                    controlId={"snhOut"}
+                    controlId={"Snh#out"}
                     label="S&H"
                 />
 
@@ -132,7 +120,7 @@ export const SynthControls = () => {
                         y: 20 + 100
                     }}
                     controlId={"osc1gainMod"}
-                    label="OSC1 GAIN"
+                    label="OSC2 GAIN"
                 />
 
                 <PatchPoint
@@ -141,8 +129,8 @@ export const SynthControls = () => {
                         x: 120,
                         y: 20 + 100
                     }}
-                    controlId={"osc2gainMod"}
-                    label="OSC2 GAIN"
+                    controlId={"osc2detuneMod"}
+                    label="OSC2 DTN"
                 />
 
                 <PatchPoint

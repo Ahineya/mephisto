@@ -59,4 +59,6 @@ pub enum TokenType {
 
     IF,
     ELSE,
+
+    CONNECTED,
 }

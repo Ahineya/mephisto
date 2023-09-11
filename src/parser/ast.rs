@@ -577,6 +577,16 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
             }
         }
+        Node::ConnectedExpr {..} => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.code.push_str("connected(");
+                }
+                ASTTraverseStage::Exit => {
+                    context.code.push_str(")");
+                }
+            }
+        }
     }
 
     false
@@ -741,6 +751,10 @@ pub enum Node {
         children: Vec<Node>,
         position: Position,
     },
+    ConnectedExpr {
+        test: Box<Node>,
+        position: Position,
+    },
 }
 
 impl Node {
@@ -781,6 +795,7 @@ impl Node {
             Node::ImportStatement { position, .. } => position,
             Node::IfStmt { position, .. } => position,
             Node::BlockStmt { position, .. } => position,
+            Node::ConnectedExpr { position, .. } => position,
         }
     }
 
@@ -895,6 +910,10 @@ impl Node {
                 position.column = column;
             }
             Node::BlockStmt { position, .. } => {
+                position.end = end;
+                position.column = column;
+            }
+            Node::ConnectedExpr { position, .. } => {
                 position.end = end;
                 position.column = column;
             }
@@ -1034,6 +1053,9 @@ pub fn traverse_ast<Context>(node: &mut Node, f: &mut dyn FnMut(ASTTraverseStage
                 traverse_ast(id, f, context);
             }
             Node::Identifier { name: _, position: _ } => {}
+            Node::ConnectedExpr { test, position: _ } => {
+                traverse_ast(test, f, context);
+            }
         }
     }
 

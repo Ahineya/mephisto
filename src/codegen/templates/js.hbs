@@ -141,22 +141,10 @@ return this.elements.length;
 }
 
 const Std = {
-if: function (condition, then) {
-if (condition) {
-return then();
-} else {
-return 0;
-}
-},
-
-ifElse: function (condition, then, otherwise) {
-if (condition) {
-return then();
-} else {
-return otherwise();
-}
-}
-}
+    connected: function (connectedSet, index) {
+        return connectedSet.has(index);
+    }
+};
 
 const __m_inputs = new Float64Array({{INPUTS_LENGTH}});
 const __m_outputs = new Float64Array({{OUTPUTS_LENGTH}});
@@ -167,6 +155,9 @@ const __outputNames = [{{OUTPUT_NAMES}}];
 let connections = [
     {{CONNECTIONS}}
 ];
+
+const connectedInputs = new Set(connections.map(c => c[1]));
+const connectedOutputs = new Set(connections.map(c => c[0]));
 
 {{GLOB}}
 
@@ -248,12 +239,16 @@ class MephistoGenerator extends AudioWorkletProcessor {
 
         this.scheduledConnections.forEach(([out, inp]) => {
             connections.push([out, inp]);
+            connectedInputs.add(inp);
+            connectedOutputs.add(out);
         });
 
         connections = connections.filter(([out, inp]) => {
             for (let i = 0; i < this.scheduledRemoveConnections.length; i++) {
                 if (out === this.scheduledRemoveConnections[i][0] && inp === this.scheduledRemoveConnections[i][1]) {
                     __m_inputs[inp] = 0;
+                    connectedInputs.delete(inp);
+                    connectedOutputs.delete(out);
                     return false;
                 }
             }

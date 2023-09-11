@@ -40,18 +40,33 @@ class WireStore {
         })
     }
 
-    public connectWires() {
-        const wires = this.wires.getValue();
+    clear() {
+        this.wires.getValue().forEach((wire) => {
+            if (wire.from.controlId && wire.to.controlId) {
+                synthStore.disconnect(wire.from.controlId, wire.to.controlId);
+            }
+        });
 
-        wires.forEach((wire) => {
-            console.log('WIRE', wire);
+        this.wires.next([]);
+    }
+
+    public connectWires(wires?: Wire[]) {
+        const realWires = wires || this.wires.getValue();
+
+        realWires.forEach((wire) => {
             if (!wire.from.controlId || !wire.to.controlId) {
                 return;
             }
 
-            console.log('CONNECT WIRE', wire.from.controlId, wire.to.controlId);
             synthStore.connect(wire.from.controlId, wire.to.controlId);
         });
+
+        this.wires.next(realWires.map((wire) => {
+            return {
+                ...wire,
+                connected: true,
+            };
+        }));
     }
 
     private createWire(from: WireConnectionPoint, to: WireConnectionPoint) {
@@ -200,6 +215,10 @@ class WireStore {
         }
 
         synthStore.disconnect(wire.from.controlId, wire.to.controlId);
+    }
+
+    exportWires() {
+        return this.wires.getValue();
     }
 }
 

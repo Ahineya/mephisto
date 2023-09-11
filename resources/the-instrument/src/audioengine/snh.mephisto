@@ -1,0 +1,19 @@
+input inp = 0;
+output out = 0;
+
+input trigger = 0;
+
+let prevTrigger = 0;
+let hold = 0;
+
+block {
+    if ((trigger > 0) * (prevTrigger == 0)) {
+        hold = inp;
+    }
+
+    prevTrigger = trigger;
+}
+
+process {
+    out = hold;
+}

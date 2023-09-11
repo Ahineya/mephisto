@@ -141,28 +141,16 @@ return this.elements.length;
 }
 
 const Std = {
-if: function (condition, then) {
-if (condition) {
-return then();
-} else {
-return 0;
-}
-},
+    connected: function (connectedSet, index) {
+        return connectedSet.has(index);
+    }
+};
 
-ifElse: function (condition, then, otherwise) {
-if (condition) {
-return then();
-} else {
-return otherwise();
-}
-}
-}
+const __m_inputs = new Float64Array(43);
+const __m_outputs = new Float64Array(33);
 
-const __m_inputs = new Float64Array(41);
-const __m_outputs = new Float64Array(32);
-
-const __inputNames = ["Osc#Phaser#frequency", "Osc#Smooth#inp", "Osc#frequency", "Osc#wave", "Osc#phase", "Osc2#Phaser#frequency", "Osc2#Smooth#inp", "Osc2#frequency", "Osc2#wave", "Osc2#phase", "Osc3#Phaser#frequency", "Osc3#Smooth#inp", "Osc3#frequency", "Osc3#wave", "Osc3#phase", "Noise#gain", "LFO#Phaser#frequency", "LFO#Smooth#inp", "LFO#frequency", "LFO#wave", "LFO#phase", "ADSR#gate", "LowPass#cutoffMod", "LowPass#audioIn", "Echo#audioIn", "Limiter#audioIn", "Freeverb#audioIn", "Mix#mix1", "Mix#mix2", "Attenuator#inp", "osc1", "osc2", "osc3", "noise", "echo", "adsr", "karplus", "frequencyMod", "osc1gainMod", "osc2gainMod", "noiseGainMod"];
-const __outputNames = ["Osc#Phaser#phase", "Osc#Smooth#out", "Osc#out", "Osc#internal_freq", "Osc2#Phaser#phase", "Osc2#Smooth#out", "Osc2#out", "Osc2#internal_freq", "Osc3#Phaser#phase", "Osc3#Smooth#out", "Osc3#out", "Osc3#internal_freq", "Noise#out", "LFO#Phaser#phase", "LFO#Smooth#out", "LFO#out", "LFO#internal_freq", "OscVolume#osc1gainOut", "OscVolume#osc2gainOut", "OscVolume#osc3gainOut", "OscVolume#noiseGainOut", "ADSR#curve", "LowPass#audioOut", "Echo#audioOut", "Limiter#audioOut", "Freeverb#audioOut", "Mix#out", "Attenuator#out", "out", "osc1freq", "osc2freq", "osc3freq"];
+const __inputNames = ["Osc#Phaser#frequency", "Osc#Smooth#inp", "Osc#frequency", "Osc#wave", "Osc#phase", "Osc2#Phaser#frequency", "Osc2#Smooth#inp", "Osc2#frequency", "Osc2#wave", "Osc2#phase", "Osc3#Phaser#frequency", "Osc3#Smooth#inp", "Osc3#frequency", "Osc3#wave", "Osc3#phase", "Noise#gain", "LFO#Phaser#frequency", "LFO#Smooth#inp", "LFO#frequency", "LFO#wave", "LFO#phase", "ADSR#gate", "LowPass#cutoffMod", "LowPass#audioIn", "Echo#audioIn", "Limiter#audioIn", "Freeverb#audioIn", "Mix#mix1", "Mix#mix2", "Attenuator#inp", "Snh#inp", "Snh#trigger", "osc1", "osc2", "osc3", "noise", "echo", "adsr", "karplus", "frequencyMod", "osc1gainMod", "osc2detuneMod", "noiseGainMod"];
+const __outputNames = ["Osc#Phaser#phase", "Osc#Smooth#out", "Osc#out", "Osc#internal_freq", "Osc2#Phaser#phase", "Osc2#Smooth#out", "Osc2#out", "Osc2#internal_freq", "Osc3#Phaser#phase", "Osc3#Smooth#out", "Osc3#out", "Osc3#internal_freq", "Noise#out", "LFO#Phaser#phase", "LFO#Smooth#out", "LFO#out", "LFO#internal_freq", "OscVolume#osc1gainOut", "OscVolume#osc2gainOut", "OscVolume#osc3gainOut", "OscVolume#noiseGainOut", "ADSR#curve", "LowPass#audioOut", "Echo#audioOut", "Limiter#audioOut", "Freeverb#audioOut", "Mix#out", "Attenuator#out", "Snh#out", "out", "osc1freq", "osc2freq", "osc3freq"];
 
 let connections = [
     [16, 17],
@@ -177,15 +165,15 @@ let connections = [
 [3, 1],
 [1, 0],
 [0, 4],
-[2, 30],
-[6, 31],
-[10, 32],
-[12, 33],
-[29, 2],
-[30, 7],
-[31, 12],
-[21, 35],
-[28, 23],
+[2, 32],
+[6, 33],
+[10, 34],
+[12, 35],
+[30, 2],
+[31, 7],
+[32, 12],
+[21, 37],
+[29, 23],
 [22, 24],
 [23, 26],
 [25, 25],
@@ -193,6 +181,9 @@ let connections = [
 
 
 ];
+
+const connectedInputs = new Set(connections.map(c => c[1]));
+const connectedOutputs = new Set(connections.map(c => c[0]));
 
 function __Osc__Lib__sinewave(phase) {
 return Math.sin(((phase * 2) * Math.PI));
@@ -618,6 +609,11 @@ let __Mix__bal = 0;
 __m_inputs[29] = 0;
 let __Attenuator__balance = 0;
 __m_outputs[27] = 0;
+__m_inputs[30] = 0;
+__m_outputs[28] = 0;
+__m_inputs[31] = 0;
+let __Snh__prevTrigger = 0;
+let __Snh__hold = 0;
 let osc1waveform = 0;
 let osc2waveform = 0;
 let osc3waveform = 0;
@@ -631,26 +627,29 @@ let osc3semioffset = 0;
 let osc3detune = 0;
 let trigger = 0;
 let frequency = 440;
-__m_outputs[28] = 0;
-__m_inputs[30] = 0;
-__m_inputs[31] = 0;
+__m_outputs[29] = 0;
 __m_inputs[32] = 0;
 __m_inputs[33] = 0;
 __m_inputs[34] = 0;
 __m_inputs[35] = 0;
 __m_inputs[36] = 0;
-__m_outputs[29] = 440;
+__m_inputs[37] = 0;
+__m_inputs[38] = 0;
 __m_outputs[30] = 440;
 __m_outputs[31] = 440;
-__m_inputs[37] = 0;
+__m_outputs[32] = 440;
+__m_inputs[39] = 0;
 let frequencyModAmount = 0;
 let globalgate = 0;
-__m_inputs[38] = 0;
-__m_inputs[39] = 0;
 __m_inputs[40] = 0;
+__m_inputs[41] = 0;
+__m_inputs[42] = 0;
 let freq = 0;
+let osc2detunedV = 0;
 let osc2detuned = 0;
 let osc3detuned = 0;
+let oscGainMod = 0;
+let noiseGainModV = 0;
 
 
 class MephistoGenerator extends AudioWorkletProcessor {
@@ -765,12 +764,16 @@ case 'globalgate': globalgate = this.scheduledParameterSetters[i].value; break;
 
         this.scheduledConnections.forEach(([out, inp]) => {
             connections.push([out, inp]);
+            connectedInputs.add(inp);
+            connectedOutputs.add(out);
         });
 
         connections = connections.filter(([out, inp]) => {
             for (let i = 0; i < this.scheduledRemoveConnections.length; i++) {
                 if (out === this.scheduledRemoveConnections[i][0] && inp === this.scheduledRemoveConnections[i][1]) {
                     __m_inputs[inp] = 0;
+                    connectedInputs.delete(inp);
+                    connectedOutputs.delete(out);
                     return false;
                 }
             }
@@ -792,6 +795,11 @@ case 'globalgate': globalgate = this.scheduledParameterSetters[i].value; break;
         this.scheduledRemoveConnections = [];
 
         {
+if (((__m_inputs[31] > 0 ? 1 : 0) * (__Snh__prevTrigger == 0 ? 1 : 0))) {
+__Snh__hold = __m_inputs[30];
+} 
+;
+__Snh__prevTrigger = __m_inputs[31];
 __Limiter__signalMagnitude = Math.abs(__m_inputs[25]);
 __ADSR__attackInc = (1 / (sampleRate * __ADSR__attackTime));
 __ADSR__decayDec = ((1 - __ADSR__sustainLevel) / (sampleRate * __ADSR__decayTime));
@@ -814,7 +822,8 @@ __m_outputs[3] = __m_inputs[2];
 
         for (let i = 0; i < leftOutput.length; i++) {
             // Advance each module
-            __m_outputs[27] = (__m_inputs[29] * __Attenuator__balance);
+            __m_outputs[28] = __Snh__hold;
+__m_outputs[27] = (__m_inputs[29] * __Attenuator__balance);
 __Mix__bal = ((__Mix__balance * 0.5) + 0.5);
 __m_outputs[26] = (((__m_inputs[27] * (1 - __Mix__bal)) + (__m_inputs[28] * __Mix__bal)) / 2);
 __Freeverb__inputSample = __m_inputs[26];
@@ -945,13 +954,24 @@ __Osc__outwave = __Osc__Lib__trianglewave(__m_inputs[4]);
 
 ;
 __m_outputs[2] = __Osc__outwave;
-freq = (frequency + ((frequency * __m_inputs[37]) * frequencyModAmount));
-__m_outputs[29] = freq;
-osc2detuned = (freq * (1 + osc2detune));
+freq = (frequency + ((frequency * __m_inputs[39]) * frequencyModAmount));
+__m_outputs[30] = freq;
+osc2detunedV = (osc2detune + __m_inputs[41]);
+osc2detuned = (freq * (1 + osc2detunedV));
 osc3detuned = (freq * (1 + osc3detune));
-__m_outputs[30] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
-__m_outputs[31] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
-__m_outputs[28] = ((((((__m_inputs[30] * __m_outputs[17]) + (__m_inputs[31] * __m_outputs[18])) + (__m_inputs[32] * __m_outputs[19])) + (__m_inputs[33] * __m_outputs[20])) * __m_inputs[35]) * globalgate);
+__m_outputs[31] = __Freq__semiOffset((osc2detuned * osc2octaveoffset), osc2semioffset);
+__m_outputs[32] = __Freq__semiOffset((osc3detuned * osc3octaveoffset), osc3semioffset);
+oscGainMod = 1;
+if (Std.connected(connectedInputs, 40)) {
+oscGainMod = __m_inputs[40];
+} 
+;
+noiseGainModV = 1;
+if (Std.connected(connectedInputs, 42)) {
+noiseGainModV = __m_inputs[42];
+} 
+;
+__m_outputs[29] = ((((((__m_inputs[32] * __m_outputs[17]) + ((__m_inputs[33] * __m_outputs[18]) * oscGainMod)) + (__m_inputs[34] * __m_outputs[19])) + ((__m_inputs[35] * __m_outputs[20]) * noiseGainModV)) * __m_inputs[37]) * globalgate);
 
 
             connections.forEach(([out, inp]) => {
@@ -964,6 +984,7 @@ __m_inputs[13] = osc3waveform;
 __m_inputs[19] = lfowaveform;
 __m_inputs[18] = lfoFrequency;
 __m_inputs[21] = trigger;
+__m_inputs[31] = trigger;
 leftOutput[i] = __m_outputs[24];
 rightOutput && (rightOutput[i] = __m_outputs[24]);
 

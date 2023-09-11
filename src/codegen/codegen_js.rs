@@ -421,7 +421,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         return false;
                     }
 
-                    // If name starts with "##STD_", it's a stdlib function
+                    // TODO: This mess should be cleaned up
                     if name.starts_with("##STD_") {
                         let stdlib_name = name.trim_start_matches("##STD_");
                         context.push_code(&format!("{}", context.get_stdlib_symbol(stdlib_name)));
@@ -431,8 +431,15 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                     } else if name.starts_with("##OUTPUT_") {
                         let output_name = name.trim_start_matches("##OUTPUT_");
                         context.push_code(&format!("__m_outputs{}", output_name))
+                    } else if name.starts_with("##INPUTINDEX") {
+                        let input_index = name.trim_start_matches("##INPUTINDEX[");
+                        let input_index = input_index.trim_end_matches("]");
+                        context.push_code(&format!("connectedInputs, {}", input_index));
+                    } else if name.starts_with("##OUTPUTINDEX") {
+                        let output_index = name.trim_start_matches("##OUTPUTINDEX[");
+                        let output_index = output_index.trim_end_matches("]");
+                        context.push_code(&format!("connectedOutputs, {}", output_index));
                     } else if name.contains("#") {
-                        // replace # with __, and prepend with __
                         let name = name.replace("#", "__");
                         context.push_code(&format!("__{}", name));
                     } else {
@@ -977,6 +984,19 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                         traverse_ast(child, &mut ast_to_code, context);
                     }
                     context.push_code("} ");
+                }
+                ASTTraverseStage::Exit => {}
+            }
+
+            return true;
+        }
+
+        Node::ConnectedExpr {test, ..} => {
+            match enter_exit {
+                ASTTraverseStage::Enter => {
+                    context.push_code("Std.connected(");
+                    traverse_ast(test, &mut ast_to_code, context);
+                    context.push_code(")");
                 }
                 ASTTraverseStage::Exit => {}
             }
