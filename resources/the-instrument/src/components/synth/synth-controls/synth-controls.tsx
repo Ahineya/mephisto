@@ -464,7 +464,7 @@ export const SynthControls = () => {
                 displayValue={`${synthParams.values.__ADSR__attackTime.toFixed(3)}s`}
                 position={{
                     x: 35,
-                    y: 350
+                    y: 340
                 }}
                 conversionType="exponential"
             />
@@ -480,7 +480,7 @@ export const SynthControls = () => {
                 displayValue={`${synthParams.values.__ADSR__decayTime.toFixed(3)}s`}
                 position={{
                     x: 105,
-                    y: 350
+                    y: 340
                 }}
                 conversionType="exponential"
             />
@@ -496,7 +496,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__ADSR__sustainLevel.toFixed(2)}
                 position={{
                     x: 175,
-                    y: 350
+                    y: 340
                 }}
             />
 
@@ -511,7 +511,7 @@ export const SynthControls = () => {
                 displayValue={`${synthParams.values.__ADSR__releaseTime.toFixed(3)}s`}
                 position={{
                     x: 245,
-                    y: 350
+                    y: 340
                 }}
                 conversionType="exponential"
             />
@@ -529,7 +529,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Freeverb__roomSize.toFixed(2)}
                 position={{
                     x: 425,
-                    y: 230
+                    y: 220
                 }}
                 size={KnobSize.SMALL}
             />
@@ -545,7 +545,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Freeverb__damp.toFixed(2)}
                 position={{
                     x: 435,
-                    y: 310
+                    y: 300
                 }}
                 size={KnobSize.SMALL}
             />
@@ -561,7 +561,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Freeverb__dryWet.toFixed(2)}
                 position={{
                     x: 435,
-                    y: 390
+                    y: 380
                 }}
                 size={KnobSize.SMALL}
             />
@@ -578,7 +578,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Echo__delayTime.toFixed(2)}
                 position={{
                     x: 525,
-                    y: 230
+                    y: 220
                 }}
                 size={KnobSize.SMALL}
             />
@@ -594,7 +594,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Echo__feedback.toFixed(2)}
                 position={{
                     x: 518,
-                    y: 310
+                    y: 300
                 }}
                 size={KnobSize.SMALL}
             />
@@ -610,7 +610,7 @@ export const SynthControls = () => {
                 displayValue={synthParams.values.__Echo__dryWet.toFixed(2)}
                 position={{
                     x: 527,
-                    y: 390
+                    y: 380
                 }}
                 size={KnobSize.SMALL}
             />
@@ -627,7 +627,7 @@ export const SynthControls = () => {
                 displayValue={`${synthParams.values.lfoFrequency.toFixed(2)}Hz`}
                 position={{
                     x: 340,
-                    y: 390
+                    y: 380
                 }}
                 conversionType="exponential"
                 size={KnobSize.SMALL}
@@ -645,7 +645,7 @@ export const SynthControls = () => {
                 displayValue={Waveform[synthParams.values.lfowaveform]}
                 position={{
                     x: 340,
-                    y: 320
+                    y: 310
                 }}
                 size={KnobSize.SMALL}
             />
