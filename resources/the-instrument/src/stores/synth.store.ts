@@ -234,6 +234,10 @@ class SynthStore {
             }
         });
     }
+
+    setIsLoaded(isLoaded: boolean) {
+        this.onLoadedChanged.next(isLoaded);
+    }
 }
 
 export const synthStore = new SynthStore();

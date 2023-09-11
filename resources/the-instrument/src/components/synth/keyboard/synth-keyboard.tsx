@@ -19,6 +19,8 @@ const blackKeysLeft = [
 ]
 
 const notes = "C,Db,D,Eb,E,F,Gb,G,Ab,A,Bb,B,".split(',');
+const showNotes = false;
+
 
 export const SynthKeyboard = () => {
 
@@ -34,7 +36,6 @@ export const SynthKeyboard = () => {
   //
   // const [synthController, setSynthController] = useState<ISynthNode | null>(null);
   //
-  const [showNotes, setShowNotes] = useState(true);
   const [pressedKey, setPressedKey] = useState<number | null>(null);
 
   // useEffect(() => {

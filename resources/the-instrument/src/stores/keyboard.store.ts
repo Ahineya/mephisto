@@ -1,6 +1,7 @@
 import {BehaviorSubject} from "rxjs";
 import {audioContext, synth} from "../audio-context";
 import {synthStore} from "./synth.store.ts";
+import {wireStore} from "./wire-store.ts";
 // import {synthStore} from "./synth.store";
 // import {ISynthPreset} from "./synth.interface";
 // import {ISynthNode} from "../synth-node.interface";

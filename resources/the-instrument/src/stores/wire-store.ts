@@ -21,6 +21,39 @@ class WireStore {
 
     public draggedWireId = new StoreSubject<string | null>(null);
 
+    constructor() {
+        const wires = localStorage.getItem('wires');
+
+        if (wires) {
+            this.wires.next(JSON.parse(wires));
+        }
+
+        // Save wires to local storage
+        this.wires.subscribe(wires => {
+            localStorage.setItem('wires', JSON.stringify(wires));
+        });
+
+        synthStore.onLoadedChanged.subscribe(loaded => {
+            if (loaded) {
+                this.connectWires();
+            }
+        })
+    }
+
+    public connectWires() {
+        const wires = this.wires.getValue();
+
+        wires.forEach((wire) => {
+            console.log('WIRE', wire);
+            if (!wire.from.controlId || !wire.to.controlId) {
+                return;
+            }
+
+            console.log('CONNECT WIRE', wire.from.controlId, wire.to.controlId);
+            synthStore.connect(wire.from.controlId, wire.to.controlId);
+        });
+    }
+
     private createWire(from: WireConnectionPoint, to: WireConnectionPoint) {
         const uuid = `wire_${Math.random()}`;
 

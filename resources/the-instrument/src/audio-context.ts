@@ -192,6 +192,8 @@ synth.port.onmessage = (event) => {
         synthStore.setInputs(event.data.inputNames);
         synthStore.setOutputs(event.data.outputNames);
 
+        synthStore.setIsLoaded(true);
+
         const container = document.querySelector('#container');
 
         if (!container) {
