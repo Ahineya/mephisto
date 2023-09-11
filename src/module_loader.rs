@@ -6,13 +6,13 @@ use std::path::Path;
 use colored::Colorize;
 
 pub trait FileLoader {
-    fn load(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>>;
+    fn load(&self, path: &str, base_path: Option<&Path>, current_path: &Path) -> Result<String, Box<dyn Error>>;
 }
 
 pub struct NativeFileLoader;
 
 impl FileLoader for NativeFileLoader {
-    fn load(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>> {
+    fn load(&self, path: &str, base_path: Option<&Path>, current_path: &Path) -> Result<String, Box<dyn Error>> {
 
         let resolved_path = if let Some(base) = base_path {
             base.join(path)
@@ -41,7 +41,7 @@ impl StubFileLoader {
     }
 }
 impl FileLoader for StubFileLoader {
-    fn load(&self, path: &str, _base_path_: Option<&Path>) -> Result<String, Box<dyn Error>> {
+    fn load(&self, path: &str, _base_path_: Option<&Path>, _: &Path) -> Result<String, Box<dyn Error>> {
         let contents = self.files.get(path);
 
         if contents.is_none() {

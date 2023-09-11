@@ -77,7 +77,13 @@ impl<T: FileLoader> Mephisto<T> {
             modules: Box::new(modules),
         };
 
-        self.process_module(main_module_path, &mut context, None)?; // Recursively process all modules
+        let p: &Path = Path::new(main_module_path);
+
+        // We want just to take the directory of the main module
+        let current_dir = p.parent().unwrap_or(Path::new("."));
+        let main_module_path = p.file_name().unwrap().to_str().unwrap();
+
+        self.process_module(main_module_path, &mut context, Some(current_dir), p)?; // Recursively process all modules
 
         // println!("Modules: {:#?}", context);
 
@@ -142,14 +148,14 @@ impl<T: FileLoader> Mephisto<T> {
         code
     }
 
-    fn process_module(&mut self, path: &str, context: &mut Context, base_path: Option<&Path>) -> Result<(), Vec<String>> {
+    fn process_module(&mut self, path: &str, context: &mut Context, base_path: Option<&Path>, current_path: &Path) -> Result<(), Vec<String>> {
         if context.loaded_modules.contains(&path.to_string()) {
             return Ok(());
         }
 
         let mut module = ModuleData::new();
 
-        let input = self.load_module(path, base_path);
+        let input = self.load_module(path, base_path, current_path);
 
         if input.is_err() {
             module.errors.push(input.err().unwrap().to_string());
@@ -167,10 +173,13 @@ impl<T: FileLoader> Mephisto<T> {
 
         let import_paths: Vec<_> = ast.imports();
 
-        let current_dir = Path::new(path).parent().unwrap_or(Path::new("."));
+        let current_dir = base_path.unwrap_or(Path::new("."));
+        // We want to join base path with the current path
+        let cp = current_dir.join(path);
+        let current_dir = cp.parent().unwrap_or(Path::new("."));
 
         for path in import_paths {
-            self.process_module(&path, context, Some(&current_dir))?;
+            self.process_module(&path, context, Some(&current_dir), current_path)?;
         }
 
         let symbol_table = Mephisto::create_symbol_table(&mut ast)?;
@@ -187,8 +196,8 @@ impl<T: FileLoader> Mephisto<T> {
         Ok(())
     }
 
-    fn load_module(&self, path: &str, base_path: Option<&Path>) -> Result<String, Box<dyn Error>> {
-        let result: Result<String, Box<dyn Error>> = self.loader.load(path, base_path);
+    fn load_module(&self, path: &str, base_path: Option<&Path>, current_path: &Path) -> Result<String, Box<dyn Error>> {
+        let result: Result<String, Box<dyn Error>> = self.loader.load(path, base_path, current_path);
         result
     }
 

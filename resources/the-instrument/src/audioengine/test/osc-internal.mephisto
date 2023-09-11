@@ -1,6 +1,6 @@
-import Lib from "./lib.mephisto";
-import Phaser from "./phaser.mephisto";
-import Smooth from "./smoo.mephisto";
+import Lib from "../lib.mephisto";
+import Phaser from "../phaser.mephisto";
+import Smooth from "../smoo.mephisto";
 
 input frequency = 110;
 input wave = 0;

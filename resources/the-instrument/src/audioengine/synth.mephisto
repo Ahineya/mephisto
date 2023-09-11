@@ -1,14 +1,14 @@
-import Osc from "./osc-internal.mephisto";
-import Osc2 from "./osc-internal.mephisto";
-import Osc3 from "./osc-internal.mephisto";
+import Osc from "./test/osc-internal.mephisto";
+import Osc2 from "./test/osc-internal.mephisto";
+import Osc3 from "./test/osc-internal.mephisto";
 
 import Noise from "./noise.mephisto";
 
-import LFO from "./osc-internal.mephisto";
+import LFO from "./test/osc-internal.mephisto";
 
 import OscVolume from "./osc-volume.mephisto";
 
-import ADSR from "./adsr.mephisto";
+import ADSR from "./test/adsr.mephisto";
 
 import LowPass from "./lowpass.mephisto";
 import Echo from "./echo.mephisto";
