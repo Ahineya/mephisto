@@ -7,6 +7,12 @@ use crate::module_data::ModuleData;
 use crate::parser::ast::{AST, ASTTraverseStage, Node, traverse_ast, VariableSpecifier};
 use crate::symbol_table::{SymbolInfo, SymbolTable};
 
+/*
+TODO: There are a few things that need to be done here:
+1. Remove the code duplication. There are a lot of the same code here and there in the traverse_ast functions
+2. It does a bunch of unnecessary cloning of the AST. I haven't mastered Rust yet.
+ */
+
 pub struct IR {
     pub errors: Vec<String>,
 }

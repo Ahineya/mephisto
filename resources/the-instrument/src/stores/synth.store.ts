@@ -38,6 +38,7 @@ const parameters = [
     // 'frequency',
     'frequencyModAmount',
     // 'globalgate'
+    'UI_OCTAVE'
 ] as const;
 
 type Parameter = typeof parameters[number];
@@ -100,6 +101,7 @@ export const initPreset: SynthPreset = {
         // 'frequency': 0,
 
         'frequencyModAmount': 0,
+        'UI_OCTAVE': 2,
 
         // 'globalgate': 0
     }
@@ -218,6 +220,18 @@ class SynthStore {
         synth.port.postMessage({
             command: 'removeConnection',
             connection: [outputIndex, inputIndex]
+        });
+    }
+
+    setInternalParameter(name: Parameter, value: number) {
+        console.log('Setting internal parameter', name, value)
+
+        this.preset.next({
+            ...this.preset.getValue(),
+            values: {
+                ...this.preset.getValue().values,
+                [name]: value
+            }
         });
     }
 }

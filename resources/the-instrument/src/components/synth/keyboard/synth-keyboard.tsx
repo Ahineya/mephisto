@@ -10,6 +10,8 @@ import classNames from "classnames";
 import {audioContext} from "../../../audio-context.ts";
 import {KeyboardListener} from "./keyboard-listener.tsx";
 import {keyboardStore} from "../../../stores/keyboard.store.ts";
+import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
+import {synthStore} from "../../../stores/synth.store.ts";
 console.log(audioContext);
 
 const blackKeysLeft = [
@@ -26,10 +28,13 @@ export const SynthKeyboard = () => {
     retrigger: 0,
     octave: 0,
   });
+
+  const preset = useStoreSubscribe(synthStore.preset);
+
   //
   // const [synthController, setSynthController] = useState<ISynthNode | null>(null);
   //
-  const [showNotes, setShowNotes] = useState(false);
+  const [showNotes, setShowNotes] = useState(true);
   const [pressedKey, setPressedKey] = useState<number | null>(null);
 
   // useEffect(() => {
@@ -84,7 +89,7 @@ export const SynthKeyboard = () => {
   const drawBlackKeys = () => {
     let currentKeyNumber = 0;
 
-    return Array.from(new Array(32), (_, i) => i + 5 + (misc.octave * 12))
+    return Array.from(new Array(32), (_, i) => i + 5 + (preset.values.UI_OCTAVE * 12))
       .map(n => {
         if (isWhite(n)) {
           return null;
@@ -99,7 +104,7 @@ export const SynthKeyboard = () => {
   return <div className="synth-keyboard">
     <div className="keyboard-white-keys">
       {
-        Array.from(new Array(32), (_, i) => i + 5 + (misc.octave * 12))
+        Array.from(new Array(32), (_, i) => i + 5 + (preset.values.UI_OCTAVE * 12))
           .map(n => {
             return isWhite(n)
               ? <div className={classNames("key white-key", {pressed: pressedKey === n})} key={n} onMouseDown={() => playNote(n)} onMouseUp={() => stopNote(n)}>{showNotes ? notes[n % 12] : ''}</div>

@@ -5,6 +5,8 @@ import {fromEvent} from "rxjs";
 // import {ISynthPresetMiscValues} from "../stores/synth.interface";
 import {audioContext} from "../../../audio-context.ts";
 import {keyboardStore} from "../../../stores/keyboard.store.ts";
+import {useStoreSubscribe} from "@dgaa/use-store-subscribe";
+import {synthStore} from "../../../stores/synth.store.ts";
 
 const keyToMidi: {
   [key: string]: number;
@@ -39,6 +41,8 @@ export const KeyboardListener = () => {
     retrigger: 0,
   })
 
+  const preset = useStoreSubscribe(synthStore.preset);
+
   useEffect(() => {
     const subscriptions = [
       // synthStore.onLoadedChanged.subscribe(isLoaded => {
@@ -62,18 +66,19 @@ export const KeyboardListener = () => {
           }
 
           if (keyToMidi[e.key]) {
-            console.log('play note', keyToMidi[e.key] - 12 + misc.octave * 12);
-            keyboardStore.keyOn(keyToMidi[e.key] - 12 + misc.octave * 12);
+            console.log('play note', keyToMidi[e.key] - 12 + preset.values.UI_OCTAVE * 12);
+            keyboardStore.keyOn(keyToMidi[e.key] - 12 + preset.values.UI_OCTAVE * 12);
             return;
           }
 
-          if (e.key === 'z' && misc.octave > 0) {
+          if (e.key === 'z' && preset.values.UI_OCTAVE > 0) {
             // synthStore.changeMiscValue('octave', misc.octave - 1);
+            synthStore.setInternalParameter('UI_OCTAVE', preset.values.UI_OCTAVE - 1);
             return;
           }
 
-          if (e.key === 'x' && misc.octave < 5) {
-            // synthStore.changeMiscValue('octave', misc.octave + 1);
+          if (e.key === 'x' && preset.values.UI_OCTAVE < 5) {
+            synthStore.setInternalParameter('UI_OCTAVE', preset.values.UI_OCTAVE + 1);
             return;
           }
         }),
@@ -81,14 +86,14 @@ export const KeyboardListener = () => {
         .subscribe((e) => {
           if (!misc.hold) {
             if (keyToMidi[e.key]) {
-              keyboardStore.keyOff(keyToMidi[e.key] - 12 + misc.octave * 12);
+              keyboardStore.keyOff(keyToMidi[e.key] - 12 + preset.values.UI_OCTAVE * 12);
             }
           }
         })
     ];
 
     return () => subscriptions.forEach(s => s.unsubscribe());
-  }, [misc, isLoaded]);
+  }, [misc, isLoaded, preset]);
 
   useEffect(() => {
     if (!navigator.requestMIDIAccess) {
