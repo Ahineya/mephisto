@@ -3,52 +3,13 @@ use crate::parser::ast::{ASTTraverseStage, Node, Operator, traverse_ast, Variabl
 
 use handlebars::Handlebars;
 use std::collections::HashMap;
+use crate::codegen::context::{CodegenContext, CodeSection};
 use crate::ir::IRResult;
 
 pub struct JSCodeGenerator {
     handlebars: Handlebars<'static>,
 
     stdlib: HashMap<String, String>,
-}
-
-pub struct Context {
-    pub code: String,
-
-    pub code_map: HashMap<String, String>,
-    pub current_block: String,
-
-    pub parameter_declarations: Vec<String>,
-    pub parameter_setters: Vec<String>,
-
-    pub skip_identifiers: bool,
-    pub skip_identifier_once: bool,
-
-    pub errors: Vec<String>,
-
-    pub stdlib: HashMap<String, String>,
-}
-
-impl Context {
-    fn push_code(&mut self, code: &str) {
-        self.code_map.get_mut(&self.current_block).unwrap().push_str(code);
-    }
-
-    fn push_implicit_connect(&mut self, code: &str) {
-        self.code_map.get_mut(&"implicit_connect".to_string()).unwrap().push_str(code);
-    }
-
-    fn remove_last_char(&mut self) {
-        self.code_map.get_mut(&self.current_block).unwrap().pop();
-    }
-    
-    fn set_current_block(&mut self, block: &str) {
-        self.current_block = block.to_string();
-    }
-
-    fn get_stdlib_symbol(&self, name: &str) -> String {
-        // Name is guaranteed to be in the stdlib, so we can unwrap
-        self.stdlib.get(name).unwrap().to_string()
-    }
 }
 
 impl JSCodeGenerator {
@@ -119,10 +80,10 @@ impl JSCodeGenerator {
 impl CodeGenerator for JSCodeGenerator {
 
     fn generate(&self, ir: IRResult) -> Result<String, Vec<String>> {
-        let mut context = Context {
+        let mut context = CodegenContext {
             code: String::new(),
             code_map: HashMap::new(),
-            current_block: "glob".to_string(),
+            current_block: CodeSection::Glob.as_string(),
 
             parameter_declarations: Vec::new(),
             parameter_setters: Vec::new(),
@@ -135,11 +96,11 @@ impl CodeGenerator for JSCodeGenerator {
             stdlib: self.stdlib.clone(),
         };
 
-        context.code_map.insert("glob".to_string(), "".to_string());
-        context.code_map.insert("block".to_string(), "".to_string());
-        context.code_map.insert("process".to_string(), "".to_string());
-        context.code_map.insert("connect".to_string(), "".to_string());
-        context.code_map.insert("implicit_connect".to_string(), "".to_string());
+        context.code_map.insert(CodeSection::Glob.as_string(), "".to_string());
+        context.code_map.insert(CodeSection::Block.as_string(), "".to_string());
+        context.code_map.insert(CodeSection::Process.as_string(), "".to_string());
+        context.code_map.insert(CodeSection::Connect.as_string().to_string(), "".to_string());
+        context.code_map.insert(CodeSection::ImplicitConnect.as_string(), "".to_string());
 
         let mut ast = ir.ast;
 
@@ -152,11 +113,11 @@ impl CodeGenerator for JSCodeGenerator {
         let mut data = HashMap::new();
 
         let code_map = context.code_map.clone();
-        let glob_code = code_map.get("glob").unwrap();
-        let block_code = code_map.get("block").unwrap();
-        let process_code = code_map.get("process").unwrap();
-        let connect_code = code_map.get("connect").unwrap();
-        let implicit_connect_code = code_map.get("implicit_connect").unwrap();
+        let glob_code = code_map.get(&CodeSection::Glob.as_string()).unwrap();
+        let block_code = code_map.get(&CodeSection::Block.as_string()).unwrap();
+        let process_code = code_map.get(&CodeSection::Process.as_string()).unwrap();
+        let connect_code = code_map.get(&CodeSection::Connect.as_string()).unwrap();
+        let implicit_connect_code = code_map.get(&CodeSection::ImplicitConnect.as_string()).unwrap();
 
         let parameters = context.parameter_declarations.join(", ");
         let parameters = &parameters;
@@ -170,6 +131,7 @@ impl CodeGenerator for JSCodeGenerator {
         let input_names = ir.input_names.iter().map(|name| format!("\"{}\"", name)).collect::<Vec<_>>().join(", ");
         let output_names = ir.output_names.iter().map(|name| format!("\"{}\"", name)).collect::<Vec<_>>().join(", ");
 
+        // TODO: Need to make an enum here
         data.insert("INPUT_NAMES", &input_names);
         data.insert("OUTPUT_NAMES", &output_names);
         data.insert("INPUTS_LENGTH", &inputs_length);
@@ -193,7 +155,7 @@ impl CodeGenerator for JSCodeGenerator {
     }
 }
 
-fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Context) -> bool {
+fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut CodegenContext) -> bool {
     match node {
         Node::ProgramNode { .. } => {
             match enter_exit {
@@ -204,22 +166,22 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
         Node::ProcessSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    context.set_current_block("process");
+                    context.set_current_block(CodeSection::Process);
                 }
                 ASTTraverseStage::Exit => {
-                    context.set_current_block("glob");
+                    context.set_current_block(CodeSection::Glob);
                 }
             }
         }
         Node::BlockSection { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    context.set_current_block("block");
+                    context.set_current_block(CodeSection::Block);
                     context.push_code("{\n");
                 }
                 ASTTraverseStage::Exit => {
                     context.push_code("}\n\n");
-                    context.set_current_block("glob");
+                    context.set_current_block(CodeSection::Glob);
                 }
             }
         }
@@ -227,7 +189,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     
-                    context.set_current_block("connect");
+                    context.set_current_block(CodeSection::Connect);
                     
                     for child in children {
                         match child {
@@ -328,7 +290,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
                 }
                 ASTTraverseStage::Exit => {
                     context.push_code("\n\n");
-                    context.set_current_block("glob");
+                    context.set_current_block(CodeSection::Glob);
                 }
             }
         }
@@ -562,25 +524,17 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
         Node::MemberExpr { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-
                     context.errors.push("MemberExpr not expected in the IR".to_string());
                     return false;
-
-                    // traverse_ast(object, &mut ast_to_code, context);
-                    // context.push_code(".");
-                    // traverse_ast(property, &mut ast_to_code, context);
-
-                    // context.skip_identifiers = true;
                 }
-                ASTTraverseStage::Exit => {
-                    // context.skip_identifiers = false;
-                }
+                ASTTraverseStage::Exit => {}
             }
         }
         Node::ExportDeclarationStmt { .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    // context.push_code("export ");
+                    context.errors.push("Export Declaration not expected in the IR".to_string());
+                    return false;
                 }
                 ASTTraverseStage::Exit => {}
             }
@@ -749,7 +703,10 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Cont
 
         Node::ParameterDeclarationField{..} => {
             match enter_exit {
-                ASTTraverseStage::Enter => {}
+                ASTTraverseStage::Enter => {
+                    context.errors.push("ParameterDeclarationField not expected in the IR".to_string());
+                    return false;
+                }
                 ASTTraverseStage::Exit => {}
             }
         }
