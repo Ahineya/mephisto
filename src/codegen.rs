@@ -1,4 +1,5 @@
 pub mod codegen_js;
+pub mod codegen_wat;
 pub mod context;
 
 use crate::ir::IRResult;

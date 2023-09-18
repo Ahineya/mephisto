@@ -12,6 +12,8 @@ pub struct CodegenContext {
     pub skip_identifiers: bool,
     pub skip_identifier_once: bool,
 
+    pub is_setter: bool,
+
     pub errors: Vec<String>,
 
     pub stdlib: HashMap<String, String>,

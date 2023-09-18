@@ -6,18 +6,19 @@ use std::collections::HashMap;
 use crate::codegen::context::{CodegenContext, CodeSection};
 use crate::ir::IRResult;
 
-pub struct JSCodeGenerator {
+pub struct WATCodeGenerator {
     handlebars: Handlebars<'static>,
+
     stdlib: HashMap<String, String>,
 }
 
-impl JSCodeGenerator {
+impl WATCodeGenerator {
     pub fn new() -> Self {
         let mut handlebars = Handlebars::new();
         handlebars.register_escape_fn(handlebars::no_escape);
 
         handlebars
-            .register_template_string("js", include_str!("templates/js.hbs"))
+            .register_template_string("wat", include_str!("templates/wat.hbs"))
             .unwrap();
 
         let mut stdlib = HashMap::new();
@@ -45,12 +46,12 @@ impl JSCodeGenerator {
         stdlib.insert("log10".to_string(), "Math.log10".to_string());
 
         // Rounding functions
-        stdlib.insert("floor".to_string(), "Math.floor".to_string());
+        stdlib.insert("floor".to_string(), "f64.floor".to_string());
         stdlib.insert("ceil".to_string(), "Math.ceil".to_string());
         stdlib.insert("round".to_string(), "Math.round".to_string());
 
-        stdlib.insert("PI".to_string(), "Math.PI".to_string());
-        stdlib.insert("E".to_string(), "Math.E".to_string());
+        stdlib.insert("PI".to_string(), "(f64.const 3.141592653589793)".to_string());
+        stdlib.insert("E".to_string(), "(f64.const 2.718281828459045)".to_string());
         stdlib.insert("SR".to_string(), "sampleRate".to_string());
 
         // Controls
@@ -69,14 +70,14 @@ impl JSCodeGenerator {
         stdlib.insert("buf_put".to_string(), "Rb.put".to_string());
         stdlib.insert("buf_resize".to_string(), "Rb.resize".to_string());
 
-        JSCodeGenerator {
+        WATCodeGenerator {
             handlebars,
             stdlib
         }
     }
 }
 
-impl CodeGenerator for JSCodeGenerator {
+impl CodeGenerator for WATCodeGenerator {
 
     fn generate(&self, ir: IRResult) -> Result<String, Vec<String>> {
         let mut context = CodegenContext {
@@ -90,7 +91,7 @@ impl CodeGenerator for JSCodeGenerator {
             skip_identifiers: false,
             skip_identifier_once: false,
 
-            is_setter: false, // TODO: Not needed for JS
+            is_setter: false,
 
             errors: Vec::new(),
 
@@ -145,7 +146,7 @@ impl CodeGenerator for JSCodeGenerator {
         data.insert("CONNECTIONS", &connect_code);
         data.insert("IMPLICIT_CONNECTIONS", &implicit_connect_code);
 
-        let rendered = self.handlebars.render("js", &data).unwrap();
+        let rendered = self.handlebars.render("wat", &data).unwrap();
 
         Ok(rendered)
     }
@@ -389,11 +390,24 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
                         let stdlib_name = name.trim_start_matches("##STD_");
                         context.push_code(&format!("{}", context.get_stdlib_symbol(stdlib_name)));
                     } else if name.starts_with("##INPUT_") {
-                        let input_name = name.trim_start_matches("##INPUT_");
-                        context.push_code(&format!("__m_inputs{}", input_name))
+                        let input_name = name.trim_start_matches("##INPUT_[");
+                        let input_name = input_name.trim_end_matches("]");
+                        // TODO: This should look into memory, not global
+                        if context.is_setter {
+                            context.push_code(&format!("$__inputs_{}", input_name))
+                        } else {
+                            context.push_code(&format!("(global.get $__inputs_{})", input_name))
+                        }
                     } else if name.starts_with("##OUTPUT_") {
-                        let output_name = name.trim_start_matches("##OUTPUT_");
-                        context.push_code(&format!("__m_outputs{}", output_name))
+                        let output_name = name.trim_start_matches("##OUTPUT_[");
+                        let output_name = output_name.trim_end_matches("]");
+                        // TODO: This should look into memory, not global
+
+                        if context.is_setter {
+                            context.push_code(&format!("$__outputs_{}", output_name))
+                        } else {
+                            context.push_code(&format!("(global.get $__outputs_{})", output_name))
+                        }
                     } else if name.starts_with("##INPUTINDEX") {
                         let input_index = name.trim_start_matches("##INPUTINDEX[");
                         let input_index = input_index.trim_end_matches("]");
@@ -406,7 +420,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
                         let name = name.replace("#", "__");
                         context.push_code(&format!("__{}", name));
                     } else {
-                        context.push_code(name);
+                        context.push_code(&format!("(global.get ${})", name));
                     }
                 }
                 ASTTraverseStage::Exit => {}
@@ -429,7 +443,7 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
                         }
                     }
 
-                    context.push_code(";\n");
+                    // context.push_code(";\n");
                 }
             }
 
@@ -438,12 +452,14 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
         Node::AssignmentExpr { lhs, rhs, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
+                    context.push_code("(global.set ");
+                    context.is_setter = true;
                     traverse_ast(lhs, &mut ast_to_code, context);
-                    context.push_code(" = ");
+                    context.is_setter = false;
                     traverse_ast(rhs, &mut ast_to_code, context);
+                    context.push_code(")");
                 }
                 ASTTraverseStage::Exit => {
-                    context.push_code(";\n");
                 }
             }
 
@@ -477,17 +493,15 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     match specifier {
-                        VariableSpecifier::Let => {
-                            context.push_code("let ");
-                        }
-                        VariableSpecifier::Const => {
-                            context.push_code("const ");
+                        | VariableSpecifier::Let
+                        | VariableSpecifier::Const => {
+                            context.push_code("(global $");
                         }
                         VariableSpecifier::Input => {
-                            context.push_code("");
+                            context.push_code("(global $");
                         }
                         VariableSpecifier::Output => {
-                            context.push_code("");
+                            context.push_code("(global $");
                         }
                         VariableSpecifier::Buffer => {
                             context.push_code("let ");
@@ -497,11 +511,13 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
                     match id.as_ref() {
                         Node::Identifier { name, .. } => {
                             if name.starts_with("##INPUT_") {
-                                let input_name = name.trim_start_matches("##INPUT_");
-                                context.push_code(&format!("__m_inputs{}", input_name))
-                            } else if name.starts_with("##OUTPUT_") {
-                                let output_name = name.trim_start_matches("##OUTPUT_");
-                                context.push_code(&format!("__m_outputs{}", output_name))
+                                let input_name = name.trim_start_matches("##INPUT_[");
+                                let input_name = input_name.trim_end_matches("]");
+                                context.push_code(&format!("__inputs_{}", input_name))
+                            } else if name.starts_with("##OUTPUT_[") {
+                                let output_name = name.trim_start_matches("##OUTPUT_[");
+                                let output_name = output_name.trim_end_matches("]");
+                                context.push_code(&format!("__outputs_{}", output_name))
                             } else if name.contains("#") {
                                 // replace # with __, and prepend with __
                                 let name = name.replace("#", "__");
@@ -513,12 +529,12 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
                         _ => {}
                     }
 
-                    context.push_code(" = ");
+                    context.push_code(" (mut f64) ");
 
                     context.skip_identifier_once = true;
                 }
                 ASTTraverseStage::Exit => {
-                    context.push_code(";\n");
+                    context.push_code(")\n");
                 }
             }
         }
@@ -712,8 +728,8 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
         Node::FnCallExpr { callee, args, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    traverse_ast(callee, &mut ast_to_code, context);
                     context.push_code("(");
+                    traverse_ast(callee, &mut ast_to_code, context);
 
                     let mut len = 0;
 
@@ -738,7 +754,8 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
         Node::Number { value, .. } => {
             match enter_exit {
                 ASTTraverseStage::Enter => {
-                    context.push_code(&value.to_string());
+                    let number = value.to_string();
+                    context.push_code(&format!("(f64.const {})", number).as_str());
                 }
                 ASTTraverseStage::Exit => {}
             }
@@ -763,39 +780,40 @@ fn ast_to_code(enter_exit: ASTTraverseStage, node: &mut Node, context: &mut Code
             match enter_exit {
                 ASTTraverseStage::Enter => {
                     context.push_code("(");
-                    traverse_ast(lhs, &mut ast_to_code, context);
                     match op {
                         Operator::Plus => {
-                            context.push_code(" + ");
+                            context.push_code("f64.add");
                         }
                         Operator::Minus => {
-                            context.push_code(" - ");
+                            context.push_code("f64.sub");
                         }
                         Operator::Mul => {
-                            context.push_code(" * ");
+                            context.push_code("f64.mul");
                         }
                         Operator::Div => {
-                            context.push_code(" / ");
+                            context.push_code("f64.div");
                         }
                         Operator::Eq => {
-                            context.push_code(" == ");
+                            context.push_code("f64.eq");
                         }
                         Operator::Gt => {
-                            context.push_code(" > ");
+                            context.push_code("f64.gt");
                         }
                         Operator::Lt => {
-                            context.push_code(" < ");
+                            context.push_code("f64.lt");
                         }
                         Operator::Ge => {
-                            context.push_code(" >= ");
+                            context.push_code("f64.ge");
                         }
                         Operator::Le => {
-                            context.push_code(" <= ");
+                            context.push_code("f64.le");
                         }
                         Operator::Ne => {
-                            context.push_code(" != ");
+                            context.push_code("f64.ne");
                         }
                     }
+
+                    traverse_ast(lhs, &mut ast_to_code, context);
                     traverse_ast(rhs, &mut ast_to_code, context);
 
                     match op {
@@ -980,7 +998,7 @@ mod tests {
         let mut handlebars = Handlebars::new();
         handlebars.register_template_string("js", include_str!("templates/js.hbs")).unwrap();
 
-        let code_generator = JSCodeGenerator::new();
+        let code_generator = WATCodeGenerator::new();
 
         let code = "
             let foo = 42;

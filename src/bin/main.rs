@@ -5,6 +5,8 @@ use mephisto::codegen::codegen_js::JSCodeGenerator;
 use mephisto::module_loader::NativeFileLoader;
 use crate::mephisto::Mephisto;
 use colored::Colorize;
+use mephisto::codegen::codegen_wat::WATCodeGenerator;
+use mephisto::codegen::CodeGenerator;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about)]
@@ -26,15 +28,25 @@ fn main() {
     let args = Args::parse();
 
     let loader = NativeFileLoader;
-    let codegen = JSCodeGenerator::new();
+    let codegen: Box<dyn CodeGenerator> = match args.target.as_str() {
+        "js" => Box::new(JSCodeGenerator::new()),
+        "wasm" => Box::new(WATCodeGenerator::new()),
+        _ => panic!("Unknown target: {}", args.target),
+    };
+
     let mut mephisto = Mephisto::new(loader);
 
+    if args.target.as_str() == "wasm" {
+        println!("{}", "WASM compilation is not ready yet, the result module will not work".red().bold());
+    }
+
     println!("{} {}", "Compiling".green(), args.input);
+    println!("{} {}", "Target".green(), args.target);
 
     // We want to calculate elapsed time
     let start = std::time::Instant::now();
 
-    let compilation_result = mephisto.compile(&args.input, Box::new(codegen));
+    let compilation_result = mephisto.compile(&args.input, codegen);
 
     match compilation_result {
         Ok(res) => {
