@@ -1,0 +1,23 @@
+.preset-selector {
+  z-index: 2;
+  position: absolute;
+  left: 0;
+  top: 0;
+
+  width: 100%;
+
+  height: calc(100% - 30px);
+
+  background-color: var(--color-main-bg);
+  color: var(--color-caption);
+
+  h3 {
+    width: 100%;
+    text-align: center;
+  }
+
+  .preset-selector-presets {
+    display: flex;
+    flex-direction: column;
+  }
+}

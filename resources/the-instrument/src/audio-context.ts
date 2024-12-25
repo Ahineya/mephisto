@@ -3,29 +3,13 @@
 import {synthStore} from "./stores/synth.store.ts";
 
 export const audioContext = new AudioContext();
-export const analyser = audioContext.createAnalyser();
-
-// const pluginURL = "audio-engine";
-// const plugin = new Faustsynth_and_effects(audioContext, pluginURL);
-// export const synth = plugin.load()
-//   .then((node: any) => {
-//     const synthNode = node;
-//
-//     console.log(synthNode.getJSON());
-//     // Print path to be used with 'setParamValue'
-//     console.log(synthNode.getParams());
-//     // Connect it to output as a regular WebAudio node
-//     synthNode.connect(analyser);
-//     analyser.connect(audioContext.destination);
-//     return synthNode;
-//   });
+// export const analyser = audioContext.createAnalyser();
 
 await audioContext.audioWorklet.addModule('processor.js');
 audioContext.suspend();
-export const synth = new AudioWorkletNode(audioContext, 'mephisto-generator', {
+export const synthNode = new AudioWorkletNode(audioContext, 'mephisto-generator', {
     outputChannelCount: [2],
 });
-
 
 type Connection = {
     path: string[];
@@ -53,8 +37,8 @@ function toMermaid(connections: string[]): string {
     return `graph LR\n${mm}`;
 }
 
-synth.port.onmessage = (event) => {
-    const port = synth.port;
+synthNode.port.onmessage = (event) => {
+    const port = synthNode.port;
 
     if (event.data.command === 'init') {
         const controls = document.createElement('div');
@@ -215,6 +199,60 @@ synth.port.onmessage = (event) => {
     }
 };
 
-synth.connect(audioContext.destination);
+synthNode.connect(audioContext.destination);
 
-console.log(synth);
+class SynthFacade {
+    private _port: MessagePort;
+
+    constructor(port: MessagePort) {
+        this._port = port;
+    }
+
+    init() {
+        this._port.postMessage({
+            command: 'init'
+        });
+    }
+
+    setParameter(name: string, value: number) {
+        this._port.postMessage({
+            command: 'setParameter',
+            setter: {
+                name,
+                value
+            }
+        });
+    }
+
+    connect(output: string, input: string) {
+        const outputIndex = synthStore.getNumericOutput(output);
+        const inputIndex = synthStore.getNumericInput(input);
+
+        if (outputIndex === -1 || inputIndex === -1) {
+            return;
+        }
+
+        this._port.postMessage({
+            command: 'addConnection',
+            connection: [outputIndex, inputIndex]
+        });
+    }
+
+    disconnect(output: string, input: string) {
+        const outputIndex = synthStore.getNumericOutput(output);
+        const inputIndex = synthStore.getNumericInput(input);
+
+        if (outputIndex === -1 || inputIndex === -1) {
+            return;
+        }
+
+        this._port.postMessage({
+            command: 'removeConnection',
+            connection: [outputIndex, inputIndex]
+        });
+    }
+}
+
+export const synthFacade = new SynthFacade(synthNode.port);
+
+console.log(synthNode);

@@ -61,10 +61,6 @@ export const KeyboardListener = () => {
             return;
           }
 
-          if (audioContext.state !== 'running') {
-            audioContext.resume();
-          }
-
           if (keyToMidi[e.key]) {
             console.log('play note', keyToMidi[e.key] - 12 + preset.values.UI_OCTAVE * 12);
             keyboardStore.keyOn(keyToMidi[e.key] - 12 + preset.values.UI_OCTAVE * 12);

@@ -35,12 +35,24 @@
     flex-grow: 1;
   }
 
-  .import {
-    flex-direction: column;
-    display: none;
+}
 
-    &.shown {
-      display: flex;
-    }
+.import {
+  position: fixed;
+
+  background-color: var(--color-main-bg);
+  z-index: 1000;
+
+  border: 1px solid white;
+
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+
+  flex-direction: column;
+  display: none;
+
+  &.shown {
+    display: flex;
   }
 }

@@ -209,10 +209,11 @@ process {
     }
 
     out = (
-    osc1 * OscVolume.osc1gainOut
+        osc1 * OscVolume.osc1gainOut
         + osc2 * OscVolume.osc2gainOut * oscGainMod
         + osc3 * OscVolume.osc3gainOut
-        + noise * OscVolume.noiseGainOut * noiseGainModV) * adsr * globalgate;
+        + noise * OscVolume.noiseGainOut * noiseGainModV
+    ) * adsr * globalgate;
 }
 
 connect {

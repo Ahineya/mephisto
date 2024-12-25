@@ -52,6 +52,8 @@ block {
 // Perhaps the time should be taken into the account as well, so it will have less release time when the envelope hasn't reached the sustain level yet,
 // or overshot it because of decay.
 
+
+// TODO Rewrite this BS using if statements
 process {
     let risingEdge = gate * (1 - prevGate);
     let fallingEdge = prevGate * (1 - gate);

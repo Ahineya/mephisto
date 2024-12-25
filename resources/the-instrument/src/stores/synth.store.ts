@@ -1,57 +1,10 @@
 import {StoreSubject} from "@dgaa/store-subject";
-import {synth} from "../audio-context.ts";
-import {copyToClipboard} from "../helpers/copy-to-clipboard.ts";
+import {audioContext, synthFacade} from "../audio-context.ts";
+import {Parameter, SynthParametersPreset} from "../types/synthesizer.types.ts";
 
-const parameters = [
-    '__OscVolume__osc1gain',
-    '__OscVolume__osc2gain',
-    '__OscVolume__osc3gain',
-    '__OscVolume__noiseGain',
-    '__ADSR__attackTime',
-    '__ADSR__decayTime',
-    '__ADSR__sustainLevel',
-    '__ADSR__releaseTime',
-    '__LowPass__cutoffFrequency',
-    '__LowPass__resonance',
-    '__Echo__delayTime',
-    '__Echo__feedback',
-    '__Echo__dryWet',
-    '__Limiter__threshold',
-    '__Limiter__recoveryRate',
-    '__Freeverb__dryWet',
-    '__Freeverb__roomSize',
-    '__Freeverb__damp',
-    '__Mix__balance',
-    '__Attenuator__balance',
-    'osc1waveform',
-    'osc2waveform',
-    'osc3waveform',
-    'lfowaveform',
-    'lfoFrequency',
-    'osc2octaveoffset',
-    'osc2semioffset',
-    'osc2detune',
-    'osc3octaveoffset',
-    'osc3semioffset',
-    'osc3detune',
-    // 'trigger',
-    // 'frequency',
-    'frequencyModAmount',
-    // 'globalgate'
-    'UI_OCTAVE'
-] as const;
 
-type Parameter = typeof parameters[number];
 
-type SynthPreset = {
-    id: number;
-    name: string;
-    values: {
-        [key in Parameter]: number;
-    }
-}
-
-export const initPreset: SynthPreset = {
+export const initPreset: SynthParametersPreset = {
     id: 1,
     name: "Default preset",
     values: {
@@ -112,8 +65,10 @@ class SynthStore {
     public inputs = new StoreSubject<string[]>([]);
     public outputs = new StoreSubject<string[]>([]);
 
-    public preset = new StoreSubject<SynthPreset>(initPreset);
+    public preset = new StoreSubject<SynthParametersPreset>(initPreset);
     public onLoadedChanged = new StoreSubject(false);
+
+    private firstLoad = true;
 
     constructor() {
         const savedPresetJSON = localStorage.getItem('currentPreset');
@@ -134,15 +89,22 @@ class SynthStore {
         });
     }
 
-    public loadPreset(preset: SynthPreset) {
+    public initSynth() {
+        if (audioContext.state === "suspended" || this.firstLoad) {
+            audioContext.resume();
+
+            synthFacade.init();
+            synthFacade.setParameter('globalgate', 1);
+
+            synthStore.loadCurrentPreset();
+
+            this.firstLoad = false;
+        }
+    }
+
+    public loadPreset(preset: SynthParametersPreset) {
         Object.entries(preset.values as object).forEach(([prop, value]) => {
-            synth.port.postMessage({
-                command: 'setParameter',
-                setter: {
-                    name: prop,
-                    value
-                }
-            });
+            synthFacade.setParameter(prop as Parameter, value)
         });
 
         this.preset.next(preset);
@@ -154,13 +116,7 @@ class SynthStore {
     }
 
     public setSynthParameter(name: Parameter, value: number) {
-        synth.port.postMessage({
-            command: 'setParameter',
-            setter: {
-                name,
-                value
-            }
-        });
+        synthFacade.setParameter(name, value);
 
         this.preset.next({
             ...this.preset.getValue(),
@@ -203,10 +159,7 @@ class SynthStore {
             return;
         }
 
-        synth.port.postMessage({
-            command: 'addConnection',
-            connection: [outputIndex, inputIndex]
-        });
+        synthFacade.connect(output, input);
     }
 
     disconnect(output: string, input: string) {
@@ -217,10 +170,7 @@ class SynthStore {
             return;
         }
 
-        synth.port.postMessage({
-            command: 'removeConnection',
-            connection: [outputIndex, inputIndex]
-        });
+        synthFacade.disconnect(output, input);
     }
 
     setInternalParameter(name: Parameter, value: number) {
